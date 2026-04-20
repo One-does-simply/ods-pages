@@ -1,0 +1,82 @@
+{
+  "templates": [
+    {
+      "id": "simple-tracker",
+      "name": "Simple Tracker",
+      "description": "Track anything with a form, list, and optional charts. Add, edit, and delete items.",
+      "file": "simple-tracker.json"
+    },
+    {
+      "id": "survey",
+      "name": "Survey / Feedback",
+      "description": "Collect responses with a form and view aggregate results with charts.",
+      "file": "survey.json"
+    },
+    {
+      "id": "daily-log",
+      "name": "Daily Log",
+      "description": "A journal for date-based entries \u00e2\u20ac\u201d write, browse, and edit. Great for diaries, standups, or gratitude logs.",
+      "file": "daily-log.json"
+    },
+    {
+      "id": "scoreboard",
+      "name": "Scoreboard",
+      "description": "Track scores and rankings for people or teams with charts and summary stats.",
+      "file": "scoreboard.json"
+    },
+    {
+      "id": "quiz",
+      "name": "Quiz",
+      "description": "Multiple-choice quiz with auto-stepping questions, scoring, and optional progress tracking.",
+      "file": "quiz.json"
+    },
+    {
+      "id": "directory",
+      "name": "Directory",
+      "description": "A searchable directory with card layout and detail view. Browse, search, and manage contacts or members.",
+      "file": "directory.json"
+    },
+    {
+      "id": "approval",
+      "name": "Approval / Request",
+      "description": "Submit requests and track approvals. Reviewers can approve or reject with color-coded status and toast notifications.",
+      "file": "approval.json"
+    },
+    {
+      "id": "inventory",
+      "name": "Inventory",
+      "description": "Track items, quantities, and locations. See stock levels at a glance with searchable lists, card layout, and low-stock alerts.",
+      "file": "inventory.json"
+    },
+    {
+      "id": "simple-checklist",
+      "name": "Simple Checklist",
+      "description": "A quick check-off list \u00e2\u20ac\u201d add items, tap to check them off. Perfect for grocery lists, to-dos, and packing lists.",
+      "file": "simple-checklist.json"
+    },
+    {
+      "id": "checklist",
+      "name": "Advanced Checklist",
+      "description": "Run checklists and inspections with pass/fail tracking, completion counts, and color-coded results.",
+      "file": "checklist.json"
+    },
+    {
+      "id": "master-detail",
+      "name": "Master-Detail",
+      "description": "Two related tables \u00e2\u20ac\u201d manage parent records and their child items. Great for projects & tasks, orders & line items, or classes & students.",
+      "file": "master-detail.json"
+    },
+    {
+      "id": "booking",
+      "name": "Booking / Sign-up",
+      "description": "Manage bookings, reservations, or sign-ups with date tracking, status updates, and searchable lists.",
+      "file": "booking.json"
+    },
+    {
+      "id": "kanban-board",
+      "name": "Kanban Board",
+      "description": "A drag-and-drop task board with customizable columns. Track items through stages like To Do, In Progress, and Done.",
+      "file": "kanban-board.json"
+    }
+  ]
+}

@@ -1,0 +1,861 @@
+{
+  "templateName": "Quiz",
+  "description": "Create a multiple-choice quiz app. Add questions, take quizzes with auto-stepping, and track your scores.",
+  "icon": "quiz",
+  "questions": [
+    {
+      "id": "appName",
+      "label": "What do you want to call your quiz app?",
+      "type": "text",
+      "required": true,
+      "placeholder": "e.g., History Quiz, Study Flashcards"
+    },
+    {
+      "id": "topic",
+      "label": "What topic or subject?",
+      "type": "text",
+      "required": true,
+      "placeholder": "e.g., World History, Biology, Company Trivia"
+    },
+    {
+      "id": "wantProgress",
+      "label": "Include a progress chart page?",
+      "type": "checkbox",
+      "default": true
+    },
+    {
+      "id": "theme",
+      "label": "App theme",
+      "type": "select",
+      "options": ["indigo", "slate", "ocean", "parchment", "peach", "terracotta", "walnut", "cupcake", "bumblebee", "emerald", "corporate", "synthwave", "retro", "cyberpunk", "valentine", "halloween", "garden", "forest", "aqua", "lofi", "pastel", "fantasy", "wireframe", "black", "luxury", "dracula", "cmyk", "autumn", "business", "acid", "lemonade", "night", "coffee", "winter", "dim", "nord", "sunset", "caramellatte", "abyss", "silk"],
+      "default": "indigo"
+    }
+  ],
+  "template": {
+    "appName": "${appName}",
+    "branding": {
+      "theme": "${theme}"
+    },
+    "startPage": "startPage",
+    "menu": {
+      "$flatten": [
+        [
+          {
+            "label": "Start Quiz",
+            "mapsTo": "startPage"
+          },
+          {
+            "label": "My Results",
+            "mapsTo": "resultsPage"
+          }
+        ],
+        {
+          "$if": "wantProgress",
+          "then": [
+            {
+              "label": "Progress",
+              "mapsTo": "progressPage"
+            }
+          ],
+          "else": []
+        },
+        [
+          {
+            "label": "Manage Questions",
+            "mapsTo": "manageQuestionsPage"
+          }
+        ]
+      ]
+    },
+    "pages": {
+      "startPage": {
+        "component": "page",
+        "title": "${appName}",
+        "content": [
+          {
+            "component": "text",
+            "content": "Test your ${topic} knowledge! Press Start to step through questions one at a time.",
+            "styleHint": {
+              "variant": "body"
+            }
+          },
+          {
+            "component": "text",
+            "content": "{COUNT(questionReader)} questions available",
+            "styleHint": {
+              "variant": "subheading"
+            }
+          },
+          {
+            "component": "button",
+            "label": "Start Quiz",
+            "onClick": [
+              {
+                "action": "firstRecord",
+                "target": "answerForm",
+                "onEnd": {
+                  "action": "navigate",
+                  "target": "noQuestionsPage"
+                }
+              },
+              {
+                "action": "navigate",
+                "target": "answerPage"
+              }
+            ],
+            "styleHint": {
+              "emphasis": "primary",
+              "icon": "rocket"
+            }
+          },
+          {
+            "component": "text",
+            "content": "No questions yet! Add some below to get started.",
+            "styleHint": {
+              "variant": "body",
+              "align": "center",
+              "color": "grey"
+            },
+            "visibleWhen": {
+              "source": "questionReader",
+              "countEquals": 0
+            }
+          },
+          {
+            "component": "button",
+            "label": "Add Questions",
+            "onClick": [
+              {
+                "action": "navigate",
+                "target": "addQuestionPage"
+              }
+            ],
+            "styleHint": {
+              "emphasis": "secondary",
+              "icon": "add_circle",
+              "variant": "outlined"
+            }
+          }
+        ]
+      },
+      "noQuestionsPage": {
+        "component": "page",
+        "title": "No Questions",
+        "content": [
+          {
+            "component": "text",
+            "content": "There are no questions yet. Add some to get started!",
+            "styleHint": {
+              "variant": "heading"
+            }
+          },
+          {
+            "component": "button",
+            "label": "Add Questions",
+            "onClick": [
+              {
+                "action": "navigate",
+                "target": "addQuestionPage"
+              }
+            ],
+            "styleHint": {
+              "emphasis": "primary",
+              "icon": "add_circle"
+            }
+          },
+          {
+            "component": "button",
+            "label": "Back",
+            "onClick": [
+              {
+                "action": "navigate",
+                "target": "startPage"
+              }
+            ],
+            "styleHint": {
+              "emphasis": "secondary",
+              "icon": "arrow_back",
+              "variant": "outlined"
+            }
+          }
+        ]
+      },
+      "answerPage": {
+        "component": "page",
+        "title": "Answer Question",
+        "content": [
+          {
+            "component": "form",
+            "id": "answerForm",
+            "recordSource": "questionReader",
+            "fields": [
+              {
+                "name": "questionText",
+                "label": "Question",
+                "type": "multiline",
+                "readOnly": true,
+                "displayVariant": "heading"
+              },
+              {
+                "name": "optionA",
+                "label": "A",
+                "type": "text",
+                "readOnly": true,
+                "displayVariant": "body"
+              },
+              {
+                "name": "optionB",
+                "label": "B",
+                "type": "text",
+                "readOnly": true,
+                "displayVariant": "body"
+              },
+              {
+                "name": "optionC",
+                "label": "C",
+                "type": "text",
+                "readOnly": true,
+                "displayVariant": "body"
+              },
+              {
+                "name": "optionD",
+                "label": "D",
+                "type": "text",
+                "readOnly": true,
+                "displayVariant": "body"
+              },
+              {
+                "name": "correctOption",
+                "type": "hidden"
+              },
+              {
+                "name": "userAnswer",
+                "label": "Your Answer",
+                "type": "select",
+                "required": true,
+                "options": [
+                  "A",
+                  "B",
+                  "C",
+                  "D"
+                ],
+                "optionLabels": [
+                  "A: {optionA}",
+                  "B: {optionB}",
+                  "C: {optionC}",
+                  "D: {optionD}"
+                ]
+              },
+              {
+                "name": "attemptDate",
+                "type": "hidden",
+                "default": "NOW"
+              }
+            ]
+          },
+          {
+            "component": "button",
+            "label": "Submit Answer",
+            "onClick": [
+              {
+                "action": "submit",
+                "dataSource": "answerStore",
+                "target": "answerForm",
+                "computedFields": [
+                  {
+                    "field": "correct",
+                    "expression": "{userAnswer} == {correctOption} ? '1' : '0'"
+                  }
+                ]
+              },
+              {
+                "action": "nextRecord",
+                "target": "answerForm",
+                "onEnd": {
+                  "action": "navigate",
+                  "target": "completePage"
+                }
+              }
+            ],
+            "styleHint": {
+              "emphasis": "primary",
+              "icon": "send"
+            }
+          }
+        ]
+      },
+      "completePage": {
+        "component": "page",
+        "title": "Quiz Complete!",
+        "content": {
+          "$flatten": [
+            [
+              {
+                "component": "summary",
+                "label": "Questions Answered",
+                "value": "{COUNT(answerReader)}",
+                "icon": "check_circle"
+              },
+              {
+                "component": "text",
+                "content": "You finished all the questions!",
+                "styleHint": {
+                  "variant": "heading"
+                }
+              },
+              {
+                "component": "text",
+                "content": "{COUNT(answerReader)} answered \u00e2\u20ac\u201d {COUNT(answerReader, correct=1)} correct ({PCT(answerReader, correct=1)}%)",
+                "styleHint": {
+                  "variant": "subheading"
+                }
+              },
+              {
+                "component": "button",
+                "label": "View Results",
+                "onClick": [
+                  {
+                    "action": "navigate",
+                    "target": "resultsPage"
+                  }
+                ],
+                "styleHint": {
+                  "emphasis": "primary"
+                }
+              }
+            ],
+            {
+              "$if": "wantProgress",
+              "then": [
+                {
+                  "component": "button",
+                  "label": "View Progress",
+                  "onClick": [
+                    {
+                      "action": "navigate",
+                      "target": "progressPage"
+                    }
+                  ],
+                  "styleHint": {
+                    "emphasis": "secondary"
+                  }
+                }
+              ],
+              "else": []
+            },
+            [
+              {
+                "component": "button",
+                "label": "Start Again",
+                "onClick": [
+                  {
+                    "action": "navigate",
+                    "target": "startPage"
+                  }
+                ],
+                "styleHint": {
+                  "emphasis": "secondary"
+                }
+              }
+            ]
+          ]
+        }
+      },
+      "resultsPage": {
+        "component": "page",
+        "title": "My Results",
+        "content": [
+          {
+            "component": "text",
+            "content": "{COUNT(answerReader)} answered \u00e2\u20ac\u201d {COUNT(answerReader, correct=1)} correct ({PCT(answerReader, correct=1)}%)",
+            "styleHint": {
+              "variant": "heading"
+            },
+            "visibleWhen": {
+              "source": "answerReader",
+              "countMin": 1
+            }
+          },
+          {
+            "component": "text",
+            "content": "No results yet. Take the quiz to see your scores!",
+            "styleHint": {
+              "variant": "body",
+              "align": "center",
+              "color": "grey"
+            },
+            "visibleWhen": {
+              "source": "answerReader",
+              "countEquals": 0
+            }
+          },
+          {
+            "component": "list",
+            "dataSource": "answerReader",
+            "searchable": true,
+            "columns": [
+              {
+                "header": "Date",
+                "field": "attemptDate",
+                "sortable": true
+              },
+              {
+                "header": "Question",
+                "field": "questionText"
+              },
+              {
+                "header": "Yours",
+                "field": "userAnswer"
+              },
+              {
+                "header": "Correct",
+                "field": "correctOption"
+              },
+              {
+                "header": "Result",
+                "field": "correct",
+                "sortable": true,
+                "colorMap": {
+                  "1": "green",
+                  "0": "red"
+                },
+                "displayMap": {
+                  "1": "Correct",
+                  "0": "Wrong"
+                }
+              }
+            ],
+            "rowActions": [
+              {
+                "label": "Delete",
+                "action": "delete",
+                "dataSource": "answerDeleter",
+                "matchField": "_id"
+              }
+            ]
+          },
+          {
+            "component": "button",
+            "label": "Take Quiz Again",
+            "onClick": [
+              {
+                "action": "navigate",
+                "target": "startPage"
+              }
+            ],
+            "styleHint": {
+              "emphasis": "primary"
+            }
+          }
+        ]
+      },
+      "manageQuestionsPage": {
+        "component": "page",
+        "title": "Manage Questions",
+        "content": [
+          {
+            "component": "text",
+            "content": "{COUNT(questionReader)} questions",
+            "styleHint": {
+              "variant": "subheading"
+            }
+          },
+          {
+            "component": "text",
+            "content": "No questions yet. Add your first question to get started!",
+            "styleHint": {
+              "variant": "body",
+              "align": "center",
+              "color": "grey"
+            },
+            "visibleWhen": {
+              "source": "questionReader",
+              "countEquals": 0
+            }
+          },
+          {
+            "component": "list",
+            "dataSource": "questionReader",
+            "searchable": true,
+            "columns": [
+              {
+                "header": "Question",
+                "field": "questionText"
+              },
+              {
+                "header": "A",
+                "field": "optionA"
+              },
+              {
+                "header": "B",
+                "field": "optionB"
+              },
+              {
+                "header": "C",
+                "field": "optionC"
+              },
+              {
+                "header": "D",
+                "field": "optionD"
+              },
+              {
+                "header": "Answer",
+                "field": "correctOption",
+                "sortable": true
+              }
+            ],
+            "rowActions": [
+              {
+                "label": "Delete",
+                "action": "delete",
+                "dataSource": "questionDeleter",
+                "matchField": "_id"
+              }
+            ],
+            "onRowTap": {
+              "action": "navigate",
+              "target": "editQuestionPage",
+              "populateForm": "editQuestionForm"
+            }
+          },
+          {
+            "component": "button",
+            "label": "Add Question",
+            "onClick": [
+              {
+                "action": "navigate",
+                "target": "addQuestionPage"
+              }
+            ],
+            "styleHint": {
+              "emphasis": "primary",
+              "icon": "add_circle"
+            }
+          }
+        ]
+      },
+      "addQuestionPage": {
+        "component": "page",
+        "title": "Add Question",
+        "content": [
+          {
+            "component": "text",
+            "content": "Enter a ${topic} question with four multiple-choice options.",
+            "styleHint": {
+              "variant": "body"
+            }
+          },
+          {
+            "component": "form",
+            "id": "addQuestionForm",
+            "fields": [
+              {
+                "name": "questionText",
+                "label": "Question",
+                "type": "multiline",
+                "required": true,
+                "placeholder": "e.g., What year did...?"
+              },
+              {
+                "name": "optionA",
+                "label": "Option A",
+                "type": "text",
+                "required": true
+              },
+              {
+                "name": "optionB",
+                "label": "Option B",
+                "type": "text",
+                "required": true
+              },
+              {
+                "name": "optionC",
+                "label": "Option C",
+                "type": "text",
+                "required": true
+              },
+              {
+                "name": "optionD",
+                "label": "Option D",
+                "type": "text",
+                "required": true
+              },
+              {
+                "name": "correctOption",
+                "label": "Correct Answer",
+                "type": "select",
+                "required": true,
+                "options": [
+                  "A",
+                  "B",
+                  "C",
+                  "D"
+                ]
+              }
+            ]
+          },
+          {
+            "component": "button",
+            "label": "Save Question",
+            "onClick": [
+              {
+                "action": "submit",
+                "dataSource": "questionStore",
+                "target": "addQuestionForm"
+              },
+              {
+                "action": "navigate",
+                "target": "manageQuestionsPage"
+              },
+              {
+                "action": "showMessage",
+                "message": "Question added!"
+              }
+            ],
+            "styleHint": {
+              "emphasis": "primary",
+              "icon": "save"
+            }
+          }
+        ]
+      },
+      "editQuestionPage": {
+        "component": "page",
+        "title": "Edit Question",
+        "content": [
+          {
+            "component": "form",
+            "id": "editQuestionForm",
+            "fields": [
+              {
+                "name": "questionText",
+                "label": "Question",
+                "type": "multiline",
+                "required": true
+              },
+              {
+                "name": "optionA",
+                "label": "Option A",
+                "type": "text",
+                "required": true
+              },
+              {
+                "name": "optionB",
+                "label": "Option B",
+                "type": "text",
+                "required": true
+              },
+              {
+                "name": "optionC",
+                "label": "Option C",
+                "type": "text",
+                "required": true
+              },
+              {
+                "name": "optionD",
+                "label": "Option D",
+                "type": "text",
+                "required": true
+              },
+              {
+                "name": "correctOption",
+                "label": "Correct Answer",
+                "type": "select",
+                "required": true,
+                "options": [
+                  "A",
+                  "B",
+                  "C",
+                  "D"
+                ]
+              }
+            ]
+          },
+          {
+            "component": "button",
+            "label": "Save Changes",
+            "onClick": [
+              {
+                "action": "update",
+                "dataSource": "questionUpdater",
+                "target": "editQuestionForm",
+                "matchField": "_id"
+              },
+              {
+                "action": "navigate",
+                "target": "manageQuestionsPage"
+              },
+              {
+                "action": "showMessage",
+                "message": "Question updated!"
+              }
+            ],
+            "styleHint": {
+              "emphasis": "primary",
+              "icon": "save"
+            }
+          },
+          {
+            "component": "button",
+            "label": "Back",
+            "onClick": [
+              {
+                "action": "navigate",
+                "target": "manageQuestionsPage"
+              }
+            ],
+            "styleHint": {
+              "emphasis": "secondary",
+              "icon": "arrow_back",
+              "variant": "outlined"
+            }
+          }
+        ]
+      },
+      "progressPage": {
+        "component": "page",
+        "title": "Progress",
+        "content": [
+          {
+            "component": "text",
+            "content": "Overall: {COUNT(answerReader, correct=1)} of {COUNT(answerReader)} correct ({PCT(answerReader, correct=1)}%)",
+            "styleHint": {
+              "variant": "heading"
+            },
+            "visibleWhen": {
+              "source": "answerReader",
+              "countMin": 1
+            }
+          },
+          {
+            "component": "text",
+            "content": "No data yet. Complete a quiz to track your progress!",
+            "styleHint": {
+              "variant": "body",
+              "align": "center",
+              "color": "grey"
+            },
+            "visibleWhen": {
+              "source": "answerReader",
+              "countEquals": 0
+            }
+          },
+          {
+            "component": "chart",
+            "dataSource": "answerReader",
+            "chartType": "line",
+            "labelField": "attemptDate",
+            "valueField": "correct",
+            "title": "Scores Over Time",
+            "visibleWhen": {
+              "source": "answerReader",
+              "countMin": 1
+            }
+          },
+          {
+            "component": "button",
+            "label": "Take Quiz",
+            "onClick": [
+              {
+                "action": "navigate",
+                "target": "startPage"
+              }
+            ],
+            "styleHint": {
+              "emphasis": "primary"
+            }
+          }
+        ]
+      }
+    },
+    "dataSources": {
+      "questionStore": {
+        "url": "local://questions",
+        "method": "POST"
+      },
+      "questionReader": {
+        "url": "local://questions",
+        "method": "GET",
+        "fields": [
+          {
+            "name": "questionText",
+            "type": "multiline"
+          },
+          {
+            "name": "optionA",
+            "type": "text"
+          },
+          {
+            "name": "optionB",
+            "type": "text"
+          },
+          {
+            "name": "optionC",
+            "type": "text"
+          },
+          {
+            "name": "optionD",
+            "type": "text"
+          },
+          {
+            "name": "correctOption",
+            "type": "select"
+          }
+        ]
+      },
+      "questionUpdater": {
+        "url": "local://questions",
+        "method": "PUT"
+      },
+      "questionDeleter": {
+        "url": "local://questions",
+        "method": "DELETE"
+      },
+      "answerStore": {
+        "url": "local://quiz_answers",
+        "method": "POST"
+      },
+      "answerReader": {
+        "url": "local://quiz_answers",
+        "method": "GET",
+        "fields": [
+          {
+            "name": "questionText",
+            "type": "multiline"
+          },
+          {
+            "name": "userAnswer",
+            "type": "select"
+          },
+          {
+            "name": "correctOption",
+            "type": "select"
+          },
+          {
+            "name": "correct",
+            "type": "number"
+          },
+          {
+            "name": "attemptDate",
+            "type": "date"
+          }
+        ]
+      },
+      "answerDeleter": {
+        "url": "local://quiz_answers",
+        "method": "DELETE"
+      }
+    },
+    "help": {
+      "overview": "${appName} is a ${topic} quiz app. Add your own questions, take the quiz with auto-stepping, and track your scores. All data stays on your device.",
+      "pages": {
+        "startPage": "Press Start to begin. Questions step through one at a time.",
+        "answerPage": "Read the question, pick A/B/C/D, and submit. You auto-advance to the next question.",
+        "completePage": "You finished! See your score and review detailed results.",
+        "resultsPage": "All your answers with color-coded results. Green = correct, red = wrong.",
+        "manageQuestionsPage": "View, edit, and delete questions. Tap a question to edit it.",
+        "addQuestionPage": "Enter a question with four options and mark which is correct."
+      }
+    }
+  }
+}

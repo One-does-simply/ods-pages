@@ -1,0 +1,385 @@
+{
+  "appName": "To-Do List",
+  "auth": { "multiUser": false },
+  "startPage": "viewTasksPage",
+  "menu": [
+    {
+      "label": "My Tasks",
+      "mapsTo": "viewTasksPage"
+    },
+    {
+      "label": "Add Task",
+      "mapsTo": "addTaskPage"
+    }
+  ],
+  "pages": {
+    "addTaskPage": {
+      "component": "page",
+      "title": "Add a New Task",
+      "content": [
+        {
+          "component": "text",
+          "content": "Create a new task for your to-do list.",
+          "styleHint": {
+            "variant": "body"
+          }
+        },
+        {
+          "component": "form",
+          "id": "addTaskForm",
+          "fields": [
+            {
+              "name": "taskName",
+              "label": "Task",
+              "type": "text",
+              "required": true,
+              "placeholder": "e.g., Buy groceries"
+            },
+            {
+              "name": "dueDate",
+              "label": "Due Date",
+              "type": "date",
+              "default": "+7d"
+            },
+            {
+              "name": "priority",
+              "label": "Priority",
+              "type": "select",
+              "options": [
+                "High",
+                "Medium",
+                "Low"
+              ],
+              "default": "Medium"
+            },
+            {
+              "name": "notes",
+              "label": "Notes",
+              "type": "multiline",
+              "placeholder": "Any extra details..."
+            }
+          ]
+        },
+        {
+          "component": "button",
+          "label": "Add Task",
+          "onClick": [
+            {
+              "action": "submit",
+              "dataSource": "tasksStore",
+              "target": "addTaskForm"
+            },
+            {
+              "action": "showMessage",
+              "message": "Task added successfully!"
+            },
+            {
+              "action": "navigate",
+              "target": "viewTasksPage"
+            }
+          ],
+          "styleHint": {
+            "emphasis": "primary",
+            "icon": "add_circle"
+          }
+        }
+      ]
+    },
+    "viewTasksPage": {
+      "component": "page",
+      "title": "My Tasks",
+      "content": [
+        {
+          "component": "text",
+          "content": "No tasks yet! Add your first task to get started.",
+          "styleHint": {
+            "variant": "body",
+            "align": "center",
+            "color": "grey"
+          },
+          "visibleWhen": {
+            "source": "tasksReader",
+            "countEquals": 0
+          }
+        },
+        {
+          "component": "summary",
+          "label": "Total Tasks",
+          "value": "{COUNT(tasksReader)}",
+          "icon": "task",
+          "styleHint": {
+            "color": "info"
+          }
+        },
+        {
+          "component": "list",
+          "dataSource": "tasksReader",
+          "searchable": true,
+          "defaultSort": {
+            "field": "dueDate",
+            "direction": "desc"
+          },
+          "rowColorField": "priority",
+          "rowColorMap": {
+            "High": "red",
+            "Medium": "orange",
+            "Low": "blue"
+          },
+          "columns": [
+            {
+              "header": "Task",
+              "field": "taskName"
+            },
+            {
+              "header": "Due Date",
+              "field": "dueDate",
+              "sortable": true
+            },
+            {
+              "header": "Priority",
+              "field": "priority",
+              "sortable": true,
+              "filterable": true
+            },
+            {
+              "header": "Done",
+              "field": "done",
+              "sortable": true,
+              "filterable": true,
+              "displayMap": {
+                "true": "Done",
+                "false": ""
+              },
+              "colorMap": {
+                "true": "green"
+              }
+            }
+          ],
+          "rowActions": [
+            {
+              "label": "Mark Done",
+              "action": "update",
+              "dataSource": "tasksUpdater",
+              "matchField": "_id",
+              "values": {
+                "done": "true"
+              },
+              "hideWhen": {
+                "field": "done",
+                "equals": "true"
+              }
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "dataSource": "tasksDeleter",
+              "matchField": "_id"
+            }
+          ],
+          "onRowTap": {
+            "action": "navigate",
+            "target": "editTaskPage",
+            "populateForm": "editTaskForm"
+          }
+        },
+        {
+          "component": "button",
+          "label": "Add a Task",
+          "onClick": [
+            {
+              "action": "navigate",
+              "target": "addTaskPage"
+            }
+          ],
+          "styleHint": {
+            "emphasis": "primary",
+            "icon": "add_circle"
+          }
+        }
+      ]
+    },
+    "editTaskPage": {
+      "component": "page",
+      "title": "Edit Task",
+      "content": [
+        {
+          "component": "form",
+          "id": "editTaskForm",
+          "fields": [
+            {
+              "name": "taskName",
+              "label": "Task",
+              "type": "text",
+              "required": true
+            },
+            {
+              "name": "dueDate",
+              "label": "Due Date",
+              "type": "date"
+            },
+            {
+              "name": "priority",
+              "label": "Priority",
+              "type": "select",
+              "options": [
+                "High",
+                "Medium",
+                "Low"
+              ]
+            },
+            {
+              "name": "done",
+              "label": "Done",
+              "type": "checkbox"
+            },
+            {
+              "name": "notes",
+              "label": "Notes",
+              "type": "multiline"
+            }
+          ]
+        },
+        {
+          "component": "button",
+          "label": "Save Changes",
+          "onClick": [
+            {
+              "action": "update",
+              "dataSource": "tasksUpdater",
+              "target": "editTaskForm",
+              "matchField": "_id"
+            },
+            {
+              "action": "showMessage",
+              "message": "Task updated!"
+            },
+            {
+              "action": "navigate",
+              "target": "viewTasksPage"
+            }
+          ],
+          "styleHint": {
+            "emphasis": "primary",
+            "icon": "save"
+          }
+        },
+        {
+          "component": "button",
+          "label": "Back",
+          "onClick": [
+            {
+              "action": "navigate",
+              "target": "viewTasksPage"
+            }
+          ],
+          "styleHint": {
+            "emphasis": "secondary",
+            "icon": "arrow_back",
+            "variant": "outlined"
+          }
+        }
+      ]
+    }
+  },
+  "dataSources": {
+    "tasksStore": {
+      "url": "local://tasks",
+      "method": "POST",
+      "ownership": { "enabled": true }
+    },
+    "tasksReader": {
+      "url": "local://tasks",
+      "method": "GET",
+      "ownership": { "enabled": true, "adminOverride": true },
+      "fields": [
+        {
+          "name": "taskName",
+          "type": "text"
+        },
+        {
+          "name": "dueDate",
+          "type": "date"
+        },
+        {
+          "name": "priority",
+          "type": "select"
+        },
+        {
+          "name": "done",
+          "type": "checkbox"
+        },
+        {
+          "name": "notes",
+          "type": "multiline"
+        }
+      ],
+      "seedData": [
+        {
+          "taskName": "Buy groceries",
+          "dueDate": "2026-03-15",
+          "priority": "High",
+          "done": "false",
+          "notes": "Milk, eggs, bread, and fruit."
+        },
+        {
+          "taskName": "Read chapter 5",
+          "dueDate": "2026-03-18",
+          "priority": "Medium",
+          "done": "false",
+          "notes": "Atomic Habits \u00e2\u20ac\u201d chapter on habit stacking."
+        },
+        {
+          "taskName": "Schedule dentist appointment",
+          "dueDate": "2026-03-20",
+          "priority": "Low",
+          "done": "true",
+          "notes": ""
+        }
+      ]
+    },
+    "tasksUpdater": {
+      "url": "local://tasks",
+      "method": "PUT"
+    },
+    "tasksDeleter": {
+      "url": "local://tasks",
+      "method": "DELETE"
+    }
+  },
+  "help": {
+    "overview": "To-Do List helps you track tasks, set priorities, and mark them done. Tap any task to edit it. Done tasks show a green checkmark.",
+    "pages": {
+      "addTaskPage": "Enter a task name, optional due date (defaults to 7 days from now), and notes. Priority defaults to Medium.",
+      "viewTasksPage": "View all tasks with due dates, priorities, and status. Mark Done hides automatically once a task is complete. Tap any row to edit. Filter by priority or status.",
+      "editTaskPage": "Edit any field on the task and press Save Changes."
+    }
+  },
+  "settings": {
+    "defaultPriority": {
+      "label": "Default priority for new tasks",
+      "type": "select",
+      "options": [
+        "High",
+        "Medium",
+        "Low"
+      ],
+      "default": "Medium"
+    }
+  },
+  "tour": [
+    {
+      "title": "Welcome to To-Do List!",
+      "content": "Keep track of everything you need to do. Add tasks, set priorities, and mark them done."
+    },
+    {
+      "title": "Your Task List",
+      "content": "Tasks show their status with color coding. Mark Done disappears once complete. Tap any row to edit it. Filter by priority or status.",
+      "page": "viewTasksPage"
+    },
+    {
+      "title": "Add New Tasks",
+      "content": "Give your task a name, set a due date and priority. Due date defaults to 7 days from now.",
+      "page": "addTaskPage"
+    }
+  ]
+}

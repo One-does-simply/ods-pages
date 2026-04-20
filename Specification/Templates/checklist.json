@@ -1,0 +1,401 @@
+{
+  "templateName": "Advanced Checklist",
+  "description": "Run checklists and inspections with pass/fail tracking, completion counts, and color-coded results.",
+  "icon": "check_circle",
+  "questions": [
+    {
+      "id": "appName",
+      "label": "What do you want to call your app?",
+      "type": "text",
+      "required": true,
+      "placeholder": "e.g., Safety Inspection, Onboarding Checklist"
+    },
+    {
+      "id": "checklistName",
+      "label": "What's being checked?",
+      "type": "text",
+      "required": true,
+      "placeholder": "e.g., Safety Items, Setup Steps, Audit Points"
+    },
+    {
+      "id": "fields",
+      "label": "What info for each check item?",
+      "type": "field-list",
+      "required": true,
+      "presets": [
+        {
+          "label": "Item Name",
+          "name": "itemName",
+          "type": "text"
+        },
+        {
+          "label": "Category",
+          "name": "category",
+          "type": "select",
+          "options": [
+            "General"
+          ]
+        },
+        {
+          "label": "Result",
+          "name": "result",
+          "type": "select",
+          "options": [
+            "Pass",
+            "Fail",
+            "N/A"
+          ]
+        },
+        {
+          "label": "Inspector",
+          "name": "inspector",
+          "type": "text"
+        },
+        {
+          "label": "Date",
+          "name": "date",
+          "type": "date"
+        },
+        {
+          "label": "Notes",
+          "name": "notes",
+          "type": "multiline"
+        }
+      ]
+    },
+    {
+      "id": "theme",
+      "label": "App theme",
+      "type": "select",
+      "options": ["indigo", "slate", "ocean", "parchment", "peach", "terracotta", "walnut", "cupcake", "bumblebee", "emerald", "corporate", "synthwave", "retro", "cyberpunk", "valentine", "halloween", "garden", "forest", "aqua", "lofi", "pastel", "fantasy", "wireframe", "black", "luxury", "dracula", "cmyk", "autumn", "business", "acid", "lemonade", "night", "coffee", "winter", "dim", "nord", "sunset", "caramellatte", "abyss", "silk"],
+      "default": "indigo"
+    }
+  ],
+  "template": {
+    "appName": "${appName}",
+    "branding": {
+      "theme": "${theme}"
+    },
+    "startPage": "listPage",
+    "menu": [
+      {
+        "label": "Results",
+        "mapsTo": "listPage"
+      },
+      {
+        "label": "New Check",
+        "mapsTo": "checkPage"
+      }
+    ],
+    "pages": {
+      "checkPage": {
+        "component": "page",
+        "title": "New Check",
+        "content": [
+          {
+            "component": "text",
+            "content": "Record a new ${checklistName} check.",
+            "styleHint": {
+              "variant": "body"
+            }
+          },
+          {
+            "component": "form",
+            "id": "checkForm",
+            "fields": {
+              "$map": "fields",
+              "each(field, index)": {
+                "$if": "field.type == 'select'",
+                "then": {
+                  "$if": "index == 0 || field.name == 'result'",
+                  "then": {
+                    "name": "${field.name}",
+                    "label": "${field.label}",
+                    "type": "select",
+                    "options": {
+                      "$eval": "field.options"
+                    },
+                    "required": true
+                  },
+                  "else": {
+                    "name": "${field.name}",
+                    "label": "${field.label}",
+                    "type": "select",
+                    "options": {
+                      "$eval": "field.options"
+                    }
+                  }
+                },
+                "else": {
+                  "$if": "index == 0 || field.name == 'itemName'",
+                  "then": {
+                    "$if": "field.type == 'date'",
+                    "then": {
+                      "name": "${field.name}",
+                      "label": "${field.label}",
+                      "type": "date",
+                      "default": "CURRENTDATE",
+                      "required": true
+                    },
+                    "else": {
+                      "name": "${field.name}",
+                      "label": "${field.label}",
+                      "type": "${field.type}",
+                      "required": true
+                    }
+                  },
+                  "else": {
+                    "$if": "field.type == 'date'",
+                    "then": {
+                      "name": "${field.name}",
+                      "label": "${field.label}",
+                      "type": "date",
+                      "default": "CURRENTDATE"
+                    },
+                    "else": {
+                      "name": "${field.name}",
+                      "label": "${field.label}",
+                      "type": "${field.type}"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "component": "button",
+            "label": "Submit",
+            "onClick": [
+              {
+                "action": "submit",
+                "dataSource": "checksStore",
+                "target": "checkForm"
+              },
+              {
+                "action": "navigate",
+                "target": "listPage"
+              },
+              {
+                "action": "showMessage",
+                "message": "Check recorded!"
+              }
+            ],
+            "styleHint": {
+              "emphasis": "primary",
+              "icon": "send"
+            }
+          }
+        ]
+      },
+      "listPage": {
+        "component": "page",
+        "title": "${appName}",
+        "content": [
+          {
+            "component": "summary",
+            "label": "Total Checks",
+            "value": "{COUNT(checksReader)}",
+            "icon": "check_circle",
+            "styleHint": {
+              "color": "info"
+            }
+          },
+          {
+            "component": "summary",
+            "label": "Pass",
+            "value": "{COUNT(checksReader, result=Pass)}",
+            "icon": "check_circle",
+            "styleHint": {
+              "color": "success"
+            }
+          },
+          {
+            "component": "summary",
+            "label": "Fail",
+            "value": "{COUNT(checksReader, result=Fail)}",
+            "icon": "cancel",
+            "styleHint": {
+              "color": "error"
+            }
+          },
+          {
+            "component": "text",
+            "content": "No checks yet. Tap the button below to record your first!",
+            "styleHint": {
+              "variant": "body",
+              "align": "center",
+              "color": "grey"
+            },
+            "visibleWhen": {
+              "source": "checksReader",
+              "countEquals": 0
+            }
+          },
+          {
+            "component": "chart",
+            "dataSource": "checksReader",
+            "chartType": "pie",
+            "labelField": "result",
+            "valueField": "result",
+            "title": "Results Breakdown",
+            "visibleWhen": {
+              "source": "checksReader",
+              "countMin": 1
+            }
+          },
+          {
+            "component": "list",
+            "dataSource": "checksReader",
+            "searchable": true,
+            "rowColorField": "result",
+            "rowColorMap": {
+              "Pass": "green",
+              "Fail": "red",
+              "N/A": "grey"
+            },
+            "columns": {
+              "$map": "fields",
+              "each(field, index)": {
+                "$if": "field.type == 'select' && index == 0",
+                "then": {
+                  "header": "${field.label}",
+                  "field": "${field.name}",
+                  "sortable": true,
+                  "filterable": true
+                },
+                "else": {
+                  "header": "${field.label}",
+                  "field": "${field.name}",
+                  "sortable": true
+                }
+              }
+            },
+            "rowActions": [
+              {
+                "label": "Delete",
+                "action": "delete",
+                "dataSource": "checksDeleter",
+                "matchField": "_id"
+              }
+            ],
+            "onRowTap": {
+              "action": "navigate",
+              "target": "editPage",
+              "populateForm": "editForm"
+            }
+          },
+          {
+            "component": "button",
+            "label": "New Check",
+            "onClick": [
+              {
+                "action": "navigate",
+                "target": "checkPage"
+              }
+            ],
+            "styleHint": {
+              "emphasis": "primary",
+              "icon": "add_circle"
+            }
+          }
+        ]
+      },
+      "editPage": {
+        "component": "page",
+        "title": "Edit Check",
+        "content": [
+          {
+            "component": "form",
+            "id": "editForm",
+            "fields": {
+              "$map": "fields",
+              "each(field)": {
+                "$if": "field.type == 'select'",
+                "then": {
+                  "name": "${field.name}",
+                  "label": "${field.label}",
+                  "type": "select",
+                  "options": {
+                    "$eval": "field.options"
+                  }
+                },
+                "else": {
+                  "name": "${field.name}",
+                  "label": "${field.label}",
+                  "type": "${field.type}"
+                }
+              }
+            }
+          },
+          {
+            "component": "button",
+            "label": "Save Changes",
+            "onClick": [
+              {
+                "action": "update",
+                "dataSource": "checksUpdater",
+                "target": "editForm",
+                "matchField": "_id"
+              },
+              {
+                "action": "navigate",
+                "target": "listPage"
+              },
+              {
+                "action": "showMessage",
+                "message": "Check updated!"
+              }
+            ],
+            "styleHint": {
+              "emphasis": "primary",
+              "icon": "save"
+            }
+          },
+          {
+            "component": "button",
+            "label": "Back",
+            "onClick": [
+              {
+                "action": "navigate",
+                "target": "listPage"
+              }
+            ],
+            "styleHint": {
+              "emphasis": "secondary",
+              "icon": "arrow_back",
+              "variant": "outlined"
+            }
+          }
+        ]
+      }
+    },
+    "dataSources": {
+      "checksStore": {
+        "url": "local://checks",
+        "method": "POST"
+      },
+      "checksReader": {
+        "url": "local://checks",
+        "method": "GET",
+        "fields": {
+          "$map": "fields",
+          "each(field)": {
+            "name": "${field.name}",
+            "type": "${field.type}"
+          }
+        }
+      },
+      "checksUpdater": {
+        "url": "local://checks",
+        "method": "PUT"
+      },
+      "checksDeleter": {
+        "url": "local://checks",
+        "method": "DELETE"
+      }
+    },
+    "help": {
+      "overview": "${appName} helps you run ${checklistName} checks and inspections. Record results, track pass/fail status with color-coded rows, and review your inspection history. All data stays on your device."
+    }
+  }
+}

@@ -1,0 +1,138 @@
+{
+  "appName": "Project Board",
+  "startPage": "boardPage",
+  "branding": {
+    "theme": "corporate",
+    "mode": "system"
+  },
+  "menu": [
+    { "label": "Board", "mapsTo": "boardPage" },
+    { "label": "Add Task", "mapsTo": "addTaskPage" },
+    { "label": "All Tasks", "mapsTo": "listPage" }
+  ],
+  "pages": {
+    "boardPage": {
+      "component": "page",
+      "title": "Project Board",
+      "content": [
+        {
+          "component": "kanban",
+          "dataSource": "taskReader",
+          "statusField": "status",
+          "titleField": "title",
+          "cardFields": ["title", "assignee", "priority", "dueDate"],
+          "searchable": true,
+          "defaultSort": { "field": "dueDate", "direction": "asc" },
+          "rowActions": [
+            {
+              "label": "Delete",
+              "action": "delete",
+              "dataSource": "taskWriter",
+              "matchField": "title"
+            }
+          ]
+        }
+      ]
+    },
+    "addTaskPage": {
+      "component": "page",
+      "title": "Add Task",
+      "content": [
+        {
+          "component": "form",
+          "id": "taskForm",
+          "fields": [
+            { "name": "title", "label": "Task Title", "type": "text", "required": true, "placeholder": "e.g., Design homepage mockup" },
+            { "name": "description", "label": "Description", "type": "multiline", "placeholder": "Describe the task..." },
+            { "name": "status", "label": "Status", "type": "select", "required": true, "default": "To Do", "options": ["To Do", "In Progress", "Review", "Done"] },
+            { "name": "priority", "label": "Priority", "type": "select", "default": "Medium", "options": ["Low", "Medium", "High", "Urgent"] },
+            { "name": "assignee", "label": "Assignee", "type": "user", "placeholder": "e.g., Alice" },
+            { "name": "dueDate", "label": "Due Date", "type": "date", "default": "+7d" }
+          ]
+        },
+        {
+          "component": "button",
+          "label": "Add Task",
+          "onClick": [
+            { "action": "submit", "dataSource": "taskStore", "target": "taskForm" },
+            { "action": "navigate", "target": "boardPage" }
+          ],
+          "styleHint": { "emphasis": "primary" }
+        }
+      ]
+    },
+    "listPage": {
+      "component": "page",
+      "title": "All Tasks",
+      "content": [
+        {
+          "component": "list",
+          "dataSource": "taskReader",
+          "searchable": true,
+          "defaultSort": { "field": "dueDate", "direction": "asc" },
+          "columns": [
+            { "header": "Title", "field": "title" },
+            { "header": "Status", "field": "status", "sortable": true, "filterable": true, "colorMap": { "To Do": "grey", "In Progress": "blue", "Review": "orange", "Done": "green" } },
+            { "header": "Priority", "field": "priority", "sortable": true, "filterable": true, "colorMap": { "Low": "grey", "Medium": "blue", "High": "orange", "Urgent": "red" } },
+            { "header": "Assignee", "field": "assignee", "filterable": true },
+            { "header": "Due Date", "field": "dueDate", "sortable": true }
+          ],
+          "rowActions": [
+            {
+              "label": "Start",
+              "action": "update",
+              "dataSource": "taskWriter",
+              "matchField": "title",
+              "values": { "status": "In Progress" },
+              "hideWhen": { "field": "status", "notEquals": "To Do" }
+            },
+            {
+              "label": "Done",
+              "action": "update",
+              "dataSource": "taskWriter",
+              "matchField": "title",
+              "values": { "status": "Done" },
+              "hideWhen": { "field": "status", "equals": "Done" }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "dataSources": {
+    "taskReader": {
+      "url": "local://tasks",
+      "method": "GET",
+      "seedData": [
+        { "title": "Design homepage mockup", "description": "Create wireframes for the landing page", "status": "In Progress", "priority": "High", "assignee": "Alice", "dueDate": "2026-04-10" },
+        { "title": "Set up CI pipeline", "description": "Configure GitHub Actions for automated testing", "status": "To Do", "priority": "Medium", "assignee": "Bob", "dueDate": "2026-04-12" },
+        { "title": "Write API docs", "description": "Document all REST endpoints", "status": "Review", "priority": "Medium", "assignee": "Alice", "dueDate": "2026-04-08" },
+        { "title": "Fix login bug", "description": "Users can't sign in with email containing a plus", "status": "To Do", "priority": "Urgent", "assignee": "Charlie", "dueDate": "2026-04-07" },
+        { "title": "Update dependencies", "description": "Bump all npm packages to latest", "status": "Done", "priority": "Low", "assignee": "Bob", "dueDate": "2026-04-05" },
+        { "title": "User feedback survey", "description": "Design and distribute beta user survey", "status": "To Do", "priority": "Medium", "assignee": "Diana", "dueDate": "2026-04-15" }
+      ]
+    },
+    "taskStore": {
+      "url": "local://tasks",
+      "method": "POST"
+    },
+    "taskWriter": {
+      "url": "local://tasks",
+      "method": "PUT"
+    }
+  },
+  "help": {
+    "overview": "A project management board for tracking tasks across stages. Drag cards between columns to update their status.",
+    "pages": {
+      "boardPage": "View your tasks as a kanban board. Drag cards between columns to change their status.",
+      "addTaskPage": "Create a new task with a title, description, status, priority, assignee, and due date.",
+      "listPage": "View all tasks in a traditional table format with sorting and filtering."
+    }
+  },
+  "tour": [
+    { "title": "Welcome to Project Board!", "content": "Track your project tasks on a visual kanban board.", "page": "boardPage" },
+    { "title": "Drag and Drop", "content": "Move cards between columns to update task status. It's that simple.", "page": "boardPage" },
+    { "title": "Add Tasks", "content": "Use this form to add new tasks to the board.", "page": "addTaskPage" },
+    { "title": "You're Ready!", "content": "Start managing your project now." }
+  ]
+}

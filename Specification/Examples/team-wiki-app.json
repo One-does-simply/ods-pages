@@ -1,0 +1,399 @@
+{
+  "appName": "Team Wiki",
+  "auth": {
+    "multiUser": true,
+    "roles": ["editor"],
+    "defaultRole": "editor"
+  },
+  "startPage": "browseArticlesPage",
+  "menu": [
+    {
+      "label": "Browse Articles",
+      "mapsTo": "browseArticlesPage"
+    },
+    {
+      "label": "Add Article",
+      "mapsTo": "addArticlePage"
+    }
+  ],
+  "pages": {
+    "addArticlePage": {
+      "component": "page",
+      "title": "Add a New Article",
+      "content": [
+        {
+          "component": "text",
+          "content": "Write a new knowledge-base article for the team. Use **Markdown** in the Content field for headings, lists, links, and more.",
+          "styleHint": {
+            "variant": "body"
+          }
+        },
+        {
+          "component": "form",
+          "id": "addArticleForm",
+          "fields": [
+            {
+              "name": "title",
+              "label": "Title",
+              "type": "text",
+              "required": true,
+              "placeholder": "e.g., How to Set Up Your Dev Environment"
+            },
+            {
+              "name": "category",
+              "label": "Category",
+              "type": "select",
+              "options": [
+                "Getting Started",
+                "How To",
+                "FAQ",
+                "Reference",
+                "Architecture",
+                "Troubleshooting",
+                "Onboarding"
+              ]
+            },
+            {
+              "name": "content",
+              "label": "Content",
+              "type": "multiline",
+              "required": true,
+              "placeholder": "Write your article using Markdown syntax..."
+            },
+            {
+              "name": "author",
+              "label": "Author",
+              "type": "user",
+              "placeholder": "Your name",
+              "default": "CURRENT_USER.NAME"
+            },
+            {
+              "name": "lastUpdated",
+              "label": "Last Updated",
+              "type": "date",
+              "default": "CURRENTDATE"
+            }
+          ]
+        },
+        {
+          "component": "button",
+          "label": "Publish Article",
+          "onClick": [
+            {
+              "action": "submit",
+              "dataSource": "articlesStore",
+              "target": "addArticleForm"
+            },
+            {
+              "action": "showMessage",
+              "message": "Article saved!"
+            },
+            {
+              "action": "navigate",
+              "target": "browseArticlesPage"
+            }
+          ],
+          "styleHint": {
+            "emphasis": "primary"
+          }
+        }
+      ]
+    },
+    "browseArticlesPage": {
+      "component": "page",
+      "title": "Knowledge Base",
+      "content": [
+        {
+          "component": "text",
+          "content": "Your team's shared knowledge \u00e2\u20ac\u201d {COUNT(articlesReader)} articles",
+          "styleHint": {
+            "variant": "subheading"
+          }
+        },
+        {
+          "component": "text",
+          "content": "No articles yet. Add the first article to start building your team wiki!",
+          "styleHint": {
+            "variant": "body",
+            "align": "center",
+            "color": "grey"
+          },
+          "visibleWhen": {
+            "source": "articlesReader",
+            "countEquals": 0
+          }
+        },
+        {
+          "component": "summary",
+          "label": "Total Articles",
+          "value": "{COUNT(articlesReader)}",
+          "icon": "article",
+          "styleHint": {
+            "color": "primary"
+          }
+        },
+        {
+          "component": "list",
+          "dataSource": "articlesReader",
+          "searchable": true,
+          "displayAs": "cards",
+          "columns": [
+            {
+              "header": "Title",
+              "field": "title",
+              "sortable": true
+            },
+            {
+              "header": "Category",
+              "field": "category",
+              "sortable": true,
+              "filterable": true
+            },
+            {
+              "header": "Updated",
+              "field": "lastUpdated",
+              "sortable": true
+            }
+          ],
+          "defaultSort": {
+            "field": "lastUpdated",
+            "direction": "desc"
+          },
+          "rowActions": [
+            {
+              "label": "Delete",
+              "action": "delete",
+              "dataSource": "articlesDeleter",
+              "matchField": "_id"
+            }
+          ],
+          "onRowTap": {
+            "action": "navigate",
+            "target": "viewArticlePage",
+            "populateForm": "editArticleForm"
+          }
+        },
+        {
+          "component": "button",
+          "label": "Add New Article",
+          "onClick": [
+            {
+              "action": "navigate",
+              "target": "addArticlePage"
+            }
+          ],
+          "styleHint": {
+            "emphasis": "primary",
+            "icon": "add_circle"
+          }
+        }
+      ]
+    },
+    "viewArticlePage": {
+      "component": "page",
+      "title": "View Article",
+      "content": [
+        {
+          "component": "form",
+          "id": "editArticleForm",
+          "fields": [
+            {
+              "name": "title",
+              "label": "Title",
+              "type": "text",
+              "required": true
+            },
+            {
+              "name": "category",
+              "label": "Category",
+              "type": "select",
+              "options": [
+                "Getting Started",
+                "How To",
+                "FAQ",
+                "Reference",
+                "Architecture",
+                "Troubleshooting",
+                "Onboarding"
+              ]
+            },
+            {
+              "name": "content",
+              "label": "Content",
+              "type": "multiline",
+              "required": true
+            },
+            {
+              "name": "author",
+              "label": "Author",
+              "type": "user",
+              "placeholder": "Your name",
+              "default": "CURRENT_USER.NAME"
+            },
+            {
+              "name": "lastUpdated",
+              "label": "Last Updated",
+              "type": "date",
+              "default": "CURRENTDATE"
+            }
+          ]
+        },
+        {
+          "component": "text",
+          "content": "---\n\n## Preview\n\nThe rendered article appears below:",
+          "format": "markdown",
+          "styleHint": {
+            "variant": "body"
+          }
+        },
+        {
+          "component": "text",
+          "content": "{editArticleForm.content}",
+          "format": "markdown",
+          "styleHint": {}
+        },
+        {
+          "component": "button",
+          "label": "Save Changes",
+          "onClick": [
+            {
+              "action": "update",
+              "dataSource": "articlesUpdater",
+              "target": "editArticleForm",
+              "matchField": "_id"
+            },
+            {
+              "action": "navigate",
+              "target": "browseArticlesPage"
+            },
+            {
+              "action": "showMessage",
+              "message": "Article updated!"
+            }
+          ],
+          "styleHint": {
+            "emphasis": "primary",
+            "icon": "save"
+          }
+        },
+        {
+          "component": "button",
+          "label": "Back",
+          "onClick": [
+            {
+              "action": "navigate",
+              "target": "browseArticlesPage"
+            }
+          ],
+          "styleHint": {
+            "emphasis": "secondary",
+            "icon": "arrow_back",
+            "variant": "outlined"
+          }
+        }
+      ]
+    }
+  },
+  "dataSources": {
+    "articlesStore": {
+      "url": "local://articles",
+      "method": "POST"
+    },
+    "articlesReader": {
+      "url": "local://articles",
+      "method": "GET",
+      "fields": [
+        {
+          "name": "title",
+          "type": "text"
+        },
+        {
+          "name": "category",
+          "type": "select"
+        },
+        {
+          "name": "content",
+          "type": "multiline"
+        },
+        {
+          "name": "author",
+          "type": "user"
+        },
+        {
+          "name": "lastUpdated",
+          "type": "date"
+        }
+      ],
+      "seedData": [
+        {
+          "title": "Welcome to Team Wiki",
+          "category": "Getting Started",
+          "content": "# Welcome to Team Wiki\n\nThis is your team's shared knowledge base. Here you can find answers, how-to guides, and reference documentation.\n\n## Getting Started\n\n1. **Browse** existing articles from the main page\n2. **Search** for topics using the search bar\n3. **Add** new articles when you learn something worth sharing\n\n## Writing Tips\n\nArticles support **Markdown** formatting:\n\n- Use `# Heading` for section titles\n- Use `**bold**` and `*italic*` for emphasis\n- Create lists with `-` or `1.`\n- Add code with backticks: `like this`\n\n> Share knowledge early and often. A short article today saves hours of questions tomorrow."
+        },
+        {
+          "title": "How to Request Access",
+          "category": "How To",
+          "content": "# How to Request Access\n\nFollow these steps to get access to team resources.\n\n## Steps\n\n1. Open the **IT Portal** at `https://portal.example.com`\n2. Click **New Request** and choose *Access Request*\n3. Fill in the form:\n   - **Resource**: select the system you need\n   - **Justification**: explain why you need access\n   - **Duration**: choose temporary or permanent\n4. Submit and wait for manager approval\n\n## Typical Turnaround\n\n| Request Type | Approval Time |\n|---|---|\n| Read-only | 1 business day |\n| Write access | 2-3 business days |\n| Admin access | 5 business days |\n\n## Need Help?\n\nContact the **IT Help Desk** at ext. 4500 or email `helpdesk@example.com`."
+        },
+        {
+          "title": "FAQ: Vacation Policy",
+          "category": "FAQ",
+          "content": "# Vacation Policy FAQ\n\n## How many days do I get?\n\nFull-time employees receive **15 days** of PTO per year, plus public holidays.\n\n## How do I request time off?\n\n1. Log into the HR portal\n2. Navigate to *Time Off* > *New Request*\n3. Select dates and submit\n\n## Can I carry over unused days?\n\nYes, up to **5 days** can be carried into the next calendar year.\n\n## Who approves my request?\n\nYour direct manager receives an email notification and must approve within **3 business days**.\n\n---\n\n*Last updated: March 2026*"
+        },
+        {
+          "title": "Git Branch Naming Convention",
+          "category": "Reference",
+          "content": "# Git Branch Naming Convention\n\nAll repositories follow this naming scheme:\n\n## Format\n\n```\n<type>/<ticket>-<short-description>\n```\n\n## Types\n\n- `feature/` \u00e2\u20ac\u201d new functionality\n- `bugfix/` \u00e2\u20ac\u201d fixing a defect\n- `hotfix/` \u00e2\u20ac\u201d urgent production fix\n- `chore/` \u00e2\u20ac\u201d maintenance tasks\n\n## Examples\n\n- `feature/PROJ-123-user-profile`\n- `bugfix/PROJ-456-login-redirect`\n- `hotfix/PROJ-789-crash-on-startup`\n\n## Rules\n\n1. Always **lowercase**\n2. Use **hyphens** to separate words\n3. Keep descriptions under **5 words**\n4. Include the **ticket number** from the issue tracker"
+        }
+      ]
+    },
+    "articlesUpdater": {
+      "url": "local://articles",
+      "method": "PUT"
+    },
+    "articlesDeleter": {
+      "url": "local://articles",
+      "method": "DELETE"
+    }
+  },
+  "help": {
+    "overview": "Team Wiki is a shared knowledge base for your team. Write articles in Markdown and browse them with full formatting. Use categories to organize content and the search bar to find articles quickly.",
+    "pages": {
+      "addArticlePage": "Enter a title, pick a category, and write your article content using Markdown syntax. Press Publish Article to save.",
+      "browseArticlesPage": "View all articles as cards. Filter by category or search by keyword. Tap any article to read and edit it.",
+      "viewArticlePage": "Read the full article with rendered Markdown. Edit the title, category, or content and press Save Changes."
+    }
+  },
+  "settings": {
+    "defaultCategory": {
+      "label": "Default category for new articles",
+      "type": "select",
+      "options": [
+        "Getting Started",
+        "How To",
+        "FAQ",
+        "Reference",
+        "Architecture",
+        "Troubleshooting",
+        "Onboarding"
+      ],
+      "default": "How To"
+    }
+  },
+  "tour": [
+    {
+      "title": "Welcome to Team Wiki",
+      "content": "Build a shared knowledge base with your team. Articles support rich Markdown formatting."
+    },
+    {
+      "title": "Browse Articles",
+      "content": "All articles appear as cards. Filter by category, search by keyword, or tap any card to read the full article.",
+      "page": "browseArticlesPage"
+    },
+    {
+      "title": "Write an Article",
+      "content": "Use Markdown to format your content with headings, lists, code blocks, tables, and more. A live preview shows the rendered result.",
+      "page": "addArticlePage"
+    }
+  ]
+}

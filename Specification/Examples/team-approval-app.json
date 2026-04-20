@@ -1,0 +1,410 @@
+{
+  "appName": "Time Off Requests",
+  "startPage": {
+    "default": "myRequestsPage",
+    "admin": "dashboardPage",
+    "manager": "dashboardPage"
+  },
+  "auth": {
+    "multiUser": true,
+    "roles": ["manager"],
+    "defaultRole": "user"
+  },
+  "menu": [
+    { "label": "Dashboard", "mapsTo": "dashboardPage" },
+    { "label": "My Requests", "mapsTo": "myRequestsPage" },
+    { "label": "New Request", "mapsTo": "newRequestPage" },
+    { "label": "Review Requests", "mapsTo": "reviewPage", "roles": ["admin", "manager"] },
+    { "label": "Reports", "mapsTo": "reportsPage", "roles": ["admin", "manager"] }
+  ],
+  "pages": {
+    "dashboardPage": {
+      "component": "page",
+      "title": "Dashboard",
+      "content": [
+        {
+          "component": "text",
+          "content": "Welcome to Time Off Requests",
+          "styleHint": { "variant": "heading" }
+        },
+        {
+          "component": "text",
+          "content": "Submit time-off requests, track their status, and manage approvals all in one place."
+        },
+        {
+          "component": "summary",
+          "label": "Total Requests",
+          "value": "{COUNT(requestsReader)}",
+          "icon": "event_note",
+          "styleHint": { "color": "primary" }
+        },
+        {
+          "component": "summary",
+          "label": "Pending",
+          "value": "{COUNT(requestsReader, status, Pending)}",
+          "icon": "hourglass_empty",
+          "styleHint": { "color": "orange" }
+        },
+        {
+          "component": "summary",
+          "label": "Approved",
+          "value": "{COUNT(requestsReader, status, Approved)}",
+          "icon": "check_circle",
+          "styleHint": { "color": "green" }
+        },
+        {
+          "component": "summary",
+          "label": "Rejected",
+          "value": "{COUNT(requestsReader, status, Rejected)}",
+          "icon": "cancel",
+          "styleHint": { "color": "red" }
+        },
+        {
+          "component": "text",
+          "content": "No requests yet. Submit your first time-off request to get started!",
+          "styleHint": { "variant": "body", "align": "center", "color": "grey" },
+          "visibleWhen": {
+            "source": "requestsReader",
+            "countEquals": 0
+          }
+        }
+      ]
+    },
+    "myRequestsPage": {
+      "component": "page",
+      "title": "My Requests",
+      "content": [
+        {
+          "component": "text",
+          "content": "Your submitted time-off requests and their current status.",
+          "styleHint": { "variant": "subheading" }
+        },
+        {
+          "component": "list",
+          "dataSource": "requestsReader",
+          "searchable": true,
+          "rowColorField": "status",
+          "rowColorMap": {
+            "Pending": "orange",
+            "Approved": "green",
+            "Rejected": "red",
+            "Cancelled": "grey"
+          },
+          "columns": [
+            { "header": "Type", "field": "type", "sortable": true, "filterable": true },
+            { "header": "Start Date", "field": "startDate", "sortable": true },
+            { "header": "End Date", "field": "endDate", "sortable": true },
+            {
+              "header": "Status",
+              "field": "status",
+              "sortable": true,
+              "filterable": true,
+              "colorMap": {
+                "Pending": "orange",
+                "Approved": "green",
+                "Rejected": "red",
+                "Cancelled": "grey"
+              }
+            },
+            { "header": "Notes", "field": "notes" }
+          ],
+          "rowActions": [
+            {
+              "label": "Cancel",
+              "action": "update",
+              "dataSource": "requestsUpdater",
+              "matchField": "_id",
+              "values": { "status": "Cancelled" },
+              "hideWhen": { "field": "status", "notEquals": "Pending" },
+              "styleHint": { "color": "orange", "icon": "cancel" }
+            }
+          ],
+          "defaultSort": { "field": "startDate", "direction": "desc" }
+        }
+      ]
+    },
+    "newRequestPage": {
+      "component": "page",
+      "title": "New Request",
+      "content": [
+        {
+          "component": "text",
+          "content": "Submit a new time-off request. Your manager will be notified to review it.",
+          "styleHint": { "variant": "subheading" }
+        },
+        {
+          "component": "form",
+          "id": "newRequestForm",
+          "fields": [
+            {
+              "name": "type",
+              "type": "select",
+              "label": "Leave Type",
+              "required": true,
+              "options": ["Vacation", "Sick", "Personal", "Other"]
+            },
+            {
+              "name": "startDate",
+              "type": "date",
+              "label": "Start Date",
+              "required": true
+            },
+            {
+              "name": "endDate",
+              "type": "date",
+              "label": "End Date",
+              "required": true
+            },
+            {
+              "name": "notes",
+              "type": "multiline",
+              "label": "Notes",
+              "placeholder": "Any additional details or context..."
+            },
+            {
+              "name": "status",
+              "type": "hidden",
+              "default": "Pending"
+            }
+          ]
+        },
+        {
+          "component": "button",
+          "label": "Submit Request",
+          "styleHint": { "emphasis": "primary", "icon": "send" },
+          "onClick": [
+            { "action": "submit", "dataSource": "requestsStore", "target": "newRequestForm" },
+            { "action": "showMessage", "message": "Your time-off request has been submitted for review." },
+            { "action": "navigate", "target": "myRequestsPage" }
+          ]
+        }
+      ]
+    },
+    "reviewPage": {
+      "component": "page",
+      "title": "Review Requests",
+      "roles": ["admin", "manager"],
+      "content": [
+        {
+          "component": "text",
+          "content": "Pending requests awaiting your review.",
+          "styleHint": { "variant": "subheading" }
+        },
+        {
+          "component": "summary",
+          "label": "Awaiting Review",
+          "value": "{COUNT(requestsReader, status, Pending)}",
+          "icon": "rate_review",
+          "styleHint": { "color": "orange" }
+        },
+        {
+          "component": "list",
+          "dataSource": "requestsReader",
+          "searchable": true,
+          "rowColorField": "status",
+          "rowColorMap": {
+            "Pending": "orange",
+            "Approved": "green",
+            "Rejected": "red",
+            "Cancelled": "grey"
+          },
+          "columns": [
+            { "header": "Requester", "field": "_owner", "sortable": true, "filterable": true },
+            { "header": "Type", "field": "type", "sortable": true, "filterable": true },
+            { "header": "Start", "field": "startDate", "sortable": true },
+            { "header": "End", "field": "endDate", "sortable": true },
+            {
+              "header": "Status",
+              "field": "status",
+              "sortable": true,
+              "filterable": true,
+              "colorMap": {
+                "Pending": "orange",
+                "Approved": "green",
+                "Rejected": "red",
+                "Cancelled": "grey"
+              }
+            },
+            { "header": "Notes", "field": "notes" }
+          ],
+          "rowActions": [
+            {
+              "label": "Approve",
+              "action": "update",
+              "dataSource": "requestsUpdater",
+              "matchField": "_id",
+              "values": { "status": "Approved" },
+              "hideWhen": { "field": "status", "notEquals": "Pending" },
+              "styleHint": { "color": "green", "icon": "check_circle" }
+            },
+            {
+              "label": "Reject",
+              "action": "update",
+              "dataSource": "requestsUpdater",
+              "matchField": "_id",
+              "values": { "status": "Rejected" },
+              "hideWhen": { "field": "status", "notEquals": "Pending" },
+              "styleHint": { "color": "red", "icon": "cancel" }
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "dataSource": "requestsDeleter",
+              "matchField": "_id",
+              "roles": ["admin"]
+            }
+          ],
+          "defaultSort": { "field": "startDate", "direction": "asc" }
+        }
+      ]
+    },
+    "reportsPage": {
+      "component": "page",
+      "title": "Reports",
+      "roles": ["admin", "manager"],
+      "content": [
+        {
+          "component": "text",
+          "content": "Time-off request analytics and trends.",
+          "styleHint": { "variant": "subheading" }
+        },
+        {
+          "component": "summary",
+          "label": "Total Requests",
+          "value": "{COUNT(requestsReader)}",
+          "icon": "assessment",
+          "styleHint": { "color": "primary" }
+        },
+        {
+          "component": "summary",
+          "label": "Approval Rate",
+          "value": "{COUNT(requestsReader, status, Approved)}",
+          "icon": "thumb_up",
+          "styleHint": { "color": "green" }
+        },
+        {
+          "component": "chart",
+          "dataSource": "requestsReader",
+          "chartType": "pie",
+          "labelField": "type",
+          "valueField": "type",
+          "aggregate": "count",
+          "title": "Requests by Leave Type"
+        },
+        {
+          "component": "chart",
+          "dataSource": "requestsReader",
+          "chartType": "bar",
+          "labelField": "status",
+          "valueField": "status",
+          "aggregate": "count",
+          "title": "Requests by Status"
+        }
+      ]
+    }
+  },
+  "dataSources": {
+    "requestsReader": {
+      "url": "local://requests",
+      "method": "GET",
+      "ownership": {
+        "enabled": true,
+        "adminOverride": true
+      },
+      "fields": [
+        { "name": "type", "type": "select", "options": ["Vacation", "Sick", "Personal", "Other"] },
+        { "name": "startDate", "type": "date" },
+        { "name": "endDate", "type": "date" },
+        { "name": "notes", "type": "multiline" },
+        { "name": "status", "type": "text" },
+        { "name": "_owner", "type": "text" }
+      ],
+      "seedData": [
+        {
+          "type": "Vacation",
+          "startDate": "2026-04-07",
+          "endDate": "2026-04-11",
+          "notes": "Family trip to the coast.",
+          "status": "Pending",
+          "_owner": "alice"
+        },
+        {
+          "type": "Sick",
+          "startDate": "2026-03-18",
+          "endDate": "2026-03-18",
+          "notes": "Doctor appointment in the morning.",
+          "status": "Approved",
+          "_owner": "bob"
+        },
+        {
+          "type": "Personal",
+          "startDate": "2026-04-01",
+          "endDate": "2026-04-02",
+          "notes": "Moving to a new apartment.",
+          "status": "Pending",
+          "_owner": "carol"
+        },
+        {
+          "type": "Vacation",
+          "startDate": "2026-03-10",
+          "endDate": "2026-03-14",
+          "notes": "Spring break with the kids.",
+          "status": "Rejected",
+          "_owner": "alice"
+        }
+      ]
+    },
+    "requestsStore": {
+      "url": "local://requests",
+      "method": "POST",
+      "ownership": {
+        "enabled": true
+      }
+    },
+    "requestsUpdater": {
+      "url": "local://requests",
+      "method": "PUT"
+    },
+    "requestsDeleter": {
+      "url": "local://requests",
+      "method": "DELETE"
+    }
+  },
+  "help": {
+    "overview": "Time Off Requests is a multi-user approval workflow app. Regular users submit time-off requests and track their status. Managers and admins can review all pending requests, approve or reject them, and view reports on leave trends.",
+    "pages": {
+      "dashboardPage": "Your overview showing total requests, how many are pending, approved, and rejected. A quick snapshot of the current state of time-off requests.",
+      "myRequestsPage": "All of your submitted requests with color-coded status: orange for Pending, green for Approved, red for Rejected, grey for Cancelled. You can cancel any request that is still Pending.",
+      "newRequestPage": "Submit a new time-off request. Choose the leave type, set start and end dates, and add any notes. The request starts as Pending and goes to your manager for review.",
+      "reviewPage": "Manager and admin view of all pending requests across the team. Approve or reject requests with one tap. Only visible to managers and admins.",
+      "reportsPage": "Analytics showing the breakdown of requests by leave type (pie chart) and by status (bar chart). Only visible to managers and admins."
+    }
+  },
+  "tour": [
+    {
+      "title": "Welcome to Time Off Requests!",
+      "content": "This app demonstrates a multi-user approval workflow. Users submit requests, and managers approve or reject them.",
+      "page": "dashboardPage"
+    },
+    {
+      "title": "Track Your Requests",
+      "content": "The My Requests page shows all your submitted requests with color-coded statuses. Cancel any pending request if your plans change.",
+      "page": "myRequestsPage"
+    },
+    {
+      "title": "Submit Time Off",
+      "content": "Choose your leave type, pick dates, and add notes. Your request will be sent to your manager for review.",
+      "page": "newRequestPage"
+    },
+    {
+      "title": "Manager Review",
+      "content": "Managers and admins see all pending requests here. Approve or reject with a single tap. The requester's name is shown for each request.",
+      "page": "reviewPage"
+    },
+    {
+      "title": "Reports & Analytics",
+      "content": "View pie and bar charts showing how time off is distributed by type and status across the team.",
+      "page": "reportsPage"
+    }
+  ]
+}

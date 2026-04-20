@@ -1,0 +1,100 @@
+{
+  "appName": "DailyMantra",
+  "startPage": "addMantraPage",
+  "menu": [
+    { "label": "Add a Mantra", "mapsTo": "addMantraPage" },
+    { "label": "My Mantras", "mapsTo": "viewMantrasPage" }
+  ],
+  "pages": {
+    "addMantraPage": {
+      "component": "page",
+      "title": "Add a Mantra",
+      "content": [
+        {
+          "component": "text",
+          "content": "Enter a mantra to inspire your day.",
+          "styleHint": { "variant": "body" }
+        },
+        {
+          "component": "form",
+          "id": "mantraForm",
+          "fields": [
+            { "name": "mantra", "label": "Mantra", "type": "text" },
+            { "name": "category", "label": "Category", "type": "text" }
+          ]
+        },
+        {
+          "component": "button",
+          "label": "Save Mantra",
+          "onClick": [
+            { "action": "submit", "dataSource": "mantraStore", "target": "mantraForm" },
+            { "action": "navigate", "target": "mantraSavedPage" }
+          ],
+          "styleHint": { "emphasis": "primary" }
+        }
+      ]
+    },
+    "mantraSavedPage": {
+      "component": "page",
+      "title": "Mantra Saved",
+      "content": [
+        {
+          "component": "text",
+          "content": "Your mantra has been saved. Keep it close to heart.",
+          "styleHint": { "variant": "heading" }
+        },
+        {
+          "component": "button",
+          "label": "Add Another",
+          "onClick": [
+            { "action": "navigate", "target": "addMantraPage" }
+          ],
+          "styleHint": { "emphasis": "primary" }
+        },
+        {
+          "component": "button",
+          "label": "View My Mantras",
+          "onClick": [
+            { "action": "navigate", "target": "viewMantrasPage" }
+          ]
+        }
+      ]
+    },
+    "viewMantrasPage": {
+      "component": "page",
+      "title": "My Mantras",
+      "content": [
+        {
+          "component": "text",
+          "content": "All of your saved mantras.",
+          "styleHint": { "variant": "body" }
+        },
+        {
+          "component": "list",
+          "dataSource": "mantraReader",
+          "columns": [
+            { "header": "Mantra", "field": "mantra" },
+            { "header": "Category", "field": "category" }
+          ]
+        },
+        {
+          "component": "button",
+          "label": "Add a Mantra",
+          "onClick": [
+            { "action": "navigate", "target": "addMantraPage" }
+          ]
+        }
+      ]
+    }
+  },
+  "dataSources": {
+    "mantraStore": {
+      "url": "local://mantras",
+      "method": "POST"
+    },
+    "mantraReader": {
+      "url": "local://mantras",
+      "method": "GET"
+    }
+  }
+}

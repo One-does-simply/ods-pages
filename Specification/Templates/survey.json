@@ -1,0 +1,338 @@
+{
+  "templateName": "Survey / Feedback",
+  "description": "Collect responses with a form and view aggregate results with charts. Great for polls, feedback, and questionnaires.",
+  "icon": "poll",
+  "questions": [
+    {
+      "id": "appName",
+      "label": "What do you want to call your app?",
+      "type": "text",
+      "required": true,
+      "placeholder": "e.g., Team Survey, Event Feedback"
+    },
+    {
+      "id": "surveyTopic",
+      "label": "What is this survey about?",
+      "type": "text",
+      "required": true,
+      "placeholder": "e.g., Team satisfaction, Event experience"
+    },
+    {
+      "id": "fields",
+      "label": "What questions will you ask?",
+      "type": "field-list",
+      "required": true,
+      "presets": [
+        {
+          "label": "Name",
+          "name": "name",
+          "type": "text",
+          "default": "CURRENT_USER.NAME"
+        },
+        {
+          "label": "Role",
+          "name": "role",
+          "type": "select",
+          "options": [
+            "Manager",
+            "Developer",
+            "Designer",
+            "Other"
+          ]
+        },
+        {
+          "label": "Rating",
+          "name": "rating",
+          "type": "select",
+          "options": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5"
+          ]
+        },
+        {
+          "label": "Recommend",
+          "name": "recommend",
+          "type": "select",
+          "options": [
+            "Yes",
+            "No",
+            "Maybe"
+          ]
+        },
+        {
+          "label": "Comments",
+          "name": "comments",
+          "type": "multiline"
+        }
+      ]
+    },
+    {
+      "id": "chartField",
+      "label": "Chart: which question to visualize?",
+      "type": "field-ref",
+      "ref": "fields",
+      "placeholder": "e.g., Rating, Recommend"
+    },
+    {
+      "id": "wantMultiUser",
+      "label": "Should results be restricted to admins only?",
+      "type": "checkbox",
+      "default": false
+    },
+    {
+      "id": "wantSelfRegistration",
+      "label": "Allow public sign-ups? (for external surveys)",
+      "type": "checkbox",
+      "default": false
+    },
+    {
+      "id": "theme",
+      "label": "App theme",
+      "type": "select",
+      "options": ["indigo", "slate", "ocean", "parchment", "peach", "terracotta", "walnut", "cupcake", "bumblebee", "emerald", "corporate", "synthwave", "retro", "cyberpunk", "valentine", "halloween", "garden", "forest", "aqua", "lofi", "pastel", "fantasy", "wireframe", "black", "luxury", "dracula", "cmyk", "autumn", "business", "acid", "lemonade", "night", "coffee", "winter", "dim", "nord", "sunset", "caramellatte", "abyss", "silk"],
+      "default": "indigo"
+    }
+  ],
+  "template": {
+    "appName": "${appName}",
+    "branding": {
+      "theme": "${theme}"
+    },
+    "startPage": "submitPage",
+    "auth": {
+      "$if": "wantMultiUser",
+      "then": {
+        "multiUser": true,
+        "defaultRole": "user",
+        "selfRegistration": { "$if": "wantSelfRegistration", "then": true }
+      }
+    },
+    "menu": [
+      {
+        "label": "Submit Response",
+        "mapsTo": "submitPage"
+      },
+      {
+        "label": "Results",
+        "mapsTo": "resultsPage",
+        "roles": {
+          "$if": "wantMultiUser",
+          "then": ["admin"]
+        }
+      }
+    ],
+    "pages": {
+      "submitPage": {
+        "component": "page",
+        "title": "Submit Response",
+        "content": [
+          {
+            "component": "text",
+            "content": "${surveyTopic} \u00e2\u20ac\u201d your responses are stored locally on this device.",
+            "styleHint": {
+              "variant": "body"
+            }
+          },
+          {
+            "component": "form",
+            "id": "surveyForm",
+            "fields": {
+              "$flatten": [
+                {
+                  "$map": "fields",
+                  "each(field)": {
+                    "$if": "field.type == 'select'",
+                    "then": {
+                      "name": "${field.name}",
+                      "label": "${field.label}",
+                      "type": "select",
+                      "options": {
+                        "$eval": "field.options"
+                      },
+                      "required": true
+                    },
+                    "else": {
+                      "name": "${field.name}",
+                      "label": "${field.label}",
+                      "type": "${field.type}",
+                      "required": true
+                    }
+                  }
+                },
+                [
+                  {
+                    "name": "submittedAt",
+                    "type": "hidden",
+                    "default": "CURRENTDATE"
+                  }
+                ]
+              ]
+            }
+          },
+          {
+            "component": "button",
+            "label": "Submit",
+            "onClick": [
+              {
+                "action": "submit",
+                "dataSource": "responsesStore",
+                "target": "surveyForm"
+              },
+              {
+                "action": "navigate",
+                "target": "thankYouPage"
+              },
+              {
+                "action": "showMessage",
+                "message": "Response submitted \u00e2\u20ac\u201d thank you!"
+              }
+            ],
+            "styleHint": {
+              "emphasis": "primary",
+              "icon": "send"
+            }
+          }
+        ]
+      },
+      "thankYouPage": {
+        "component": "page",
+        "title": "Thank You",
+        "content": [
+          {
+            "component": "text",
+            "content": "Your response has been recorded. Thank you!",
+            "styleHint": {
+              "variant": "subheading"
+            }
+          },
+          {
+            "component": "button",
+            "label": "Submit Another",
+            "onClick": [
+              {
+                "action": "navigate",
+                "target": "submitPage"
+              }
+            ],
+            "styleHint": {
+              "emphasis": "secondary",
+              "icon": "send",
+              "variant": "outlined"
+            }
+          },
+          {
+            "component": "button",
+            "label": "View Results",
+            "onClick": [
+              {
+                "action": "navigate",
+                "target": "resultsPage"
+              }
+            ],
+            "styleHint": {
+              "emphasis": "primary",
+              "icon": "visibility"
+            }
+          }
+        ]
+      },
+      "resultsPage": {
+        "component": "page",
+        "title": "Results",
+        "content": {
+          "$flatten": [
+            [
+              {
+                "component": "summary",
+                "label": "Total Responses",
+                "value": "{COUNT(responsesReader)}",
+                "icon": "people"
+              },
+              {
+                "component": "text",
+                "content": "No responses yet. Share this survey and collect your first!",
+                "styleHint": {
+                  "variant": "body"
+                },
+                "visibleWhen": {
+                  "source": "responsesReader",
+                  "countEquals": 0
+                }
+              },
+              {
+                "component": "list",
+                "dataSource": "responsesReader",
+                "searchable": true,
+                "columns": {
+                  "$map": "fields",
+                  "each(field, index)": {
+                    "$if": "field.type == 'select' && index == 0",
+                    "then": {
+                      "header": "${field.label}",
+                      "field": "${field.name}",
+                      "sortable": true,
+                      "filterable": true
+                    },
+                    "else": {
+                      "header": "${field.label}",
+                      "field": "${field.name}",
+                      "sortable": true
+                    }
+                  }
+                }
+              }
+            ],
+            {
+              "$if": "chartField",
+              "then": [
+                {
+                  "component": "chart",
+                  "dataSource": "responsesReader",
+                  "chartType": "bar",
+                  "labelField": "${chartField}",
+                  "valueField": "${chartField}",
+                  "aggregate": "count",
+                  "title": "Responses by ${chartField}"
+                }
+              ],
+              "else": []
+            }
+          ]
+        }
+      }
+    },
+    "dataSources": {
+      "responsesStore": {
+        "url": "local://responses",
+        "method": "POST"
+      },
+      "responsesReader": {
+        "url": "local://responses",
+        "method": "GET",
+        "fields": {
+          "$flatten": [
+            {
+              "$map": "fields",
+              "each(field)": {
+                "name": "${field.name}",
+                "type": "${field.type}"
+              }
+            },
+            [
+              {
+                "name": "submittedAt",
+                "type": "date"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "help": {
+      "overview": "${appName} collects responses about ${surveyTopic}. Submit your response on the first page and view all collected results on the Results page. All data stays on your device."
+    }
+  }
+}

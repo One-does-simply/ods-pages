@@ -1,0 +1,431 @@
+{
+  "appName": "Reading List",
+  "auth": { "multiUser": false },
+  "startPage": "myReadingListPage",
+  "menu": [
+    {
+      "label": "My Reading List",
+      "mapsTo": "myReadingListPage"
+    },
+    {
+      "label": "Add Book",
+      "mapsTo": "addBookPage"
+    }
+  ],
+  "pages": {
+    "addBookPage": {
+      "component": "page",
+      "title": "Add a Book",
+      "content": [
+        {
+          "component": "text",
+          "content": "Add a new book to your reading list.",
+          "styleHint": {
+            "variant": "body"
+          }
+        },
+        {
+          "component": "form",
+          "id": "addBookForm",
+          "fields": [
+            {
+              "name": "bookTitle",
+              "label": "Book Title",
+              "type": "text",
+              "required": true,
+              "placeholder": "e.g., Atomic Habits"
+            },
+            {
+              "name": "author",
+              "label": "Author",
+              "type": "text",
+              "required": true,
+              "placeholder": "e.g., James Clear"
+            },
+            {
+              "name": "status",
+              "label": "Status",
+              "type": "select",
+              "options": [
+                "To Read",
+                "Reading",
+                "Finished",
+                "Abandoned"
+              ],
+              "default": "To Read"
+            },
+            {
+              "name": "rating",
+              "label": "Rating",
+              "type": "select",
+              "options": [
+                "1",
+                "2",
+                "3",
+                "4",
+                "5"
+              ]
+            },
+            {
+              "name": "notes",
+              "label": "Notes",
+              "type": "multiline",
+              "placeholder": "Your thoughts about this book..."
+            }
+          ]
+        },
+        {
+          "component": "button",
+          "label": "Save Book",
+          "onClick": [
+            {
+              "action": "submit",
+              "dataSource": "booksStore",
+              "target": "addBookForm"
+            },
+            {
+              "action": "showMessage",
+              "message": "Book added!"
+            },
+            {
+              "action": "navigate",
+              "target": "myReadingListPage"
+            }
+          ],
+          "styleHint": {
+            "emphasis": "primary",
+            "icon": "save"
+          }
+        }
+      ]
+    },
+    "myReadingListPage": {
+      "component": "page",
+      "title": "My Reading List",
+      "content": [
+        {
+          "component": "text",
+          "content": "{COUNT(booksReader)} books \u00e2\u20ac\u201d {COUNT(booksReader, status=Reading)} reading, {COUNT(booksReader, status=Finished)} finished",
+          "styleHint": {
+            "variant": "subheading"
+          }
+        },
+        {
+          "component": "text",
+          "content": "Your reading list is empty. Add your first book!",
+          "styleHint": {
+            "variant": "body",
+            "align": "center",
+            "color": "grey"
+          },
+          "visibleWhen": {
+            "source": "booksReader",
+            "countEquals": 0
+          }
+        },
+        {
+          "component": "summary",
+          "label": "Total Books",
+          "value": "{COUNT(booksReader)}",
+          "icon": "book",
+          "styleHint": {
+            "color": "indigo"
+          }
+        },
+        {
+          "component": "summary",
+          "label": "Books Finished",
+          "value": "{COUNT(booksReader, status=Finished)}",
+          "icon": "check_circle",
+          "styleHint": {
+            "color": "success"
+          }
+        },
+        {
+          "component": "chart",
+          "dataSource": "booksReader",
+          "chartType": "pie",
+          "labelField": "status",
+          "valueField": "bookTitle",
+          "title": "Reading Pipeline",
+          "visibleWhen": {
+            "source": "booksReader",
+            "countMin": 1
+          }
+        },
+        {
+          "component": "list",
+          "dataSource": "booksReader",
+          "searchable": true,
+          "displayAs": "cards",
+          "columns": [
+            {
+              "header": "Title",
+              "field": "bookTitle",
+              "sortable": true
+            },
+            {
+              "header": "Author",
+              "field": "author",
+              "sortable": true
+            },
+            {
+              "header": "Status",
+              "field": "status",
+              "sortable": true,
+              "filterable": true,
+              "colorMap": {
+                "Finished": "green",
+                "Reading": "blue",
+                "To Read": "orange",
+                "Abandoned": "red"
+              }
+            },
+            {
+              "header": "Rating",
+              "field": "rating",
+              "sortable": true,
+              "filterable": true
+            }
+          ],
+          "rowActions": [
+            {
+              "label": "Start Reading",
+              "action": "update",
+              "dataSource": "booksUpdater",
+              "matchField": "_id",
+              "values": {
+                "status": "Reading"
+              },
+              "hideWhen": {
+                "field": "status",
+                "notEquals": "To Read"
+              },
+              "showMessage": "Status updated!"
+            },
+            {
+              "label": "Finished",
+              "action": "update",
+              "dataSource": "booksUpdater",
+              "matchField": "_id",
+              "values": {
+                "status": "Finished"
+              },
+              "hideWhen": {
+                "field": "status",
+                "notEquals": "Reading"
+              },
+              "showMessage": "Status updated!"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "dataSource": "booksDeleter",
+              "matchField": "_id",
+              "showMessage": "Book deleted!"
+            }
+          ],
+          "onRowTap": {
+            "action": "navigate",
+            "target": "editBookPage",
+            "populateForm": "editBookForm"
+          }
+        },
+        {
+          "component": "button",
+          "label": "Add a Book",
+          "onClick": [
+            {
+              "action": "navigate",
+              "target": "addBookPage"
+            }
+          ],
+          "styleHint": {
+            "emphasis": "primary",
+            "icon": "add_circle"
+          }
+        }
+      ]
+    },
+    "editBookPage": {
+      "component": "page",
+      "title": "Edit Book",
+      "content": [
+        {
+          "component": "form",
+          "id": "editBookForm",
+          "fields": [
+            {
+              "name": "bookTitle",
+              "label": "Book Title",
+              "type": "text",
+              "required": true
+            },
+            {
+              "name": "author",
+              "label": "Author",
+              "type": "text",
+              "required": true
+            },
+            {
+              "name": "status",
+              "label": "Status",
+              "type": "select",
+              "options": [
+                "To Read",
+                "Reading",
+                "Finished",
+                "Abandoned"
+              ]
+            },
+            {
+              "name": "rating",
+              "label": "Rating",
+              "type": "select",
+              "options": [
+                "1",
+                "2",
+                "3",
+                "4",
+                "5"
+              ]
+            },
+            {
+              "name": "notes",
+              "label": "Notes",
+              "type": "multiline"
+            }
+          ]
+        },
+        {
+          "component": "button",
+          "label": "Save Changes",
+          "onClick": [
+            {
+              "action": "update",
+              "dataSource": "booksUpdater",
+              "target": "editBookForm",
+              "matchField": "_id"
+            },
+            {
+              "action": "showMessage",
+              "message": "Book updated!"
+            },
+            {
+              "action": "navigate",
+              "target": "myReadingListPage"
+            }
+          ],
+          "styleHint": {
+            "emphasis": "primary",
+            "icon": "save"
+          }
+        },
+        {
+          "component": "button",
+          "label": "Back",
+          "onClick": [
+            {
+              "action": "navigate",
+              "target": "myReadingListPage"
+            }
+          ],
+          "styleHint": {
+            "emphasis": "secondary",
+            "icon": "arrow_back",
+            "variant": "outlined"
+          }
+        }
+      ]
+    }
+  },
+  "dataSources": {
+    "booksStore": {
+      "url": "local://books",
+      "method": "POST",
+      "ownership": { "enabled": true }
+    },
+    "booksReader": {
+      "url": "local://books",
+      "method": "GET",
+      "ownership": { "enabled": true, "adminOverride": true },
+      "fields": [
+        {
+          "name": "bookTitle",
+          "type": "text"
+        },
+        {
+          "name": "author",
+          "type": "text"
+        },
+        {
+          "name": "status",
+          "type": "select"
+        },
+        {
+          "name": "rating",
+          "type": "select"
+        },
+        {
+          "name": "notes",
+          "type": "multiline"
+        }
+      ],
+      "seedData": [
+        {
+          "bookTitle": "Atomic Habits",
+          "author": "James Clear",
+          "status": "Finished",
+          "rating": "5",
+          "notes": "Excellent practical guide to building good habits and breaking bad ones."
+        },
+        {
+          "bookTitle": "Dune",
+          "author": "Frank Herbert",
+          "status": "Reading",
+          "rating": "4",
+          "notes": "Epic science fiction. The world-building is incredible."
+        },
+        {
+          "bookTitle": "Project Hail Mary",
+          "author": "Andy Weir",
+          "status": "To Read",
+          "rating": "",
+          "notes": "Recommended by a friend. Same author as The Martian."
+        }
+      ]
+    },
+    "booksUpdater": {
+      "url": "local://books",
+      "method": "PUT"
+    },
+    "booksDeleter": {
+      "url": "local://books",
+      "method": "DELETE"
+    }
+  },
+  "help": {
+    "overview": "Reading List helps you track books you want to read, are currently reading, or have finished. Rate and annotate each book. Tap any row to view or edit its full details including notes.",
+    "pages": {
+      "addBookPage": "Enter the book title and author (both required). Select a status and rating from dropdowns, and add notes. Press Save Book to add it.",
+      "myReadingListPage": "View all your books with color-coded status. Tap any row to edit. Use Start Reading or Finished for quick status changes. Filter by status or rating.",
+      "editBookPage": "View and edit all book details including notes. Press Save Changes when done."
+    }
+  },
+  "tour": [
+    {
+      "title": "Welcome to Reading List",
+      "content": "Keep track of every book you want to read, are currently reading, or have finished. All data stays on your device."
+    },
+    {
+      "title": "Track Your Books",
+      "content": "Add a book with its title and author. Status is color-coded: green for Finished, blue for Reading, orange for To Read.",
+      "page": "addBookPage"
+    },
+    {
+      "title": "Browse Your List",
+      "content": "Tap any row to see full details and edit. Use the quick-action buttons to change status, or filter by status and rating.",
+      "page": "myReadingListPage"
+    }
+  ]
+}

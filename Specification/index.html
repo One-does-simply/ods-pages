@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>One Does Simply — Vibe Coding with Guardrails</title>
+  <style>
+    :root {
+      --indigo: #4F46E5;
+      --purple: #7C3AED;
+      --dark-bg: #0F172A;
+      --text: #1E293B;
+      --text-light: #64748B;
+      --card-bg: #FFFFFF;
+      --border: #E2E8F0;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, var(--indigo), var(--purple));
+      color: white;
+      padding: 80px 24px 64px;
+      text-align: center;
+    }
+
+    .hero h1 {
+      font-size: 3rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+    }
+
+    .hero .tagline {
+      font-size: 1.35rem;
+      font-weight: 500;
+      opacity: 0.9;
+      margin-bottom: 24px;
+    }
+
+    .hero .subtitle {
+      max-width: 640px;
+      margin: 0 auto 32px;
+      font-size: 1.1rem;
+      opacity: 0.85;
+      line-height: 1.7;
+    }
+
+    .hero .cta {
+      display: inline-block;
+      background: white;
+      color: var(--indigo);
+      font-weight: 700;
+      font-size: 1rem;
+      padding: 14px 32px;
+      border-radius: 10px;
+      text-decoration: none;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    .hero .cta:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+    }
+
+    .quote {
+      max-width: 640px;
+      margin: -32px auto 0;
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 24px 32px;
+      text-align: center;
+      font-style: italic;
+      font-size: 1.05rem;
+      color: var(--text);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      position: relative;
+      z-index: 1;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 48px 24px;
+    }
+
+    h2 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .problem-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    @media (max-width: 600px) {
+      .hero h1 { font-size: 2rem; }
+      .problem-grid { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+    }
+
+    .card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .card p {
+      font-size: 0.95rem;
+      color: var(--text-light);
+    }
+
+    .pillars {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-top: 24px;
+    }
+
+    @media (max-width: 700px) {
+      .pillars { grid-template-columns: 1fr; }
+    }
+
+    .pillar {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .pillar .icon {
+      font-size: 2rem;
+      margin-bottom: 12px;
+    }
+
+    .pillar h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .pillar p {
+      font-size: 0.95rem;
+      color: var(--text-light);
+    }
+
+    .highlight-box {
+      background: linear-gradient(135deg, #EEF2FF, #F5F3FF);
+      border: 1px solid #C7D2FE;
+      border-radius: 16px;
+      padding: 32px;
+      margin-top: 24px;
+    }
+
+    .highlight-box h3 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--indigo);
+      margin-bottom: 12px;
+    }
+
+    .highlight-box p {
+      font-size: 1.05rem;
+      line-height: 1.7;
+    }
+
+    .examples {
+      margin-top: 24px;
+    }
+
+    .examples a {
+      display: inline-block;
+      color: var(--indigo);
+      font-weight: 600;
+      text-decoration: none;
+      margin-right: 20px;
+      margin-bottom: 8px;
+    }
+
+    .examples a:hover { text-decoration: underline; }
+
+    footer {
+      text-align: center;
+      padding: 32px 24px;
+      color: var(--text-light);
+      font-size: 0.9rem;
+      border-top: 1px solid var(--border);
+    }
+
+    footer a { color: var(--indigo); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    section { margin-bottom: 48px; }
+  </style>
+</head>
+<body>
+
+  <div class="hero">
+    <h1>One Does Simply</h1>
+    <p class="tagline">Vibe Coding with Guardrails</p>
+    <p class="subtitle">
+      Describe your app in plain JSON. An AI Build Helper writes it for you.
+      A framework renders it instantly — on desktop, mobile, or the web.
+      Your data stays under your control. And if you ever need a more complex
+      solution, there is an off-ramp: generate real source code that you own
+      and can modify in any way you want.
+    </p>
+    <a class="cta" href="https://github.com/One-does-simply">View on GitHub</a>
+  </div>
+
+  <div class="quote">
+    "One does not simply do complex things,<br>
+    but One Does Simply do simple things."
+  </div>
+
+  <div class="container">
+
+    <section>
+      <h2>The Problem</h2>
+      <p>Citizen developers have two paths today — and both have traps.</p>
+      <div class="problem-grid">
+        <div class="card">
+          <h3>Low-Code Platforms</h3>
+          <p>Start simple, then drown you in complexity. Expect you to be a designer. Lock in your data and your app.</p>
+        </div>
+        <div class="card">
+          <h3>Vibe Coding with AI</h3>
+          <p>AI builds something fast — but you can't verify it, can't secure it, and can't maintain it. No guardrails.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>The ODS Solution</h2>
+      <p>ODS gives you the best of both worlds: the speed of AI-assisted building with the safety of a structured specification.</p>
+      <div class="pillars">
+        <div class="pillar">
+          <div class="icon">📄</div>
+          <h3>The Specification</h3>
+          <p>A simple, open JSON schema that describes <em>what</em> your app does — pages, forms, lists, buttons. Human-readable. AI-writable. Portable.</p>
+        </div>
+        <div class="pillar">
+          <div class="icon">🚀</div>
+          <h3>Frameworks</h3>
+          <p>Renderers that bring your spec to life with professional UI, local storage, and smart defaults. Complexity is the framework's job.</p>
+        </div>
+        <div class="pillar">
+          <div class="icon">🤖</div>
+          <h3>Build Helper</h3>
+          <p>An AI assistant that turns your idea into a valid ODS spec through conversation. It can only produce specs that work — that's the guardrail.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="highlight-box">
+        <h3>Vibe Coding with Guardrails</h3>
+        <p>
+          Traditional vibe coding lets AI generate arbitrary code you may not understand.
+          ODS flips the model: the AI produces a <strong>structured JSON spec</strong> that's
+          validated, human-readable, and constrained to safe patterns. The framework handles
+          the hard parts — UI, storage, security — so the AI never has to. You get the
+          creative speed of vibe coding with the confidence that your app actually works,
+          your data is safe, and you're never locked in.
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Two Frameworks, One Spec</h2>
+      <p>Write your spec once and run it anywhere. ODS currently ships two production-ready frameworks:</p>
+      <div class="problem-grid">
+        <div class="card">
+          <h3>Flutter Local</h3>
+          <p>Desktop &amp; mobile. SQLite storage on-device. Perfect for personal apps and offline-first use. No server required.</p>
+        </div>
+        <div class="card">
+          <h3>React Web</h3>
+          <p>Web-based with PocketBase backend. Built-in multi-user auth, self-registration, and role-based access. Perfect for team apps.</p>
+        </div>
+      </div>
+      <p style="margin-top: 16px; font-size: 0.95rem; color: var(--text-light);">
+        Both frameworks support the full ODS spec: forms, lists, charts, settings, help, tours, data export, code generation, and more. Multi-user apps with role-based access control work across both.
+      </p>
+    </section>
+
+    <section>
+      <h2>The Off-Ramp</h2>
+      <p>
+        Unlike other platforms, ODS never locks you in. Your spec is a standard JSON file you own.
+        When you outgrow the framework, generate real source code — a full Flutter project or React
+        application with models, database helpers, and UI widgets — and customize without limits.
+        ODS is the on-ramp to real development, not a dead end.
+      </p>
+    </section>
+
+    <section>
+      <h2>Example Apps</h2>
+      <p>Browse example specs to see what ODS apps look like:</p>
+      <div class="examples">
+        <a href="Examples/customer-feedback-app.json">Customer Feedback</a>
+        <a href="Examples/expense-tracker-app.json">Expense Tracker</a>
+        <a href="Examples/habit-tracker-app.json">Habit Tracker</a>
+        <a href="Examples/todo-list-app.json">To-Do List</a>
+        <a href="Examples/recipe-book-app.json">Recipe Book</a>
+        <a href="Examples/reading-list-app.json">Reading List</a>
+        <a href="Examples/personal-journal-app.json">Personal Journal</a>
+        <a href="Examples/my_chores.json">My Chores</a>
+        <a href="Examples/quiz-app.json">Quiz Master</a>
+        <a href="Examples/team-survey-app.json">Team Survey</a>
+        <a href="Examples/team-tasks-app.json">Team Tasks (Multi-User)</a>
+        <a href="Examples/team-wiki-app.json">Team Wiki</a>
+        <a href="Examples/project-dashboard-app.json">Project Dashboard</a>
+      </div>
+      <p style="margin-top: 12px;">
+        <a href="Examples/catalog.json" style="color: var(--indigo); font-weight: 600;">View the full catalog (JSON)</a>
+      </p>
+    </section>
+
+    <section>
+      <h2>Getting Started</h2>
+      <p><strong>For personal/desktop apps (Flutter Local):</strong></p>
+      <p>
+        <strong>1.</strong> Download the <a href="https://github.com/One-does-simply/Frameworks" style="color: var(--indigo);">Flutter Local Framework</a> and run it.<br>
+        <strong>2.</strong> Pick some example apps to explore — or tap <strong>Create New</strong> to build your own with the AI Build Helper.<br>
+        <strong>3.</strong> When you're ready to move on, use <strong>Export Data</strong> or <strong>Generate Code</strong> from the app menu.
+      </p>
+      <p style="margin-top: 16px;"><strong>For multi-user web apps (React Web):</strong></p>
+      <p>
+        <strong>1.</strong> Install <a href="https://pocketbase.io" style="color: var(--indigo);">PocketBase</a> and start it locally.<br>
+        <strong>2.</strong> Clone the <a href="https://github.com/One-does-simply/Frameworks" style="color: var(--indigo);">React Web Framework</a>, run <code>npm install &amp;&amp; npm run dev</code>.<br>
+        <strong>3.</strong> Log in as the PocketBase admin, load specs, and share app URLs with your team.
+      </p>
+    </section>
+
+  </div>
+
+  <footer>
+    <p>
+      One Does Simply is open source.
+      <a href="https://github.com/One-does-simply">GitHub</a> ·
+      <a href="https://github.com/One-does-simply/Specification">Specification</a> ·
+      <a href="https://github.com/One-does-simply/Frameworks">Frameworks</a>
+    </p>
+  </footer>
+
+</body>
+</html>

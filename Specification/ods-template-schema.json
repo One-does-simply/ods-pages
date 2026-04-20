@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/ods-template.schema.json",
+  "title": "ODS Template Schema",
+  "description": "Defines the structure for an ODS template. A template combines a short question wizard with a JSON-e template body that renders into a valid ODS application spec. Frameworks that support the full JSON-e spec can process the template section directly; frameworks with partial support implement the $if/$map/${} subset.",
+  "type": "object",
+  "properties": {
+    "templateName": {
+      "description": "The display name of the template shown in the Quick Build catalog.",
+      "type": "string"
+    },
+    "description": {
+      "description": "A short description of what kind of app this template builds.",
+      "type": "string"
+    },
+    "icon": {
+      "description": "Optional. A Material icon name to display alongside the template in the catalog.",
+      "type": "string"
+    },
+    "questions": {
+      "description": "An ordered array of questions to ask the user before rendering the template. Answers become the JSON-e context for the template body. Keep this short — if you need more than ~5 questions, the app is better built with the AI helper.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/question" }
+    },
+    "template": {
+      "description": "A JSON-e template that, when rendered with the question answers as context, produces a valid ODS application spec. Must conform to ods-schema.json after rendering. Frameworks may implement a subset of JSON-e ($if, $map, ${} interpolation) — templates should prefer these operators for maximum portability.",
+      "type": "object"
+    }
+  },
+  "required": ["templateName", "description", "questions", "template"],
+  "$defs": {
+    "question": {
+      "title": "Template Question",
+      "description": "A single question in the Quick Build wizard. The answer is stored under the question's 'id' in the JSON-e rendering context.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "The variable name used to reference this answer in the template body. Must be a valid JSON-e identifier (letters, digits, underscores).",
+          "type": "string",
+          "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+        },
+        "label": {
+          "description": "The question text shown to the user.",
+          "type": "string"
+        },
+        "type": {
+          "description": "The input type for the question. 'text' = free text, 'select' = dropdown, 'checkbox' = boolean toggle, 'field-list' = a mini builder for defining fields (name + type), 'field-ref' = dropdown populated from a field-list answer (use 'ref' to specify which).",
+          "type": "string",
+          "enum": ["text", "select", "checkbox", "field-list", "field-ref"]
+        },
+        "required": {
+          "description": "When true, the user must answer before proceeding. Defaults to false.",
+          "type": "boolean",
+          "default": false
+        },
+        "placeholder": {
+          "description": "Optional hint text for text inputs.",
+          "type": "string"
+        },
+        "options": {
+          "description": "Required when type is 'select'. The list of choices.",
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "default": {
+          "description": "Optional default value. For checkbox, use true/false.",
+          "type": ["string", "boolean"]
+        },
+        "ref": {
+          "description": "For 'field-ref' type only. The 'id' of a 'field-list' question whose fields become the dropdown options. The answer is stored as the selected field's programmatic name.",
+          "type": "string"
+        },
+        "presets": {
+          "description": "Optional. For 'field-list' type only. Pre-defined field templates the user can add with one tap instead of typing. Each preset expands to a field with a sensible name, label, and type.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/fieldPreset" }
+        }
+      },
+      "required": ["id", "label", "type"]
+    },
+    "fieldPreset": {
+      "title": "Field Preset",
+      "description": "A pre-defined field template for the field-list question type. Lets users add common fields with one tap.",
+      "type": "object",
+      "properties": {
+        "label": {
+          "description": "The display name shown on the preset button and used as the field label.",
+          "type": "string"
+        },
+        "name": {
+          "description": "The programmatic field name (column name in storage).",
+          "type": "string"
+        },
+        "type": {
+          "description": "The field data type.",
+          "type": "string",
+          "enum": ["text", "email", "number", "date", "datetime", "multiline", "select", "checkbox"]
+        },
+        "options": {
+          "description": "For select presets, the default option values.",
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["label", "name", "type"]
+    }
+  }
+}

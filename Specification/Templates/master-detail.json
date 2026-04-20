@@ -1,0 +1,622 @@
+{
+  "templateName": "Master-Detail",
+  "description": "Two related tables \u2014 manage parent records and their child items. Great for projects & tasks, orders & line items, or classes & students.",
+  "icon": "account_tree",
+  "questions": [
+    {
+      "id": "appName",
+      "label": "What do you want to call your app?",
+      "type": "text",
+      "required": true,
+      "placeholder": "e.g., Project Manager, Order Tracker"
+    },
+    {
+      "id": "parentName",
+      "label": "What's the parent record called?",
+      "type": "text",
+      "required": true,
+      "placeholder": "e.g., Project, Order, Class"
+    },
+    {
+      "id": "parentFields",
+      "label": "What info for each ${parentName}?",
+      "type": "field-list",
+      "required": true,
+      "presets": [
+        {
+          "label": "Name",
+          "name": "name",
+          "type": "text"
+        },
+        {
+          "label": "Status",
+          "name": "status",
+          "type": "select",
+          "options": [
+            "Active",
+            "Complete",
+            "On Hold"
+          ]
+        },
+        {
+          "label": "Category",
+          "name": "category",
+          "type": "select",
+          "options": [
+            "General"
+          ]
+        },
+        {
+          "label": "Start Date",
+          "name": "startDate",
+          "type": "date"
+        },
+        {
+          "label": "Notes",
+          "name": "notes",
+          "type": "multiline"
+        }
+      ]
+    },
+    {
+      "id": "childName",
+      "label": "What are the child items called?",
+      "type": "text",
+      "required": true,
+      "placeholder": "e.g., Task, Line Item, Student"
+    },
+    {
+      "id": "childFields",
+      "label": "What info for each ${childName}?",
+      "type": "field-list",
+      "required": true,
+      "presets": [
+        {
+          "label": "Name",
+          "name": "name",
+          "type": "text"
+        },
+        {
+          "label": "Status",
+          "name": "status",
+          "type": "select",
+          "options": [
+            "To Do",
+            "In Progress",
+            "Done"
+          ]
+        },
+        {
+          "label": "Priority",
+          "name": "priority",
+          "type": "select",
+          "options": [
+            "Low",
+            "Medium",
+            "High"
+          ]
+        },
+        {
+          "label": "Due Date",
+          "name": "dueDate",
+          "type": "date"
+        },
+        {
+          "label": "Amount",
+          "name": "amount",
+          "type": "number"
+        },
+        {
+          "label": "Notes",
+          "name": "notes",
+          "type": "multiline"
+        }
+      ]
+    },
+    {
+      "id": "theme",
+      "label": "App theme",
+      "type": "select",
+      "options": ["indigo", "slate", "ocean", "parchment", "peach", "terracotta", "walnut", "cupcake", "bumblebee", "emerald", "corporate", "synthwave", "retro", "cyberpunk", "valentine", "halloween", "garden", "forest", "aqua", "lofi", "pastel", "fantasy", "wireframe", "black", "luxury", "dracula", "cmyk", "autumn", "business", "acid", "lemonade", "night", "coffee", "winter", "dim", "nord", "sunset", "caramellatte", "abyss", "silk"],
+      "default": "indigo"
+    }
+  ],
+  "template": {
+    "appName": "${appName}",
+    "branding": {
+      "theme": "${theme}"
+    },
+    "startPage": "parentListPage",
+    "menu": [
+      {
+        "label": "${parentName}s",
+        "mapsTo": "parentListPage"
+      },
+      {
+        "label": "${childName}s",
+        "mapsTo": "childListPage"
+      }
+    ],
+    "pages": {
+      "parentListPage": {
+        "component": "page",
+        "title": "${parentName}s",
+        "content": [
+          {
+            "component": "summary",
+            "label": "Total ${parentName}s",
+            "value": "{COUNT(parentsReader)}",
+            "icon": "list",
+            "styleHint": {
+              "color": "info"
+            }
+          },
+          {
+            "component": "text",
+            "content": "No ${parentName}s yet. Add your first one to get started!",
+            "styleHint": {
+              "variant": "body",
+              "align": "center",
+              "color": "grey"
+            },
+            "visibleWhen": {
+              "source": "parentsReader",
+              "countEquals": 0
+            }
+          },
+          {
+            "component": "list",
+            "dataSource": "parentsReader",
+            "searchable": true,
+            "columns": {
+              "$map": "parentFields",
+              "each(field)": {
+                "header": "${field.label}",
+                "field": "${field.name}",
+                "sortable": true
+              }
+            },
+            "rowActions": [
+              {
+                "label": "Delete",
+                "action": "delete",
+                "dataSource": "parentsDeleter",
+                "matchField": "_id"
+              }
+            ],
+            "onRowTap": {
+              "action": "navigate",
+              "target": "editParentPage",
+              "populateForm": "editParentForm"
+            }
+          },
+          {
+            "component": "button",
+            "label": "Add ${parentName}",
+            "onClick": [
+              {
+                "action": "navigate",
+                "target": "addParentPage"
+              }
+            ],
+            "styleHint": {
+              "emphasis": "primary",
+              "icon": "add_circle"
+            }
+          }
+        ]
+      },
+      "addParentPage": {
+        "component": "page",
+        "title": "Add ${parentName}",
+        "content": [
+          {
+            "component": "form",
+            "id": "addParentForm",
+            "fields": {
+              "$map": "parentFields",
+              "each(field)": {
+                "$if": "field.type == 'select'",
+                "then": {
+                  "name": "${field.name}",
+                  "label": "${field.label}",
+                  "type": "select",
+                  "options": {
+                    "$eval": "field.options"
+                  }
+                },
+                "else": {
+                  "name": "${field.name}",
+                  "label": "${field.label}",
+                  "type": "${field.type}"
+                }
+              }
+            }
+          },
+          {
+            "component": "button",
+            "label": "Save",
+            "onClick": [
+              {
+                "action": "submit",
+                "dataSource": "parentsStore",
+                "target": "addParentForm"
+              },
+              {
+                "action": "navigate",
+                "target": "parentListPage"
+              },
+              {
+                "action": "showMessage",
+                "message": "${parentName} saved!"
+              }
+            ],
+            "styleHint": {
+              "emphasis": "primary",
+              "icon": "save"
+            }
+          }
+        ]
+      },
+      "editParentPage": {
+        "component": "page",
+        "title": "Edit ${parentName}",
+        "content": [
+          {
+            "component": "form",
+            "id": "editParentForm",
+            "fields": {
+              "$map": "parentFields",
+              "each(field)": {
+                "$if": "field.type == 'select'",
+                "then": {
+                  "name": "${field.name}",
+                  "label": "${field.label}",
+                  "type": "select",
+                  "options": {
+                    "$eval": "field.options"
+                  }
+                },
+                "else": {
+                  "name": "${field.name}",
+                  "label": "${field.label}",
+                  "type": "${field.type}"
+                }
+              }
+            }
+          },
+          {
+            "component": "button",
+            "label": "Save Changes",
+            "onClick": [
+              {
+                "action": "update",
+                "dataSource": "parentsUpdater",
+                "target": "editParentForm",
+                "matchField": "_id"
+              },
+              {
+                "action": "navigate",
+                "target": "parentListPage"
+              },
+              {
+                "action": "showMessage",
+                "message": "${parentName} updated!"
+              }
+            ],
+            "styleHint": {
+              "emphasis": "primary",
+              "icon": "save"
+            }
+          },
+          {
+            "component": "button",
+            "label": "Back",
+            "onClick": [
+              {
+                "action": "navigate",
+                "target": "parentListPage"
+              }
+            ],
+            "styleHint": {
+              "emphasis": "secondary",
+              "icon": "arrow_back",
+              "variant": "outlined"
+            }
+          }
+        ]
+      },
+      "childListPage": {
+        "component": "page",
+        "title": "${childName}s",
+        "content": [
+          {
+            "component": "summary",
+            "label": "Total ${childName}s",
+            "value": "{COUNT(childrenReader)}",
+            "icon": "task",
+            "styleHint": {
+              "color": "success"
+            }
+          },
+          {
+            "component": "text",
+            "content": "No ${childName}s yet. Add your first one to get started!",
+            "styleHint": {
+              "variant": "body",
+              "align": "center",
+              "color": "grey"
+            },
+            "visibleWhen": {
+              "source": "childrenReader",
+              "countEquals": 0
+            }
+          },
+          {
+            "component": "list",
+            "dataSource": "childrenReader",
+            "searchable": true,
+            "columns": {
+              "$flatten": [
+                {
+                  "$map": "childFields",
+                  "each(field)": {
+                    "header": "${field.label}",
+                    "field": "${field.name}",
+                    "sortable": true
+                  }
+                },
+                [
+                  {
+                    "header": "${parentName}",
+                    "field": "parentName",
+                    "sortable": true,
+                    "filterable": true
+                  }
+                ]
+              ]
+            },
+            "rowActions": [
+              {
+                "label": "Delete",
+                "action": "delete",
+                "dataSource": "childrenDeleter",
+                "matchField": "_id"
+              }
+            ],
+            "onRowTap": {
+              "action": "navigate",
+              "target": "editChildPage",
+              "populateForm": "editChildForm"
+            }
+          },
+          {
+            "component": "button",
+            "label": "Add ${childName}",
+            "onClick": [
+              {
+                "action": "navigate",
+                "target": "addChildPage"
+              }
+            ],
+            "styleHint": {
+              "emphasis": "primary",
+              "icon": "add_circle"
+            }
+          }
+        ]
+      },
+      "addChildPage": {
+        "component": "page",
+        "title": "Add ${childName}",
+        "content": [
+          {
+            "component": "form",
+            "id": "addChildForm",
+            "fields": {
+              "$flatten": [
+                [
+                  {
+                    "name": "parentName",
+                    "label": "${parentName}",
+                    "type": "select",
+                    "optionsFrom": {
+                      "dataSource": "parentsReader",
+                      "valueField": "name"
+                    }
+                  }
+                ],
+                {
+                  "$map": "childFields",
+                  "each(field)": {
+                    "$if": "field.type == 'select'",
+                    "then": {
+                      "name": "${field.name}",
+                      "label": "${field.label}",
+                      "type": "select",
+                      "options": {
+                        "$eval": "field.options"
+                      }
+                    },
+                    "else": {
+                      "name": "${field.name}",
+                      "label": "${field.label}",
+                      "type": "${field.type}"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "component": "button",
+            "label": "Save",
+            "onClick": [
+              {
+                "action": "submit",
+                "dataSource": "childrenStore",
+                "target": "addChildForm"
+              },
+              {
+                "action": "navigate",
+                "target": "childListPage"
+              },
+              {
+                "action": "showMessage",
+                "message": "${childName} saved!"
+              }
+            ],
+            "styleHint": {
+              "emphasis": "primary",
+              "icon": "save"
+            }
+          }
+        ]
+      },
+      "editChildPage": {
+        "component": "page",
+        "title": "Edit ${childName}",
+        "content": [
+          {
+            "component": "form",
+            "id": "editChildForm",
+            "fields": {
+              "$flatten": [
+                [
+                  {
+                    "name": "parentName",
+                    "label": "${parentName}",
+                    "type": "select",
+                    "optionsFrom": {
+                      "dataSource": "parentsReader",
+                      "valueField": "name"
+                    }
+                  }
+                ],
+                {
+                  "$map": "childFields",
+                  "each(field)": {
+                    "$if": "field.type == 'select'",
+                    "then": {
+                      "name": "${field.name}",
+                      "label": "${field.label}",
+                      "type": "select",
+                      "options": {
+                        "$eval": "field.options"
+                      }
+                    },
+                    "else": {
+                      "name": "${field.name}",
+                      "label": "${field.label}",
+                      "type": "${field.type}"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "component": "button",
+            "label": "Save Changes",
+            "onClick": [
+              {
+                "action": "update",
+                "dataSource": "childrenUpdater",
+                "target": "editChildForm",
+                "matchField": "_id"
+              },
+              {
+                "action": "navigate",
+                "target": "childListPage"
+              },
+              {
+                "action": "showMessage",
+                "message": "${childName} updated!"
+              }
+            ],
+            "styleHint": {
+              "emphasis": "primary",
+              "icon": "save"
+            }
+          },
+          {
+            "component": "button",
+            "label": "Back",
+            "onClick": [
+              {
+                "action": "navigate",
+                "target": "childListPage"
+              }
+            ],
+            "styleHint": {
+              "emphasis": "secondary",
+              "icon": "arrow_back",
+              "variant": "outlined"
+            }
+          }
+        ]
+      }
+    },
+    "dataSources": {
+      "parentsStore": {
+        "url": "local://parents",
+        "method": "POST"
+      },
+      "parentsReader": {
+        "url": "local://parents",
+        "method": "GET",
+        "fields": {
+          "$map": "parentFields",
+          "each(field)": {
+            "name": "${field.name}",
+            "type": "${field.type}"
+          }
+        }
+      },
+      "parentsUpdater": {
+        "url": "local://parents",
+        "method": "PUT"
+      },
+      "parentsDeleter": {
+        "url": "local://parents",
+        "method": "DELETE"
+      },
+      "childrenStore": {
+        "url": "local://children",
+        "method": "POST"
+      },
+      "childrenReader": {
+        "url": "local://children",
+        "method": "GET",
+        "fields": {
+          "$flatten": [
+            {
+              "$map": "childFields",
+              "each(field)": {
+                "name": "${field.name}",
+                "type": "${field.type}"
+              }
+            },
+            [
+              {
+                "name": "parentName",
+                "type": "text"
+              }
+            ]
+          ]
+        }
+      },
+      "childrenUpdater": {
+        "url": "local://children",
+        "method": "PUT"
+      },
+      "childrenDeleter": {
+        "url": "local://children",
+        "method": "DELETE"
+      }
+    },
+    "help": {
+      "overview": "${appName} lets you manage ${parentName}s and their ${childName}s. Create parent records, then add child items linked to each one. All data stays on your device."
+    }
+  }
+}

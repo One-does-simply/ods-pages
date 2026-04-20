@@ -1,0 +1,390 @@
+{
+  "appName": "Personal Journal",
+  "auth": { "multiUser": false },
+  "startPage": "viewEntriesPage",
+  "menu": [
+    {
+      "label": "Write Entry",
+      "mapsTo": "writeEntryPage"
+    },
+    {
+      "label": "View Entries",
+      "mapsTo": "viewEntriesPage"
+    }
+  ],
+  "pages": {
+    "writeEntryPage": {
+      "component": "page",
+      "title": "Write a Journal Entry",
+      "content": [
+        {
+          "component": "text",
+          "content": "Take a moment to reflect on your day. Write freely and honestly.",
+          "styleHint": {
+            "variant": "body"
+          }
+        },
+        {
+          "component": "form",
+          "id": "journalEntryForm",
+          "fields": [
+            {
+              "name": "title",
+              "label": "Title",
+              "type": "text",
+              "required": true,
+              "placeholder": "e.g., Monday Reflections"
+            },
+            {
+              "name": "date",
+              "label": "Date & Time",
+              "type": "datetime",
+              "required": true,
+              "default": "NOW"
+            },
+            {
+              "name": "mood",
+              "label": "Mood",
+              "type": "select",
+              "options": [
+                "Happy",
+                "Calm",
+                "Grateful",
+                "Anxious",
+                "Sad",
+                "Neutral",
+                "Excited",
+                "Focused",
+                "Stressed"
+              ]
+            },
+            {
+              "name": "entry",
+              "label": "Journal Entry",
+              "type": "multiline",
+              "required": true,
+              "placeholder": "What's on your mind today?"
+            }
+          ]
+        },
+        {
+          "component": "button",
+          "label": "Save Entry",
+          "onClick": [
+            {
+              "action": "submit",
+              "dataSource": "journalStore",
+              "target": "journalEntryForm"
+            },
+            {
+              "action": "showMessage",
+              "message": "Entry saved!"
+            },
+            {
+              "action": "navigate",
+              "target": "viewEntriesPage"
+            }
+          ],
+          "styleHint": {
+            "emphasis": "primary",
+            "icon": "save"
+          }
+        },
+        {
+          "component": "button",
+          "label": "Discard",
+          "onClick": [
+            {
+              "action": "navigate",
+              "target": "viewEntriesPage"
+            }
+          ],
+          "styleHint": {
+            "emphasis": "danger",
+            "icon": "delete"
+          }
+        }
+      ]
+    },
+    "viewEntriesPage": {
+      "component": "page",
+      "title": "My Journal Entries",
+      "content": [
+        {
+          "component": "text",
+          "content": "{COUNT(journalReader)} journal entries",
+          "styleHint": {
+            "variant": "subheading"
+          }
+        },
+        {
+          "component": "text",
+          "content": "No entries yet. Write your first journal entry to begin your journey!",
+          "styleHint": {
+            "variant": "body",
+            "align": "center",
+            "color": "grey"
+          },
+          "visibleWhen": {
+            "source": "journalReader",
+            "countEquals": 0
+          }
+        },
+        {
+          "component": "chart",
+          "dataSource": "journalReader",
+          "chartType": "bar",
+          "labelField": "mood",
+          "valueField": "title",
+          "title": "Mood Distribution",
+          "visibleWhen": {
+            "source": "journalReader",
+            "countMin": 1
+          }
+        },
+        {
+          "component": "list",
+          "dataSource": "journalReader",
+          "searchable": true,
+          "displayAs": "cards",
+          "defaultSort": {
+            "field": "date",
+            "direction": "desc"
+          },
+          "rowColorField": "mood",
+          "rowColorMap": {
+            "Happy": "green",
+            "Calm": "blue",
+            "Grateful": "green",
+            "Anxious": "orange",
+            "Sad": "red",
+            "Neutral": "grey",
+            "Excited": "green",
+            "Focused": "blue",
+            "Stressed": "red"
+          },
+          "columns": [
+            {
+              "header": "Date",
+              "field": "date",
+              "sortable": true
+            },
+            {
+              "header": "Title",
+              "field": "title",
+              "sortable": true
+            },
+            {
+              "header": "Mood",
+              "field": "mood",
+              "sortable": true,
+              "filterable": true,
+              "colorMap": {
+                "Happy": "green",
+                "Excited": "green",
+                "Grateful": "green",
+                "Calm": "blue",
+                "Focused": "blue",
+                "Neutral": "grey",
+                "Anxious": "orange",
+                "Stressed": "orange",
+                "Sad": "red"
+              }
+            },
+            {
+              "header": "Preview",
+              "field": "entry"
+            }
+          ],
+          "rowActions": [
+            {
+              "label": "Delete",
+              "action": "delete",
+              "dataSource": "journalDeleter",
+              "matchField": "_id"
+            }
+          ],
+          "onRowTap": {
+            "action": "navigate",
+            "target": "editEntryPage",
+            "populateForm": "editEntryForm"
+          }
+        },
+        {
+          "component": "button",
+          "label": "Write New Entry",
+          "onClick": [
+            {
+              "action": "navigate",
+              "target": "writeEntryPage"
+            }
+          ],
+          "styleHint": {
+            "emphasis": "primary"
+          }
+        }
+      ]
+    },
+    "editEntryPage": {
+      "component": "page",
+      "title": "View / Edit Entry",
+      "content": [
+        {
+          "component": "form",
+          "id": "editEntryForm",
+          "fields": [
+            {
+              "name": "title",
+              "label": "Title",
+              "type": "text",
+              "required": true
+            },
+            {
+              "name": "date",
+              "label": "Date & Time",
+              "type": "datetime",
+              "required": true
+            },
+            {
+              "name": "mood",
+              "label": "Mood",
+              "type": "select",
+              "options": [
+                "Happy",
+                "Calm",
+                "Grateful",
+                "Anxious",
+                "Sad",
+                "Neutral",
+                "Excited",
+                "Focused",
+                "Stressed"
+              ]
+            },
+            {
+              "name": "entry",
+              "label": "Journal Entry",
+              "type": "multiline",
+              "required": true
+            }
+          ]
+        },
+        {
+          "component": "button",
+          "label": "Save Changes",
+          "onClick": [
+            {
+              "action": "update",
+              "dataSource": "journalUpdater",
+              "target": "editEntryForm",
+              "matchField": "_id"
+            },
+            {
+              "action": "showMessage",
+              "message": "Entry updated!"
+            },
+            {
+              "action": "navigate",
+              "target": "viewEntriesPage"
+            }
+          ],
+          "styleHint": {
+            "emphasis": "primary",
+            "icon": "save"
+          }
+        },
+        {
+          "component": "button",
+          "label": "Back to Entries",
+          "onClick": [
+            {
+              "action": "navigate",
+              "target": "viewEntriesPage"
+            }
+          ],
+          "styleHint": {
+            "emphasis": "secondary",
+            "icon": "arrow_back",
+            "variant": "outlined"
+          }
+        }
+      ]
+    }
+  },
+  "dataSources": {
+    "journalStore": {
+      "url": "local://journal_entries",
+      "method": "POST",
+      "ownership": { "enabled": true }
+    },
+    "journalUpdater": {
+      "url": "local://journal_entries",
+      "method": "PUT"
+    },
+    "journalDeleter": {
+      "url": "local://journal_entries",
+      "method": "DELETE"
+    },
+    "journalReader": {
+      "url": "local://journal_entries",
+      "method": "GET",
+      "ownership": { "enabled": true, "adminOverride": true },
+      "fields": [
+        {
+          "name": "title",
+          "type": "text"
+        },
+        {
+          "name": "date",
+          "type": "datetime"
+        },
+        {
+          "name": "mood",
+          "type": "select"
+        },
+        {
+          "name": "entry",
+          "type": "multiline"
+        }
+      ],
+      "seedData": [
+        {
+          "title": "A Fresh Start",
+          "date": "2026-03-01 08:30",
+          "mood": "Excited",
+          "entry": "Today I decided to start journaling regularly. I feel hopeful about building this new habit and reflecting on my days more intentionally."
+        },
+        {
+          "title": "Rainy Afternoon Thoughts",
+          "date": "2026-03-02 14:15",
+          "mood": "Calm",
+          "entry": "Spent the afternoon reading while it rained outside. There is something peaceful about the sound of rain against the window. Finished two chapters of my book."
+        }
+      ]
+    }
+  },
+  "help": {
+    "overview": "Personal Journal is your private space to write daily reflections. Capture your thoughts, track your mood, and look back on past entries. Tap any entry to view or edit it. Moods are color-coded to help spot patterns.",
+    "pages": {
+      "writeEntryPage": "Give your entry a title, pick date/time, select your mood, and write your text. Press Save Entry when finished, or Discard to go back.",
+      "viewEntriesPage": "All entries listed with color-coded moods. Tap any row to open for viewing or editing. Filter by mood to spot patterns. Delete entries you no longer want.",
+      "editEntryPage": "View and edit a journal entry. Press Save Changes, or Back to return without saving."
+    }
+  },
+  "tour": [
+    {
+      "title": "Welcome to Your Journal",
+      "content": "Journaling helps reduce stress and improve self-awareness. Entries are stored locally on your device."
+    },
+    {
+      "title": "Write an Entry",
+      "content": "Give each entry a title, pick date and time, choose your mood, and write freely. Fields marked with * are required.",
+      "page": "writeEntryPage"
+    },
+    {
+      "title": "Review & Edit Entries",
+      "content": "Browse entries with color-coded moods: green for positive, blue for calm/focused, orange for anxious/stressed, red for sad. Tap any row to edit.",
+      "page": "viewEntriesPage"
+    }
+  ]
+}

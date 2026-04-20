@@ -1,0 +1,758 @@
+{
+  "templateName": "Simple Checklist",
+  "description": "Manage multiple check-off lists \u00e2\u20ac\u201d add items, tap to check them off, complete entire lists, and reuse old lists. Perfect for grocery shopping, packing, and to-dos.",
+  "icon": "checklist",
+  "questions": [
+    {
+      "id": "appName",
+      "label": "What do you want to call your app?",
+      "type": "text",
+      "required": true,
+      "placeholder": "e.g., Grocery Lists, Packing Lists, To-Do Lists"
+    },
+    {
+      "id": "listName",
+      "label": "What is each list called?",
+      "type": "text",
+      "required": true,
+      "placeholder": "e.g., List, Trip, Shopping Run"
+    },
+    {
+      "id": "itemName",
+      "label": "What are the items called?",
+      "type": "text",
+      "required": true,
+      "placeholder": "e.g., Item, Task, Thing to Pack"
+    },
+    {
+      "id": "fields",
+      "label": "Any extra info per item? (optional)",
+      "type": "field-list",
+      "required": false,
+      "presets": [
+        {
+          "label": "Category",
+          "name": "category",
+          "type": "select",
+          "options": [
+            "General"
+          ]
+        },
+        {
+          "label": "Priority",
+          "name": "priority",
+          "type": "select",
+          "options": [
+            "Low",
+            "Medium",
+            "High"
+          ]
+        },
+        {
+          "label": "Quantity",
+          "name": "quantity",
+          "type": "number"
+        },
+        {
+          "label": "Notes",
+          "name": "notes",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "theme",
+      "label": "App theme",
+      "type": "select",
+      "options": ["indigo", "slate", "ocean", "parchment", "peach", "terracotta", "walnut", "cupcake", "bumblebee", "emerald", "corporate", "synthwave", "retro", "cyberpunk", "valentine", "halloween", "garden", "forest", "aqua", "lofi", "pastel", "fantasy", "wireframe", "black", "luxury", "dracula", "cmyk", "autumn", "business", "acid", "lemonade", "night", "coffee", "winter", "dim", "nord", "sunset", "caramellatte", "abyss", "silk"],
+      "default": "indigo"
+    }
+  ],
+  "template": {
+    "appName": "${appName}",
+    "branding": {
+      "theme": "${theme}"
+    },
+    "startPage": "myListsPage",
+    "menu": [
+      {
+        "label": "My ${listName}s",
+        "mapsTo": "myListsPage"
+      },
+      {
+        "label": "All ${itemName}s",
+        "mapsTo": "allItemsPage"
+      }
+    ],
+    "pages": {
+      "myListsPage": {
+        "component": "page",
+        "title": "My ${listName}s",
+        "content": [
+          {
+            "component": "summary",
+            "label": "Active ${listName}s",
+            "value": "{COUNT(listsReader, status=Active)}",
+            "icon": "checklist",
+            "styleHint": {
+              "color": "success"
+            }
+          },
+          {
+            "component": "text",
+            "content": "No lists yet. Create your first ${listName} to get started!",
+            "styleHint": {
+              "variant": "body",
+              "align": "center",
+              "color": "grey"
+            },
+            "visibleWhen": {
+              "source": "listsReader",
+              "countEquals": 0
+            }
+          },
+          {
+            "component": "list",
+            "dataSource": "listsReader",
+            "searchable": true,
+            "rowColorField": "status",
+            "rowColorMap": {
+              "Active": "green",
+              "Complete": "grey"
+            },
+            "columns": [
+              {
+                "header": "${listName}",
+                "field": "name",
+                "sortable": true
+              },
+              {
+                "header": "Created",
+                "field": "createdDate",
+                "sortable": true
+              },
+              {
+                "header": "Status",
+                "field": "status",
+                "sortable": true,
+                "filterable": true
+              }
+            ],
+            "rowActions": [
+              {
+                "label": "Complete",
+                "action": "update",
+                "dataSource": "listsUpdater",
+                "matchField": "_id",
+                "values": {
+                  "status": "Complete"
+                },
+                "hideWhen": {
+                  "field": "status",
+                  "equals": "Complete"
+                }
+              },
+              {
+                "label": "Reactivate",
+                "action": "update",
+                "dataSource": "listsUpdater",
+                "matchField": "_id",
+                "values": {
+                  "status": "Active"
+                },
+                "hideWhen": {
+                  "field": "status",
+                  "equals": "Active"
+                }
+              },
+              {
+                "label": "Reuse",
+                "action": "copyRows",
+                "sourceDataSource": "itemsReader",
+                "targetDataSource": "itemsStore",
+                "parentDataSource": "listsStore",
+                "linkField": "listName",
+                "nameField": "name",
+                "resetValues": {
+                  "done": "false",
+                  "status": "Active"
+                },
+                "confirm": "Create a new ${listName} by copying all items from this one?"
+              },
+              {
+                "label": "Delete",
+                "action": "delete",
+                "dataSource": "listsDeleter",
+                "matchField": "_id"
+              }
+            ],
+            "onRowTap": {
+              "action": "navigate",
+              "target": "listItemsPage",
+              "populateForm": "listContextForm"
+            }
+          },
+          {
+            "component": "button",
+            "label": "New ${listName}",
+            "onClick": [
+              {
+                "action": "navigate",
+                "target": "newListPage"
+              }
+            ],
+            "styleHint": {
+              "emphasis": "primary",
+              "icon": "add_circle"
+            }
+          }
+        ]
+      },
+      "newListPage": {
+        "component": "page",
+        "title": "New ${listName}",
+        "content": [
+          {
+            "component": "form",
+            "id": "newListForm",
+            "fields": [
+              {
+                "name": "name",
+                "label": "${listName} Name",
+                "type": "text",
+                "required": true
+              },
+              {
+                "name": "createdDate",
+                "label": "Date",
+                "type": "date",
+                "default": "CURRENTDATE"
+              },
+              {
+                "name": "status",
+                "type": "hidden",
+                "default": "Active"
+              }
+            ]
+          },
+          {
+            "component": "button",
+            "label": "Create ${listName}",
+            "onClick": [
+              {
+                "action": "submit",
+                "dataSource": "listsStore",
+                "target": "newListForm"
+              },
+              {
+                "action": "navigate",
+                "target": "myListsPage"
+              },
+              {
+                "action": "showMessage",
+                "message": "${listName} created!"
+              }
+            ],
+            "styleHint": {
+              "emphasis": "primary",
+              "icon": "add_circle"
+            }
+          }
+        ]
+      },
+      "listItemsPage": {
+        "component": "page",
+        "title": "${listName} Items",
+        "content": [
+          {
+            "component": "form",
+            "id": "listContextForm",
+            "fields": [
+              {
+                "name": "name",
+                "type": "hidden"
+              },
+              {
+                "name": "_id",
+                "type": "hidden"
+              }
+            ]
+          },
+          {
+            "component": "list",
+            "dataSource": "itemsReader",
+            "searchable": true,
+            "columns": {
+              "$flatten": [
+                [
+                  {
+                    "header": "",
+                    "field": "done",
+                    "toggle": {
+                      "dataSource": "itemsUpdater",
+                      "matchField": "_id",
+                      "autoComplete": {
+                        "groupField": "listName",
+                        "parentDataSource": "listsUpdater",
+                        "parentMatchField": "name",
+                        "parentValues": {
+                          "status": "Complete"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "header": "${itemName}",
+                    "field": "name",
+                    "sortable": true
+                  },
+                  {
+                    "header": "${listName}",
+                    "field": "listName",
+                    "sortable": true,
+                    "filterable": true
+                  }
+                ],
+                {
+                  "$if": "fields",
+                  "then": {
+                    "$map": "fields",
+                    "each(field)": {
+                      "$if": "field.type == 'select'",
+                      "then": {
+                        "header": "${field.label}",
+                        "field": "${field.name}",
+                        "sortable": true,
+                        "filterable": true
+                      },
+                      "else": {
+                        "header": "${field.label}",
+                        "field": "${field.name}",
+                        "sortable": true
+                      }
+                    }
+                  },
+                  "else": []
+                }
+              ]
+            },
+            "rowActions": [
+              {
+                "label": "Delete",
+                "action": "delete",
+                "dataSource": "itemsDeleter",
+                "matchField": "_id"
+              }
+            ]
+          },
+          {
+            "component": "button",
+            "label": "Add ${itemName}",
+            "onClick": [
+              {
+                "action": "navigate",
+                "target": "addItemPage",
+                "populateForm": "addItemForm",
+                "withData": {
+                  "listName": "{name}"
+                }
+              }
+            ],
+            "styleHint": {
+              "emphasis": "primary",
+              "icon": "add_circle"
+            }
+          },
+          {
+            "component": "button",
+            "label": "Rename ${listName}",
+            "onClick": [
+              {
+                "action": "navigate",
+                "target": "editListPage",
+                "populateForm": "editListForm",
+                "withData": {
+                  "name": "{name}",
+                  "_id": "{_id}"
+                }
+              }
+            ],
+            "styleHint": {
+              "emphasis": "secondary",
+              "icon": "edit",
+              "variant": "outlined"
+            }
+          },
+          {
+            "component": "button",
+            "label": "Back to ${listName}s",
+            "onClick": [
+              {
+                "action": "navigate",
+                "target": "myListsPage"
+              }
+            ],
+            "styleHint": {
+              "emphasis": "secondary",
+              "icon": "arrow_back",
+              "variant": "outlined"
+            }
+          }
+        ]
+      },
+      "editListPage": {
+        "component": "page",
+        "title": "Rename ${listName}",
+        "content": [
+          {
+            "component": "form",
+            "id": "editListForm",
+            "fields": [
+              {
+                "name": "name",
+                "label": "${listName} Name",
+                "type": "text",
+                "required": true
+              }
+            ]
+          },
+          {
+            "component": "button",
+            "label": "Save",
+            "onClick": [
+              {
+                "action": "update",
+                "dataSource": "listsUpdater",
+                "target": "editListForm",
+                "matchField": "_id",
+                "cascade": {
+                  "childDataSource": "itemsUpdater",
+                  "childLinkField": "listName",
+                  "parentField": "name"
+                }
+              },
+              {
+                "action": "navigate",
+                "target": "myListsPage"
+              },
+              {
+                "action": "showMessage",
+                "message": "${listName} renamed!"
+              }
+            ],
+            "styleHint": {
+              "emphasis": "primary",
+              "icon": "save"
+            }
+          },
+          {
+            "component": "button",
+            "label": "Cancel",
+            "onClick": [
+              {
+                "action": "navigate",
+                "target": "listItemsPage"
+              }
+            ],
+            "styleHint": {
+              "emphasis": "secondary",
+              "icon": "close",
+              "variant": "outlined"
+            }
+          }
+        ]
+      },
+      "addItemPage": {
+        "component": "page",
+        "title": "Add ${itemName}",
+        "content": [
+          {
+            "component": "form",
+            "id": "addItemForm",
+            "fields": {
+              "$flatten": [
+                [
+                  {
+                    "name": "listName",
+                    "label": "${listName}",
+                    "type": "select",
+                    "required": true,
+                    "optionsFrom": {
+                      "dataSource": "listsReader",
+                      "valueField": "name"
+                    }
+                  },
+                  {
+                    "name": "name",
+                    "label": "${itemName} Name",
+                    "type": "text",
+                    "required": true
+                  },
+                  {
+                    "name": "done",
+                    "type": "hidden",
+                    "default": "false"
+                  }
+                ],
+                {
+                  "$if": "fields",
+                  "then": {
+                    "$map": "fields",
+                    "each(field)": {
+                      "$if": "field.type == 'select'",
+                      "then": {
+                        "name": "${field.name}",
+                        "label": "${field.label}",
+                        "type": "select",
+                        "options": {
+                          "$eval": "field.options"
+                        }
+                      },
+                      "else": {
+                        "name": "${field.name}",
+                        "label": "${field.label}",
+                        "type": "${field.type}"
+                      }
+                    }
+                  },
+                  "else": []
+                }
+              ]
+            }
+          },
+          {
+            "component": "button",
+            "label": "Add & Add Another",
+            "onClick": [
+              {
+                "action": "submit",
+                "dataSource": "itemsStore",
+                "target": "addItemForm",
+                "preserveFields": [
+                  "listName"
+                ]
+              },
+              {
+                "action": "showMessage",
+                "message": "${itemName} added! Add another."
+              }
+            ],
+            "styleHint": {
+              "emphasis": "primary",
+              "icon": "add_circle"
+            }
+          },
+          {
+            "component": "button",
+            "label": "Add & Done",
+            "onClick": [
+              {
+                "action": "submit",
+                "dataSource": "itemsStore",
+                "target": "addItemForm"
+              },
+              {
+                "action": "navigate",
+                "target": "listItemsPage"
+              },
+              {
+                "action": "showMessage",
+                "message": "${itemName} added!"
+              }
+            ],
+            "styleHint": {
+              "emphasis": "secondary",
+              "icon": "check",
+              "variant": "outlined"
+            }
+          }
+        ]
+      },
+      "allItemsPage": {
+        "component": "page",
+        "title": "All ${itemName}s",
+        "content": [
+          {
+            "component": "summary",
+            "label": "Total ${itemName}s",
+            "value": "{COUNT(itemsReader)}",
+            "icon": "list",
+            "styleHint": {
+              "color": "info"
+            }
+          },
+          {
+            "component": "summary",
+            "label": "Remaining",
+            "value": "{COUNT(itemsReader, done=false)}",
+            "icon": "checklist",
+            "styleHint": {
+              "color": "success"
+            }
+          },
+          {
+            "component": "list",
+            "dataSource": "itemsReader",
+            "searchable": true,
+            "columns": {
+              "$flatten": [
+                [
+                  {
+                    "header": "",
+                    "field": "done",
+                    "toggle": {
+                      "dataSource": "itemsUpdater",
+                      "matchField": "_id",
+                      "autoComplete": {
+                        "groupField": "listName",
+                        "parentDataSource": "listsUpdater",
+                        "parentMatchField": "name",
+                        "parentValues": {
+                          "status": "Complete"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "header": "${itemName}",
+                    "field": "name",
+                    "sortable": true
+                  },
+                  {
+                    "header": "${listName}",
+                    "field": "listName",
+                    "sortable": true,
+                    "filterable": true
+                  }
+                ],
+                {
+                  "$if": "fields",
+                  "then": {
+                    "$map": "fields",
+                    "each(field)": {
+                      "$if": "field.type == 'select'",
+                      "then": {
+                        "header": "${field.label}",
+                        "field": "${field.name}",
+                        "sortable": true,
+                        "filterable": true
+                      },
+                      "else": {
+                        "header": "${field.label}",
+                        "field": "${field.name}",
+                        "sortable": true
+                      }
+                    }
+                  },
+                  "else": []
+                }
+              ]
+            },
+            "rowActions": [
+              {
+                "label": "Delete",
+                "action": "delete",
+                "dataSource": "itemsDeleter",
+                "matchField": "_id"
+              }
+            ]
+          },
+          {
+            "component": "button",
+            "label": "Add ${itemName}",
+            "onClick": [
+              {
+                "action": "navigate",
+                "target": "addItemPage"
+              }
+            ],
+            "styleHint": {
+              "emphasis": "primary",
+              "icon": "add_circle"
+            }
+          }
+        ]
+      }
+    },
+    "dataSources": {
+      "listsStore": {
+        "url": "local://lists",
+        "method": "POST"
+      },
+      "listsReader": {
+        "url": "local://lists",
+        "method": "GET",
+        "fields": [
+          {
+            "name": "name",
+            "type": "text"
+          },
+          {
+            "name": "createdDate",
+            "type": "date"
+          },
+          {
+            "name": "status",
+            "type": "text"
+          }
+        ]
+      },
+      "listsUpdater": {
+        "url": "local://lists",
+        "method": "PUT"
+      },
+      "listsDeleter": {
+        "url": "local://lists",
+        "method": "DELETE"
+      },
+      "itemsStore": {
+        "url": "local://items",
+        "method": "POST"
+      },
+      "itemsReader": {
+        "url": "local://items",
+        "method": "GET",
+        "fields": {
+          "$flatten": [
+            [
+              {
+                "name": "listName",
+                "type": "text"
+              },
+              {
+                "name": "name",
+                "type": "text"
+              },
+              {
+                "name": "done",
+                "type": "checkbox"
+              }
+            ],
+            {
+              "$if": "fields",
+              "then": {
+                "$map": "fields",
+                "each(field)": {
+                  "name": "${field.name}",
+                  "type": "${field.type}"
+                }
+              },
+              "else": []
+            }
+          ]
+        }
+      },
+      "itemsUpdater": {
+        "url": "local://items",
+        "method": "PUT"
+      },
+      "itemsDeleter": {
+        "url": "local://items",
+        "method": "DELETE"
+      }
+    },
+    "help": {
+      "overview": "${appName} lets you manage multiple ${listName}s. Create lists, add items, tap checkboxes to check them off. Complete a list when you're done, or reuse it to start fresh with the same items. All data stays on your device."
+    }
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "examples": [
+    {
+      "id": "customer-feedback",
+      "name": "Customer Feedback",
+      "description": "Collect feedback with self-registration and role-based results. Multi-user with OAuth2 support.",
+      "file": "customer-feedback-app.json"
+    },
+    {
+      "id": "expense-tracker",
+      "name": "Expense Tracker",
+      "description": "Log your spending and keep track of where your money goes.",
+      "file": "expense-tracker-app.json"
+    },
+    {
+      "id": "habit-tracker",
+      "name": "Habit Tracker",
+      "description": "Track daily habits and review your consistency over time.",
+      "file": "habit-tracker-app.json"
+    },
+    {
+      "id": "my-chores",
+      "name": "My Chores",
+      "description": "Track household chores, assign them to family members, and mark them done.",
+      "file": "my_chores.json"
+    },
+    {
+      "id": "personal-journal",
+      "name": "Personal Journal",
+      "description": "A private diary to capture your thoughts and moods.",
+      "file": "personal-journal-app.json"
+    },
+    {
+      "id": "reading-list",
+      "name": "Reading List",
+      "description": "Track books you want to read, are reading, or have finished.",
+      "file": "reading-list-app.json"
+    },
+    {
+      "id": "recipe-book",
+      "name": "Recipe Book",
+      "description": "Save and browse your favorite recipes.",
+      "file": "recipe-book-app.json"
+    },
+    {
+      "id": "quiz",
+      "name": "Quiz Master",
+      "description": "Take multiple-choice quizzes, create your own, and track improvement over time.",
+      "file": "quiz-app.json"
+    },
+    {
+      "id": "team-survey",
+      "name": "Team Survey",
+      "description": "Multi-user survey with self-registration. Admin-only results and charts.",
+      "file": "team-survey-app.json"
+    },
+    {
+      "id": "team-wiki",
+      "name": "Team Wiki",
+      "description": "Multi-user knowledge base with Markdown articles. Editor role and CURRENT_USER defaults.",
+      "file": "team-wiki-app.json"
+    },
+    {
+      "id": "team-tasks",
+      "name": "Team Tasks",
+      "description": "Multi-user task tracker with manager role, row-level ownership, and role-gated actions.",
+      "file": "team-tasks-app.json"
+    },
+    {
+      "id": "team-approval",
+      "name": "Time Off Requests",
+      "description": "Multi-user approval workflow with manager review, ownership, and status tracking.",
+      "file": "team-approval-app.json"
+    },
+    {
+      "id": "todo-list",
+      "name": "To-Do List",
+      "description": "Track tasks, set priorities, and mark them complete.",
+      "file": "todo-list-app.json"
+    },
+    {
+      "id": "project-dashboard",
+      "name": "Project Dashboard",
+      "description": "Multi-user project management with tabbed dashboard, charts, and manager role.",
+      "file": "project-dashboard-app.json"
+    }
+  ]
+}

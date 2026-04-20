@@ -1,0 +1,253 @@
+{
+  "appName": "Team Tasks",
+  "startPage": {
+    "default": "myTasksPage",
+    "admin": "dashboardPage",
+    "manager": "dashboardPage"
+  },
+  "auth": {
+    "multiUser": true,
+    "roles": ["manager"],
+    "defaultRole": "user"
+  },
+  "menu": [
+    { "label": "Dashboard", "mapsTo": "dashboardPage" },
+    { "label": "My Tasks", "mapsTo": "myTasksPage" },
+    { "label": "All Tasks", "mapsTo": "allTasksPage", "roles": ["admin", "manager"] },
+    { "label": "Add Task", "mapsTo": "addTaskPage" },
+    { "label": "Team Report", "mapsTo": "reportPage", "roles": ["admin", "manager"] }
+  ],
+  "pages": {
+    "dashboardPage": {
+      "component": "page",
+      "title": "Dashboard",
+      "content": [
+        {
+          "component": "text",
+          "content": "Welcome to Team Tasks",
+          "styleHint": { "variant": "heading" }
+        },
+        {
+          "component": "text",
+          "content": "Manage your team's work in one place. Assign tasks, track progress, and stay aligned."
+        },
+        {
+          "component": "summary",
+          "label": "Total Tasks",
+          "value": "{COUNT(tasksReader)}",
+          "icon": "assignment"
+        },
+        {
+          "component": "summary",
+          "label": "Open Tasks",
+          "value": "{COUNT(tasksReader, status, Open)}",
+          "icon": "pending_actions"
+        }
+      ]
+    },
+    "myTasksPage": {
+      "component": "page",
+      "title": "My Tasks",
+      "content": [
+        {
+          "component": "list",
+          "dataSource": "tasksReader",
+          "searchable": true,
+          "columns": [
+            { "header": "Task", "field": "title", "sortable": true },
+            { "header": "Priority", "field": "priority", "filterable": true, "colorMap": { "High": "red", "Medium": "orange", "Low": "green" } },
+            { "header": "Status", "field": "status", "filterable": true, "colorMap": { "Open": "blue", "In Progress": "orange", "Done": "green" } },
+            { "header": "Due", "field": "dueDate", "sortable": true }
+          ],
+          "rowActions": [
+            {
+              "label": "Start",
+              "action": "update",
+              "dataSource": "tasksUpdater",
+              "matchField": "title",
+              "values": { "status": "In Progress" },
+              "hideWhen": { "field": "status", "notEquals": "Open" }
+            },
+            {
+              "label": "Done",
+              "action": "update",
+              "dataSource": "tasksUpdater",
+              "matchField": "title",
+              "values": { "status": "Done" },
+              "hideWhen": { "field": "status", "equals": "Done" }
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "dataSource": "tasksDeleter",
+              "matchField": "title",
+              "roles": ["admin", "manager"]
+            }
+          ],
+          "onRowTap": {
+            "action": "navigate",
+            "target": "editTaskPage",
+            "populateForm": "editTaskForm"
+          },
+          "defaultSort": { "field": "dueDate", "direction": "asc" }
+        }
+      ]
+    },
+    "allTasksPage": {
+      "component": "page",
+      "title": "All Tasks",
+      "roles": ["admin", "manager"],
+      "content": [
+        {
+          "component": "text",
+          "content": "All team tasks across all users.",
+          "styleHint": { "variant": "subheading" }
+        },
+        {
+          "component": "list",
+          "dataSource": "tasksReader",
+          "searchable": true,
+          "columns": [
+            { "header": "Task", "field": "title", "sortable": true },
+            { "header": "Assigned To", "field": "assignedTo", "filterable": true },
+            { "header": "Priority", "field": "priority", "filterable": true },
+            { "header": "Status", "field": "status", "filterable": true },
+            { "header": "Due", "field": "dueDate", "sortable": true }
+          ]
+        }
+      ]
+    },
+    "addTaskPage": {
+      "component": "page",
+      "title": "Add Task",
+      "content": [
+        {
+          "component": "form",
+          "id": "addTaskForm",
+          "fields": [
+            { "name": "title", "type": "text", "label": "Task Title", "required": true },
+            { "name": "description", "type": "multiline", "label": "Description" },
+            { "name": "priority", "type": "select", "label": "Priority", "options": ["Low", "Medium", "High"], "default": "Medium" },
+            { "name": "assignedTo", "type": "user", "label": "Assign To", "roles": ["admin", "manager"] },
+            { "name": "dueDate", "type": "date", "label": "Due Date", "default": "+7d" },
+            { "name": "status", "type": "hidden", "default": "Open" }
+          ]
+        },
+        {
+          "component": "button",
+          "label": "Create Task",
+          "styleHint": { "emphasis": "primary" },
+          "onClick": [
+            { "action": "submit", "dataSource": "tasksStore", "target": "addTaskForm" },
+            { "action": "navigate", "target": "myTasksPage" }
+          ]
+        }
+      ]
+    },
+    "editTaskPage": {
+      "component": "page",
+      "title": "Edit Task",
+      "content": [
+        {
+          "component": "form",
+          "id": "editTaskForm",
+          "fields": [
+            { "name": "title", "type": "text", "label": "Task Title", "required": true },
+            { "name": "description", "type": "multiline", "label": "Description" },
+            { "name": "priority", "type": "select", "label": "Priority", "options": ["Low", "Medium", "High"] },
+            { "name": "assignedTo", "type": "user", "label": "Assign To", "roles": ["admin", "manager"] },
+            { "name": "dueDate", "type": "date", "label": "Due Date" },
+            { "name": "status", "type": "select", "label": "Status", "options": ["Open", "In Progress", "Done"] }
+          ]
+        },
+        {
+          "component": "button",
+          "label": "Save Changes",
+          "styleHint": { "emphasis": "primary" },
+          "onClick": [
+            { "action": "update", "dataSource": "tasksUpdater", "target": "editTaskForm", "matchField": "title" },
+            { "action": "navigate", "target": "myTasksPage" }
+          ]
+        }
+      ]
+    },
+    "reportPage": {
+      "component": "page",
+      "title": "Team Report",
+      "roles": ["admin", "manager"],
+      "content": [
+        {
+          "component": "text",
+          "content": "Task distribution and status overview.",
+          "styleHint": { "variant": "subheading" }
+        },
+        {
+          "component": "chart",
+          "dataSource": "tasksReader",
+          "chartType": "pie",
+          "labelField": "status",
+          "valueField": "status",
+          "aggregate": "count",
+          "title": "Tasks by Status"
+        },
+        {
+          "component": "chart",
+          "dataSource": "tasksReader",
+          "chartType": "bar",
+          "labelField": "priority",
+          "valueField": "priority",
+          "aggregate": "count",
+          "title": "Tasks by Priority"
+        }
+      ]
+    }
+  },
+  "dataSources": {
+    "tasksReader": {
+      "url": "local://tasks",
+      "method": "GET",
+      "ownership": {
+        "enabled": true,
+        "adminOverride": true
+      },
+      "fields": [
+        { "name": "title", "type": "text" },
+        { "name": "description", "type": "multiline" },
+        { "name": "priority", "type": "select", "options": ["Low", "Medium", "High"] },
+        { "name": "assignedTo", "type": "user" },
+        { "name": "dueDate", "type": "date" },
+        { "name": "status", "type": "text" }
+      ]
+    },
+    "tasksStore": {
+      "url": "local://tasks",
+      "method": "POST",
+      "ownership": {
+        "enabled": true
+      }
+    },
+    "tasksUpdater": {
+      "url": "local://tasks",
+      "method": "PUT"
+    },
+    "tasksDeleter": {
+      "url": "local://tasks",
+      "method": "DELETE"
+    }
+  },
+  "help": {
+    "overview": "Team Tasks lets you manage tasks across your team. Regular users see only their own tasks. Managers and admins can see all tasks and run reports.",
+    "pages": {
+      "dashboardPage": "Your task overview with key metrics.",
+      "myTasksPage": "Tasks assigned to you. Tap a row to edit, use buttons to change status.",
+      "allTasksPage": "All tasks across the team (manager/admin only).",
+      "addTaskPage": "Create a new task. Managers can assign tasks to other users.",
+      "reportPage": "Charts showing task distribution (manager/admin only)."
+    }
+  },
+  "tour": [
+    { "title": "Welcome to Team Tasks!", "content": "This app demonstrates multi-user mode with role-based access control.", "page": "dashboardPage" },
+    { "title": "Your Tasks", "content": "The My Tasks page shows only tasks you created. Use the buttons to change status.", "page": "myTasksPage" },
+    { "title": "Create Tasks", "content": "Add new tasks here. Managers can assign tasks to specific users.", "page": "addTaskPage" }
+  ]
+}

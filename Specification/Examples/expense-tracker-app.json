@@ -1,0 +1,541 @@
+{
+  "appName": "Expense Tracker",
+  "auth": { "multiUser": false },
+  "startPage": "viewExpensesPage",
+  "menu": [
+    {
+      "label": "Log Expense",
+      "mapsTo": "logExpensePage"
+    },
+    {
+      "label": "View Expenses",
+      "mapsTo": "viewExpensesPage"
+    }
+  ],
+  "pages": {
+    "logExpensePage": {
+      "component": "page",
+      "title": "Log an Expense",
+      "content": [
+        {
+          "component": "text",
+          "content": "Record a new expense to keep track of your spending.",
+          "styleHint": {
+            "variant": "body"
+          }
+        },
+        {
+          "component": "form",
+          "id": "expenseForm",
+          "fields": [
+            {
+              "name": "description",
+              "label": "Description",
+              "type": "text",
+              "required": true,
+              "placeholder": "e.g., Weekly groceries",
+              "validation": {
+                "minLength": 3,
+                "message": "Description must be at least 3 characters"
+              }
+            },
+            {
+              "name": "quantity",
+              "label": "Quantity",
+              "type": "number",
+              "required": true,
+              "default": "1",
+              "validation": {
+                "min": 1,
+                "max": 999
+              }
+            },
+            {
+              "name": "unitPrice",
+              "label": "Unit Price",
+              "type": "number",
+              "required": true,
+              "currency": true,
+              "validation": {
+                "min": 0.01,
+                "max": 99999
+              }
+            },
+            {
+              "name": "total",
+              "label": "Total",
+              "type": "number",
+              "currency": true,
+              "formula": "{quantity} * {unitPrice}"
+            },
+            {
+              "name": "category",
+              "label": "Category",
+              "type": "select",
+              "options": [
+                "Food",
+                "Transport",
+                "Bills",
+                "Entertainment",
+                "Medical",
+                "Shopping",
+                "Other"
+              ]
+            },
+            {
+              "name": "otherCategory",
+              "label": "Specify category",
+              "type": "text",
+              "placeholder": "What kind of expense?",
+              "visibleWhen": {
+                "field": "category",
+                "equals": "Other"
+              }
+            },
+            {
+              "name": "date",
+              "label": "Date",
+              "type": "date",
+              "required": true,
+              "default": "NOW"
+            }
+          ]
+        },
+        {
+          "component": "button",
+          "label": "Save Expense",
+          "onClick": [
+            {
+              "action": "submit",
+              "dataSource": "expensesStore",
+              "target": "expenseForm",
+              "confirm": "Save this expense?"
+            },
+            {
+              "action": "navigate",
+              "target": "viewExpensesPage"
+            },
+            {
+              "action": "showMessage",
+              "message": "Expense recorded!"
+            }
+          ],
+          "styleHint": {
+            "emphasis": "primary",
+            "icon": "save"
+          }
+        },
+        {
+          "component": "button",
+          "label": "View All Expenses",
+          "onClick": [
+            {
+              "action": "navigate",
+              "target": "viewExpensesPage"
+            }
+          ],
+          "styleHint": {
+            "emphasis": "secondary",
+            "icon": "visibility",
+            "variant": "outlined"
+          }
+        }
+      ]
+    },
+    "viewExpensesPage": {
+      "component": "page",
+      "title": "My Expenses",
+      "content": [
+        {
+          "component": "text",
+          "content": "Total: ${SUM(expensesReader, total)} across {COUNT(expensesReader)} expenses (avg ${AVG(expensesReader, total)})",
+          "styleHint": {
+            "variant": "subheading"
+          },
+          "visibleWhen": {
+            "source": "expensesReader",
+            "countMin": 1
+          }
+        },
+        {
+          "component": "text",
+          "content": "No expenses recorded yet. Log your first expense to get started!",
+          "styleHint": {
+            "variant": "body",
+            "align": "center",
+            "color": "grey"
+          },
+          "visibleWhen": {
+            "source": "expensesReader",
+            "countEquals": 0
+          }
+        },
+        {
+          "component": "summary",
+          "label": "Total Spent",
+          "value": "{SUM(expensesReader, total)}",
+          "icon": "attach_money",
+          "styleHint": {
+            "color": "error"
+          }
+        },
+        {
+          "component": "summary",
+          "label": "Number of Expenses",
+          "value": "{COUNT(expensesReader)}",
+          "icon": "receipt",
+          "styleHint": {
+            "color": "success"
+          }
+        },
+        {
+          "component": "chart",
+          "dataSource": "expensesReader",
+          "chartType": "pie",
+          "labelField": "category",
+          "valueField": "total",
+          "title": "Spending by Category",
+          "visibleWhen": {
+            "source": "expensesReader",
+            "countMin": 1
+          }
+        },
+        {
+          "component": "list",
+          "dataSource": "expensesReader",
+          "searchable": true,
+          "defaultSort": {
+            "field": "date",
+            "direction": "desc"
+          },
+          "columns": [
+            {
+              "header": "Date",
+              "field": "date",
+              "sortable": true,
+              "filterable": true
+            },
+            {
+              "header": "Description",
+              "field": "description"
+            },
+            {
+              "header": "Qty",
+              "field": "quantity"
+            },
+            {
+              "header": "Unit Price",
+              "field": "unitPrice",
+              "sortable": true,
+              "currency": true
+            },
+            {
+              "header": "Total",
+              "field": "total",
+              "sortable": true,
+              "currency": true
+            },
+            {
+              "header": "Category",
+              "field": "category",
+              "sortable": true,
+              "filterable": true
+            }
+          ],
+          "rowActions": [
+            {
+              "label": "Delete",
+              "action": "delete",
+              "dataSource": "expensesDeleter",
+              "matchField": "_id"
+            }
+          ],
+          "onRowTap": {
+            "action": "navigate",
+            "target": "editExpensePage",
+            "populateForm": "editExpenseForm"
+          },
+          "summary": [
+            {
+              "column": "total",
+              "function": "sum",
+              "label": "Total Spent"
+            },
+            {
+              "column": "total",
+              "function": "avg",
+              "label": "Average"
+            },
+            {
+              "column": "total",
+              "function": "count",
+              "label": "Expenses"
+            }
+          ],
+          "styleHint": {
+            "density": "compact"
+          }
+        },
+        {
+          "component": "button",
+          "label": "Log Another Expense",
+          "onClick": [
+            {
+              "action": "navigate",
+              "target": "logExpensePage"
+            }
+          ],
+          "styleHint": {
+            "emphasis": "primary",
+            "icon": "add_circle"
+          }
+        }
+      ]
+    },
+    "editExpensePage": {
+      "component": "page",
+      "title": "Edit Expense",
+      "content": [
+        {
+          "component": "form",
+          "id": "editExpenseForm",
+          "fields": [
+            {
+              "name": "description",
+              "label": "Description",
+              "type": "text",
+              "required": true,
+              "validation": {
+                "minLength": 3,
+                "message": "Description must be at least 3 characters"
+              }
+            },
+            {
+              "name": "quantity",
+              "label": "Quantity",
+              "type": "number",
+              "required": true,
+              "validation": {
+                "min": 1,
+                "max": 999
+              }
+            },
+            {
+              "name": "unitPrice",
+              "label": "Unit Price",
+              "type": "number",
+              "required": true,
+              "currency": true,
+              "validation": {
+                "min": 0.01,
+                "max": 99999
+              }
+            },
+            {
+              "name": "total",
+              "label": "Total",
+              "type": "number",
+              "currency": true,
+              "formula": "{quantity} * {unitPrice}"
+            },
+            {
+              "name": "category",
+              "label": "Category",
+              "type": "select",
+              "options": [
+                "Food",
+                "Transport",
+                "Bills",
+                "Entertainment",
+                "Medical",
+                "Shopping",
+                "Other"
+              ]
+            },
+            {
+              "name": "otherCategory",
+              "label": "Specify category",
+              "type": "text",
+              "placeholder": "What kind of expense?",
+              "visibleWhen": {
+                "field": "category",
+                "equals": "Other"
+              }
+            },
+            {
+              "name": "date",
+              "label": "Date",
+              "type": "date",
+              "required": true
+            }
+          ]
+        },
+        {
+          "component": "button",
+          "label": "Save Changes",
+          "onClick": [
+            {
+              "action": "update",
+              "dataSource": "expensesUpdater",
+              "target": "editExpenseForm",
+              "matchField": "_id"
+            },
+            {
+              "action": "showMessage",
+              "message": "Expense updated!"
+            },
+            {
+              "action": "navigate",
+              "target": "viewExpensesPage"
+            }
+          ],
+          "styleHint": {
+            "emphasis": "primary",
+            "icon": "save"
+          }
+        },
+        {
+          "component": "button",
+          "label": "Back",
+          "onClick": [
+            {
+              "action": "navigate",
+              "target": "viewExpensesPage"
+            }
+          ],
+          "styleHint": {
+            "emphasis": "secondary",
+            "icon": "arrow_back",
+            "variant": "outlined"
+          }
+        }
+      ]
+    }
+  },
+  "dataSources": {
+    "expensesStore": {
+      "url": "local://expenses",
+      "method": "POST",
+      "ownership": { "enabled": true }
+    },
+    "expensesReader": {
+      "url": "local://expenses",
+      "method": "GET",
+      "ownership": { "enabled": true, "adminOverride": true },
+      "fields": [
+        {
+          "name": "description",
+          "type": "text"
+        },
+        {
+          "name": "quantity",
+          "type": "number"
+        },
+        {
+          "name": "unitPrice",
+          "type": "number"
+        },
+        {
+          "name": "total",
+          "type": "number",
+          "formula": "{quantity} * {unitPrice}"
+        },
+        {
+          "name": "category",
+          "type": "select"
+        },
+        {
+          "name": "otherCategory",
+          "type": "text"
+        },
+        {
+          "name": "date",
+          "type": "date"
+        }
+      ],
+      "seedData": [
+        {
+          "description": "Weekly groceries",
+          "quantity": "1",
+          "unitPrice": "62",
+          "category": "Food",
+          "date": "2026-03-01"
+        },
+        {
+          "description": "Monthly bus pass",
+          "quantity": "1",
+          "unitPrice": "45",
+          "category": "Transport",
+          "date": "2026-03-01"
+        },
+        {
+          "description": "Coffee with a friend",
+          "quantity": "2",
+          "unitPrice": "4",
+          "category": "Food",
+          "date": "2026-03-02"
+        },
+        {
+          "description": "Movie tickets",
+          "quantity": "2",
+          "unitPrice": "12",
+          "category": "Entertainment",
+          "date": "2026-03-03"
+        }
+      ]
+    },
+    "expensesUpdater": {
+      "url": "local://expenses",
+      "method": "PUT"
+    },
+    "expensesDeleter": {
+      "url": "local://expenses",
+      "method": "DELETE"
+    }
+  },
+  "help": {
+    "overview": "Expense Tracker helps you monitor personal spending. Log each expense with description, quantity, unit price, category, and date. The total is calculated automatically. A pie chart shows spending by category. Tap any expense to edit it.",
+    "pages": {
+      "logExpensePage": "Enter description (3+ chars), quantity, and unit price. Total computes automatically. Pick 'Other' for category and a text field appears. Validation ensures amounts are in range.",
+      "viewExpensesPage": "Pie chart of spending by category and a full data table. Filter by Category and Date. Summary totals below the table. Tap any row to edit. Delete expenses you want to remove.",
+      "editExpensePage": "Edit any field on the expense. Total recalculates automatically. Press Save Changes when done."
+    }
+  },
+  "settings": {
+    "currency": {
+      "label": "Currency symbol",
+      "type": "text",
+      "default": "$"
+    },
+    "defaultCategory": {
+      "label": "Default category for new expenses",
+      "type": "select",
+      "options": [
+        "Food",
+        "Transport",
+        "Bills",
+        "Entertainment",
+        "Medical",
+        "Shopping",
+        "Other"
+      ],
+      "default": "Food"
+    }
+  },
+  "tour": [
+    {
+      "title": "Welcome to Expense Tracker",
+      "content": "Take control of your finances by logging every expense. Everything is stored locally on your device."
+    },
+    {
+      "title": "Log Your Spending",
+      "content": "Enter description, quantity, and unit price. The Total computes automatically. Pick 'Other' and a second field appears. Validation catches out-of-range values.",
+      "page": "logExpensePage"
+    },
+    {
+      "title": "Review Your Expenses",
+      "content": "See a pie chart by category and a full data table. Filter by Category or Date. Tap any row to edit. Summary row shows totals and averages.",
+      "page": "viewExpensesPage"
+    }
+  ]
+}

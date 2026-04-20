@@ -1,0 +1,503 @@
+{
+  "templateName": "Approval / Request",
+  "description": "Submit requests and track approvals. Reviewers can approve or reject with color-coded status and toast notifications.",
+  "icon": "assignment",
+  "questions": [
+    {
+      "id": "appName",
+      "label": "What do you want to call your app?",
+      "type": "text",
+      "required": true,
+      "placeholder": "e.g., Leave Requests, Purchase Approvals"
+    },
+    {
+      "id": "requestName",
+      "label": "What's being requested?",
+      "type": "text",
+      "required": true,
+      "placeholder": "e.g., Leave, Purchase, Support Ticket"
+    },
+    {
+      "id": "fields",
+      "label": "What info does each request need?",
+      "type": "field-list",
+      "required": true,
+      "presets": [
+        {
+          "label": "Title",
+          "name": "title",
+          "type": "text"
+        },
+        {
+          "label": "Requested By",
+          "name": "requestedBy",
+          "type": "user",
+          "default": "CURRENT_USER.NAME"
+        },
+        {
+          "label": "Date",
+          "name": "date",
+          "type": "date"
+        },
+        {
+          "label": "Priority",
+          "name": "priority",
+          "type": "select",
+          "options": [
+            "Low",
+            "Medium",
+            "High"
+          ]
+        },
+        {
+          "label": "Description",
+          "name": "description",
+          "type": "multiline"
+        },
+        {
+          "label": "Amount",
+          "name": "amount",
+          "type": "number"
+        }
+      ]
+    },
+    {
+      "id": "wantChart",
+      "label": "Include a chart showing requests by status?",
+      "type": "checkbox",
+      "default": false
+    },
+    {
+      "id": "wantMultiUser",
+      "label": "Should this app support multiple users with role-based approvals?",
+      "type": "checkbox",
+      "default": false
+    },
+    {
+      "id": "wantSelfRegistration",
+      "label": "Allow users to sign up themselves? (for public-facing apps)",
+      "type": "checkbox",
+      "default": false
+    },
+    {
+      "id": "theme",
+      "label": "App theme",
+      "type": "select",
+      "options": ["indigo", "slate", "ocean", "parchment", "peach", "terracotta", "walnut", "cupcake", "bumblebee", "emerald", "corporate", "synthwave", "retro", "cyberpunk", "valentine", "halloween", "garden", "forest", "aqua", "lofi", "pastel", "fantasy", "wireframe", "black", "luxury", "dracula", "cmyk", "autumn", "business", "acid", "lemonade", "night", "coffee", "winter", "dim", "nord", "sunset", "caramellatte", "abyss", "silk"],
+      "default": "indigo"
+    }
+  ],
+  "template": {
+    "appName": "${appName}",
+    "branding": {
+      "theme": "${theme}"
+    },
+    "startPage": {
+      "default": "submitPage",
+      "admin": "dashboardPage",
+      "manager": "dashboardPage"
+    },
+    "auth": {
+      "$if": "wantMultiUser",
+      "then": {
+        "multiUser": true,
+        "roles": ["reviewer"],
+        "defaultRole": "user",
+        "selfRegistration": { "$if": "wantSelfRegistration", "then": true }
+      }
+    },
+    "menu": [
+      {
+        "label": "Dashboard",
+        "mapsTo": "dashboardPage",
+        "roles": {
+          "$if": "wantMultiUser",
+          "then": ["admin", "reviewer"]
+        }
+      },
+      {
+        "label": "Submit Request",
+        "mapsTo": "submitPage"
+      }
+    ],
+    "pages": {
+      "submitPage": {
+        "component": "page",
+        "title": "Submit ${requestName} Request",
+        "content": [
+          {
+            "component": "text",
+            "content": "Submit a new ${requestName} request.",
+            "styleHint": {
+              "variant": "body"
+            }
+          },
+          {
+            "component": "form",
+            "id": "submitForm",
+            "fields": {
+              "$flatten": [
+                {
+                  "$map": "fields",
+                  "each(field)": {
+                    "$if": "field.type == 'select'",
+                    "then": {
+                      "name": "${field.name}",
+                      "label": "${field.label}",
+                      "type": "select",
+                      "options": {
+                        "$eval": "field.options"
+                      }
+                    },
+                    "else": {
+                      "name": "${field.name}",
+                      "label": "${field.label}",
+                      "type": "${field.type}"
+                    }
+                  }
+                },
+                [
+                  {
+                    "name": "status",
+                    "type": "hidden",
+                    "default": "Pending"
+                  }
+                ]
+              ]
+            }
+          },
+          {
+            "component": "button",
+            "label": "Submit Request",
+            "onClick": [
+              {
+                "action": "submit",
+                "dataSource": "requestsStore",
+                "target": "submitForm"
+              },
+              {
+                "action": "navigate",
+                "target": "thankYouPage"
+              },
+              {
+                "action": "showMessage",
+                "message": "${requestName} submitted!"
+              }
+            ],
+            "styleHint": {
+              "emphasis": "primary",
+              "icon": "send"
+            }
+          }
+        ]
+      },
+      "thankYouPage": {
+        "component": "page",
+        "title": "Request Submitted",
+        "content": [
+          {
+            "component": "text",
+            "content": "Your ${requestName} request has been submitted and is pending review.",
+            "styleHint": {
+              "variant": "subheading"
+            }
+          },
+          {
+            "component": "button",
+            "label": "Submit Another",
+            "onClick": [
+              {
+                "action": "navigate",
+                "target": "submitPage"
+              }
+            ],
+            "styleHint": {
+              "emphasis": "secondary",
+              "icon": "send",
+              "variant": "outlined"
+            }
+          },
+          {
+            "component": "button",
+            "label": "View All Requests",
+            "onClick": [
+              {
+                "action": "navigate",
+                "target": "dashboardPage"
+              }
+            ],
+            "styleHint": {
+              "emphasis": "primary",
+              "icon": "visibility"
+            }
+          }
+        ]
+      },
+      "dashboardPage": {
+        "component": "page",
+        "title": "${appName}",
+        "roles": {
+          "$if": "wantMultiUser",
+          "then": ["admin", "reviewer"]
+        },
+        "content": {
+          "$flatten": [
+            [
+              {
+                "component": "summary",
+                "label": "Total Requests",
+                "value": "{COUNT(requestsReader)}",
+                "icon": "assignment"
+              },
+              {
+                "component": "summary",
+                "label": "Pending Review",
+                "value": "{COUNT(requestsReader, status=Pending)}",
+                "icon": "pending"
+              },
+              {
+                "component": "text",
+                "content": "No requests yet. Submit your first ${requestName} request to get started!",
+                "styleHint": {
+                  "variant": "body"
+                },
+                "visibleWhen": {
+                  "source": "requestsReader",
+                  "countEquals": 0
+                }
+              },
+              {
+                "component": "list",
+                "dataSource": "requestsReader",
+                "searchable": true,
+                "rowColorField": "status",
+                "rowColorMap": {
+                  "Pending": "orange",
+                  "Approved": "green",
+                  "Rejected": "red"
+                },
+                "columns": {
+                  "$flatten": [
+                    {
+                      "$map": "fields",
+                      "each(field)": {
+                        "header": "${field.label}",
+                        "field": "${field.name}",
+                        "sortable": true
+                      }
+                    },
+                    [
+                      {
+                        "header": "Status",
+                        "field": "status",
+                        "sortable": true,
+                        "filterable": true
+                      }
+                    ]
+                  ]
+                },
+                "rowActions": [
+                  {
+                    "label": "Approve",
+                    "action": "update",
+                    "dataSource": "requestsUpdater",
+                    "matchField": "_id",
+                    "values": {
+                      "status": "Approved"
+                    },
+                    "confirm": "Approve this request?",
+                    "showMessage": "Request approved!",
+                    "hideWhen": {
+                      "field": "status",
+                      "notEquals": "Pending"
+                    }
+                  },
+                  {
+                    "label": "Reject",
+                    "action": "update",
+                    "dataSource": "requestsUpdater",
+                    "matchField": "_id",
+                    "values": {
+                      "status": "Rejected"
+                    },
+                    "confirm": "Reject this request?",
+                    "showMessage": "Request rejected!",
+                    "hideWhen": {
+                      "field": "status",
+                      "notEquals": "Pending"
+                    }
+                  }
+                ],
+                "onRowTap": {
+                  "action": "navigate",
+                  "target": "reviewPage",
+                  "populateForm": "reviewForm"
+                }
+              },
+              {
+                "component": "button",
+                "label": "Submit New Request",
+                "onClick": [
+                  {
+                    "action": "navigate",
+                    "target": "submitPage"
+                  }
+                ],
+                "styleHint": {
+                  "emphasis": "primary"
+                }
+              }
+            ],
+            {
+              "$if": "wantChart",
+              "then": [
+                {
+                  "component": "chart",
+                  "dataSource": "requestsReader",
+                  "chartType": "bar",
+                  "labelField": "status",
+                  "valueField": "status",
+                  "aggregate": "count",
+                  "title": "Requests by Status"
+                }
+              ],
+              "else": []
+            }
+          ]
+        }
+      },
+      "reviewPage": {
+        "component": "page",
+        "title": "Review ${requestName} Request",
+        "roles": {
+          "$if": "wantMultiUser",
+          "then": ["admin", "reviewer"]
+        },
+        "content": [
+          {
+            "component": "detail",
+            "fromForm": "reviewForm"
+          },
+          {
+            "component": "form",
+            "id": "reviewForm",
+            "hidden": true,
+            "fields": {
+              "$flatten": [
+                {
+                  "$map": "fields",
+                  "each(field)": {
+                    "$if": "field.type == 'select'",
+                    "then": {
+                      "name": "${field.name}",
+                      "label": "${field.label}",
+                      "type": "select",
+                      "options": {
+                        "$eval": "field.options"
+                      }
+                    },
+                    "else": {
+                      "name": "${field.name}",
+                      "label": "${field.label}",
+                      "type": "${field.type}"
+                    }
+                  }
+                },
+                [
+                  {
+                    "name": "status",
+                    "label": "Status",
+                    "type": "text"
+                  }
+                ]
+              ]
+            }
+          },
+          {
+            "component": "button",
+            "label": "Back to Dashboard",
+            "onClick": [
+              {
+                "action": "navigate",
+                "target": "dashboardPage"
+              }
+            ],
+            "styleHint": {
+              "emphasis": "secondary",
+              "icon": "arrow_back",
+              "variant": "outlined"
+            }
+          }
+        ]
+      }
+    },
+    "dataSources": {
+      "requestsStore": {
+        "url": "local://requests",
+        "method": "POST",
+        "ownership": {
+          "$if": "wantMultiUser",
+          "then": {
+            "enabled": true
+          }
+        },
+        "fields": {
+          "$flatten": [
+            {
+              "$map": "fields",
+              "each(field)": {
+                "name": "${field.name}",
+                "type": "${field.type}"
+              }
+            },
+            [
+              {
+                "name": "status",
+                "type": "text"
+              }
+            ]
+          ]
+        }
+      },
+      "requestsReader": {
+        "url": "local://requests",
+        "method": "GET",
+        "ownership": {
+          "$if": "wantMultiUser",
+          "then": {
+            "enabled": true,
+            "adminOverride": true
+          }
+        },
+        "fields": {
+          "$flatten": [
+            {
+              "$map": "fields",
+              "each(field)": {
+                "name": "${field.name}",
+                "type": "${field.type}"
+              }
+            },
+            [
+              {
+                "name": "status",
+                "type": "text"
+              }
+            ]
+          ]
+        }
+      },
+      "requestsUpdater": {
+        "url": "local://requests",
+        "method": "PUT"
+      },
+      "requestsDeleter": {
+        "url": "local://requests",
+        "method": "DELETE"
+      }
+    },
+    "help": {
+      "overview": "${appName} lets you submit ${requestName} requests and track their approval status. New requests start as Pending and can be Approved or Rejected from the dashboard. All data stays on your device."
+    }
+  }
+}

@@ -1,0 +1,575 @@
+{
+  "appName": "Project Dashboard",
+  "auth": {
+    "multiUser": true,
+    "roles": ["manager"],
+    "defaultRole": "user"
+  },
+  "branding": {
+    "theme": "corporate",
+    "headerStyle": "solid"
+  },
+  "startPage": {
+    "default": "addTaskPage",
+    "admin": "dashboardPage",
+    "manager": "dashboardPage"
+  },
+  "menu": [
+    {
+      "label": "Dashboard",
+      "mapsTo": "dashboardPage"
+    },
+    {
+      "label": "Add Task",
+      "mapsTo": "addTaskPage"
+    }
+  ],
+  "pages": {
+    "addTaskPage": {
+      "component": "page",
+      "title": "Add a New Task",
+      "content": [
+        {
+          "component": "text",
+          "content": "Create a new task and assign it to a project.",
+          "styleHint": {
+            "variant": "body"
+          }
+        },
+        {
+          "component": "form",
+          "id": "addTaskForm",
+          "fields": [
+            {
+              "name": "name",
+              "label": "Task Name",
+              "type": "text",
+              "required": true,
+              "placeholder": "e.g., Design login screen"
+            },
+            {
+              "name": "project",
+              "label": "Project",
+              "type": "select",
+              "options": [
+                "Alpha",
+                "Beta",
+                "Gamma"
+              ],
+              "required": true
+            },
+            {
+              "name": "status",
+              "label": "Status",
+              "type": "select",
+              "options": [
+                "To Do",
+                "In Progress",
+                "Done"
+              ],
+              "default": "To Do"
+            },
+            {
+              "name": "priority",
+              "label": "Priority",
+              "type": "select",
+              "options": [
+                "Low",
+                "Medium",
+                "High"
+              ],
+              "default": "Medium"
+            },
+            {
+              "name": "dueDate",
+              "label": "Due Date",
+              "type": "date",
+              "default": "+7d"
+            },
+            {
+              "name": "description",
+              "label": "Notes",
+              "type": "multiline",
+              "placeholder": "Additional details..."
+            }
+          ]
+        },
+        {
+          "component": "button",
+          "label": "Save Task",
+          "onClick": [
+            {
+              "action": "submit",
+              "dataSource": "tasksStore",
+              "target": "addTaskForm"
+            },
+            {
+              "action": "navigate",
+              "target": "dashboardPage"
+            },
+            {
+              "action": "showMessage",
+              "message": "Task created!"
+            }
+          ],
+          "styleHint": {
+            "emphasis": "primary",
+            "icon": "save"
+          }
+        }
+      ]
+    },
+    "dashboardPage": {
+      "component": "page",
+      "title": "Project Dashboard",
+      "content": [
+        {
+          "component": "text",
+          "content": "{COUNT(tasksReader)} total tasks \u00e2\u20ac\u201d {COUNT(tasksReader, status=Done)} done, {COUNT(tasksReader, status=In Progress)} in progress, {COUNT(tasksReader, status=To Do)} to do",
+          "styleHint": {
+            "variant": "subheading"
+          },
+          "visibleWhen": {
+            "source": "tasksReader",
+            "countMin": 1
+          }
+        },
+        {
+          "component": "text",
+          "content": "No tasks yet. Add your first task to get the project rolling!",
+          "styleHint": {
+            "variant": "body",
+            "align": "center",
+            "color": "grey"
+          },
+          "visibleWhen": {
+            "source": "tasksReader",
+            "countEquals": 0
+          }
+        },
+        {
+          "component": "summary",
+          "label": "Total Tasks",
+          "value": "{COUNT(tasksReader)}",
+          "icon": "assignment",
+          "styleHint": {
+            "color": "primary"
+          }
+        },
+        {
+          "component": "summary",
+          "label": "Completed",
+          "value": "{COUNT(tasksReader, status=Done)}",
+          "icon": "check_circle",
+          "styleHint": {
+            "color": "secondary"
+          }
+        },
+        {
+          "component": "summary",
+          "label": "In Progress",
+          "value": "{COUNT(tasksReader, status=In Progress)}",
+          "icon": "pending",
+          "styleHint": {
+            "color": "info"
+          }
+        },
+        {
+          "component": "tabs",
+          "tabs": [
+            {
+              "label": "All Tasks",
+              "content": [
+                {
+                  "component": "list",
+                  "dataSource": "tasksReader",
+                  "searchable": true,
+                  "rowColorField": "status",
+                  "rowColorMap": {
+                    "To Do": "blue",
+                    "In Progress": "orange",
+                    "Done": "green"
+                  },
+                  "columns": [
+                    {
+                      "header": "Task",
+                      "field": "name",
+                      "sortable": true
+                    },
+                    {
+                      "header": "Project",
+                      "field": "project",
+                      "sortable": true,
+                      "filterable": true
+                    },
+                    {
+                      "header": "Status",
+                      "field": "status",
+                      "sortable": true,
+                      "filterable": true
+                    },
+                    {
+                      "header": "Priority",
+                      "field": "priority",
+                      "sortable": true,
+                      "filterable": true
+                    },
+                    {
+                      "header": "Due Date",
+                      "field": "dueDate",
+                      "sortable": true
+                    }
+                  ],
+                  "defaultSort": {
+                    "field": "dueDate",
+                    "direction": "desc"
+                  },
+                  "rowActions": [
+                    {
+                      "label": "Start",
+                      "action": "update",
+                      "dataSource": "tasksUpdater",
+                      "matchField": "_id",
+                      "values": {
+                        "status": "In Progress"
+                      },
+                      "hideWhen": {
+                        "field": "status",
+                        "notEquals": "To Do"
+                      }
+                    },
+                    {
+                      "label": "Mark Done",
+                      "action": "update",
+                      "dataSource": "tasksUpdater",
+                      "matchField": "_id",
+                      "values": {
+                        "status": "Done"
+                      },
+                      "hideWhen": {
+                        "field": "status",
+                        "notEquals": "In Progress"
+                      }
+                    },
+                    {
+                      "label": "Delete",
+                      "action": "delete",
+                      "dataSource": "tasksDeleter",
+                      "matchField": "_id"
+                    }
+                  ],
+                  "onRowTap": {
+                    "action": "navigate",
+                    "target": "editTaskPage",
+                    "populateForm": "editTaskForm"
+                  }
+                }
+              ]
+            },
+            {
+              "label": "By Project",
+              "content": [
+                {
+                  "component": "chart",
+                  "dataSource": "tasksReader",
+                  "chartType": "bar",
+                  "labelField": "project",
+                  "valueField": "name",
+                  "title": "Tasks by Project",
+                  "visibleWhen": {
+                    "source": "tasksReader",
+                    "countMin": 1
+                  }
+                }
+              ]
+            },
+            {
+              "label": "By Priority",
+              "content": [
+                {
+                  "component": "chart",
+                  "dataSource": "tasksReader",
+                  "chartType": "pie",
+                  "labelField": "priority",
+                  "valueField": "name",
+                  "title": "Tasks by Priority",
+                  "visibleWhen": {
+                    "source": "tasksReader",
+                    "countMin": 1
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "component": "button",
+          "label": "Add a Task",
+          "onClick": [
+            {
+              "action": "navigate",
+              "target": "addTaskPage"
+            }
+          ],
+          "styleHint": {
+            "emphasis": "primary",
+            "icon": "add_circle"
+          }
+        }
+      ]
+    },
+    "editTaskPage": {
+      "component": "page",
+      "title": "Edit Task",
+      "content": [
+        {
+          "component": "form",
+          "id": "editTaskForm",
+          "fields": [
+            {
+              "name": "name",
+              "label": "Task Name",
+              "type": "text",
+              "required": true
+            },
+            {
+              "name": "project",
+              "label": "Project",
+              "type": "select",
+              "options": [
+                "Alpha",
+                "Beta",
+                "Gamma"
+              ]
+            },
+            {
+              "name": "status",
+              "label": "Status",
+              "type": "select",
+              "options": [
+                "To Do",
+                "In Progress",
+                "Done"
+              ]
+            },
+            {
+              "name": "priority",
+              "label": "Priority",
+              "type": "select",
+              "options": [
+                "Low",
+                "Medium",
+                "High"
+              ]
+            },
+            {
+              "name": "dueDate",
+              "label": "Due Date",
+              "type": "date"
+            },
+            {
+              "name": "description",
+              "label": "Notes",
+              "type": "multiline",
+              "placeholder": "Additional details..."
+            }
+          ]
+        },
+        {
+          "component": "button",
+          "label": "Save Changes",
+          "onClick": [
+            {
+              "action": "update",
+              "dataSource": "tasksUpdater",
+              "target": "editTaskForm",
+              "matchField": "_id"
+            },
+            {
+              "action": "navigate",
+              "target": "dashboardPage"
+            },
+            {
+              "action": "showMessage",
+              "message": "Task updated!"
+            }
+          ],
+          "styleHint": {
+            "emphasis": "primary",
+            "icon": "save"
+          }
+        },
+        {
+          "component": "button",
+          "label": "Back",
+          "onClick": [
+            {
+              "action": "navigate",
+              "target": "dashboardPage"
+            }
+          ],
+          "styleHint": {
+            "emphasis": "secondary",
+            "icon": "arrow_back",
+            "variant": "outlined"
+          }
+        }
+      ]
+    }
+  },
+  "dataSources": {
+    "tasksStore": {
+      "url": "local://projectTasks",
+      "method": "POST"
+    },
+    "tasksReader": {
+      "url": "local://projectTasks",
+      "method": "GET",
+      "fields": [
+        {
+          "name": "name",
+          "type": "text"
+        },
+        {
+          "name": "project",
+          "type": "select"
+        },
+        {
+          "name": "status",
+          "type": "select"
+        },
+        {
+          "name": "priority",
+          "type": "select"
+        },
+        {
+          "name": "dueDate",
+          "type": "date"
+        },
+        {
+          "name": "description",
+          "type": "multiline"
+        }
+      ],
+      "seedData": [
+        {
+          "name": "Design login screen",
+          "project": "Alpha",
+          "status": "Done",
+          "priority": "High",
+          "dueDate": "2026-03-10"
+        },
+        {
+          "name": "Set up CI pipeline",
+          "project": "Alpha",
+          "status": "In Progress",
+          "priority": "High",
+          "dueDate": "2026-03-18"
+        },
+        {
+          "name": "Write API documentation",
+          "project": "Alpha",
+          "status": "To Do",
+          "priority": "Medium",
+          "dueDate": "2026-03-25"
+        },
+        {
+          "name": "Create onboarding flow",
+          "project": "Beta",
+          "status": "In Progress",
+          "priority": "Medium",
+          "dueDate": "2026-03-20"
+        },
+        {
+          "name": "Fix payment bug",
+          "project": "Beta",
+          "status": "To Do",
+          "priority": "High",
+          "dueDate": "2026-03-16"
+        },
+        {
+          "name": "Update dependencies",
+          "project": "Beta",
+          "status": "Done",
+          "priority": "Low",
+          "dueDate": "2026-03-12"
+        },
+        {
+          "name": "Performance audit",
+          "project": "Gamma",
+          "status": "To Do",
+          "priority": "Medium",
+          "dueDate": "2026-03-22"
+        },
+        {
+          "name": "Add dark mode support",
+          "project": "Gamma",
+          "status": "To Do",
+          "priority": "Low",
+          "dueDate": "2026-03-28"
+        },
+        {
+          "name": "Database migration script",
+          "project": "Gamma",
+          "status": "In Progress",
+          "priority": "High",
+          "dueDate": "2026-03-17"
+        }
+      ]
+    },
+    "tasksUpdater": {
+      "url": "local://projectTasks",
+      "method": "PUT"
+    },
+    "tasksDeleter": {
+      "url": "local://projectTasks",
+      "method": "DELETE"
+    }
+  },
+  "help": {
+    "overview": "Project Dashboard helps you manage tasks across multiple projects. The dashboard uses tabs to show an overview list, a chart by project, and a chart by priority. Tap any task to edit it.",
+    "pages": {
+      "addTaskPage": "Enter a task name, assign it to a project, set status, priority, and due date. Press Save Task to add it.",
+      "dashboardPage": "Summary cards show totals at a glance. Use the tabs to switch between the task list, project breakdown chart, and priority breakdown chart. Filter and sort within the All Tasks tab.",
+      "editTaskPage": "Edit any field on the task and press Save Changes."
+    }
+  },
+  "settings": {
+    "defaultProject": {
+      "label": "Default project for new tasks",
+      "type": "select",
+      "options": [
+        "Alpha",
+        "Beta",
+        "Gamma"
+      ],
+      "default": "Alpha"
+    },
+    "defaultPriority": {
+      "label": "Default priority for new tasks",
+      "type": "select",
+      "options": [
+        "Low",
+        "Medium",
+        "High"
+      ],
+      "default": "Medium"
+    }
+  },
+  "tour": [
+    {
+      "title": "Welcome to Project Dashboard",
+      "content": "Manage tasks across multiple projects with a tabbed dashboard view."
+    },
+    {
+      "title": "Dashboard Tabs",
+      "content": "Switch between All Tasks (searchable list with row colors), By Project (bar chart), and By Priority (pie chart). Summary cards show totals at the top.",
+      "page": "dashboardPage"
+    },
+    {
+      "title": "Add Tasks",
+      "content": "Create tasks and assign them to a project. Set status, priority, and due date. Defaults help you move fast.",
+      "page": "addTaskPage"
+    }
+  ]
+}

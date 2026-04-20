@@ -1,0 +1,585 @@
+{
+  "appName": "Team Survey",
+  "auth": {
+    "multiUser": true,
+    "selfRegistration": true,
+    "defaultRole": "user"
+  },
+  "startPage": {
+    "default": "takeSurveyPage",
+    "admin": "resultsPage"
+  },
+  "menu": [
+    {
+      "label": "Take Survey",
+      "mapsTo": "takeSurveyPage"
+    },
+    {
+      "label": "Results",
+      "mapsTo": "resultsPage",
+      "roles": ["admin"]
+    }
+  ],
+  "pages": {
+    "takeSurveyPage": {
+      "component": "page",
+      "title": "Team Satisfaction Survey",
+      "content": [
+        {
+          "component": "text",
+          "content": "Help us improve! Answer a few questions about your experience on the team. All responses are anonymous and stored locally on your device.",
+          "styleHint": {
+            "variant": "body"
+          }
+        },
+        {
+          "component": "form",
+          "id": "surveyForm",
+          "fields": [
+            {
+              "name": "role",
+              "label": "Your Role",
+              "type": "select",
+              "required": true,
+              "options": [
+                "Developer",
+                "Designer",
+                "Manager",
+                "QA",
+                "Product",
+                "Other"
+              ]
+            },
+            {
+              "name": "otherRole",
+              "label": "Specify your role",
+              "type": "text",
+              "placeholder": "What is your role?",
+              "visibleWhen": {
+                "field": "role",
+                "equals": "Other"
+              }
+            },
+            {
+              "name": "satisfaction",
+              "label": "Overall satisfaction (1-5)",
+              "type": "select",
+              "required": true,
+              "options": [
+                "1",
+                "2",
+                "3",
+                "4",
+                "5"
+              ]
+            },
+            {
+              "name": "communication",
+              "label": "Team communication (1-5)",
+              "type": "select",
+              "required": true,
+              "options": [
+                "1",
+                "2",
+                "3",
+                "4",
+                "5"
+              ]
+            },
+            {
+              "name": "workload",
+              "label": "Workload balance (1-5)",
+              "type": "select",
+              "required": true,
+              "options": [
+                "1",
+                "2",
+                "3",
+                "4",
+                "5"
+              ]
+            },
+            {
+              "name": "growth",
+              "label": "Growth opportunities (1-5)",
+              "type": "select",
+              "required": true,
+              "options": [
+                "1",
+                "2",
+                "3",
+                "4",
+                "5"
+              ]
+            },
+            {
+              "name": "bestThing",
+              "label": "What is the best thing about working on this team?",
+              "type": "multiline",
+              "placeholder": "Tell us what you love..."
+            },
+            {
+              "name": "improvement",
+              "label": "What could be improved?",
+              "type": "multiline",
+              "placeholder": "Any suggestions..."
+            },
+            {
+              "name": "recommend",
+              "label": "Would you recommend this team to a friend?",
+              "type": "select",
+              "required": true,
+              "options": [
+                "Yes",
+                "Maybe",
+                "No"
+              ]
+            },
+            {
+              "name": "submittedDate",
+              "label": "Submitted",
+              "type": "date",
+              "default": "CURRENTDATE"
+            }
+          ]
+        },
+        {
+          "component": "button",
+          "label": "Submit Survey",
+          "onClick": [
+            {
+              "action": "submit",
+              "dataSource": "surveyStore",
+              "target": "surveyForm"
+            },
+            {
+              "action": "showMessage",
+              "message": "Survey submitted \u00e2\u20ac\u201d thank you!"
+            },
+            {
+              "action": "navigate",
+              "target": "thankYouPage"
+            }
+          ],
+          "styleHint": {
+            "emphasis": "primary",
+            "icon": "send"
+          }
+        }
+      ]
+    },
+    "thankYouPage": {
+      "component": "page",
+      "title": "Thank You!",
+      "content": [
+        {
+          "component": "text",
+          "content": "Your response has been recorded. Thank you for your honest feedback!",
+          "styleHint": {
+            "variant": "heading"
+          }
+        },
+        {
+          "component": "button",
+          "label": "Submit Another Response",
+          "onClick": [
+            {
+              "action": "navigate",
+              "target": "takeSurveyPage"
+            }
+          ],
+          "styleHint": {
+            "emphasis": "primary",
+            "icon": "send"
+          }
+        },
+        {
+          "component": "button",
+          "label": "View Results",
+          "onClick": [
+            {
+              "action": "navigate",
+              "target": "resultsPage"
+            }
+          ],
+          "styleHint": {
+            "emphasis": "secondary",
+            "icon": "visibility",
+            "variant": "outlined"
+          }
+        }
+      ]
+    },
+    "resultsPage": {
+      "component": "page",
+      "title": "Survey Results",
+      "roles": ["admin"],
+      "content": [
+        {
+          "component": "summary",
+          "label": "Total Responses",
+          "value": "{COUNT(surveyReader)}",
+          "icon": "people",
+          "styleHint": {
+            "color": "primary"
+          }
+        },
+        {
+          "component": "summary",
+          "label": "Avg Satisfaction",
+          "value": "{AVG(surveyReader, satisfaction)}",
+          "icon": "trending_up",
+          "styleHint": {
+            "color": "secondary"
+          }
+        },
+        {
+          "component": "text",
+          "content": "No responses yet. Take the survey to see results here!",
+          "styleHint": {
+            "variant": "body",
+            "align": "center",
+            "color": "grey"
+          },
+          "visibleWhen": {
+            "source": "surveyReader",
+            "countEquals": 0
+          }
+        },
+        {
+          "component": "text",
+          "content": "Average Scores \u00e2\u20ac\u201d Satisfaction: {AVG(surveyReader, satisfaction)} | Communication: {AVG(surveyReader, communication)} | Workload: {AVG(surveyReader, workload)} | Growth: {AVG(surveyReader, growth)}",
+          "styleHint": {
+            "variant": "body"
+          },
+          "visibleWhen": {
+            "source": "surveyReader",
+            "countMin": 1
+          }
+        },
+        {
+          "component": "text",
+          "content": "Recommendations \u00e2\u20ac\u201d Yes: {COUNT(surveyReader, recommend=Yes)} | Maybe: {COUNT(surveyReader, recommend=Maybe)} | No: {COUNT(surveyReader, recommend=No)}",
+          "styleHint": {
+            "variant": "body"
+          },
+          "visibleWhen": {
+            "source": "surveyReader",
+            "countMin": 1
+          }
+        },
+        {
+          "component": "chart",
+          "dataSource": "surveyReader",
+          "chartType": "bar",
+          "labelField": "role",
+          "valueField": "satisfaction",
+          "title": "Satisfaction by Role",
+          "visibleWhen": {
+            "source": "surveyReader",
+            "countMin": 1
+          }
+        },
+        {
+          "component": "list",
+          "dataSource": "surveyReader",
+          "searchable": true,
+          "columns": [
+            {
+              "header": "Role",
+              "field": "role",
+              "sortable": true,
+              "filterable": true
+            },
+            {
+              "header": "Satisfaction",
+              "field": "satisfaction",
+              "sortable": true
+            },
+            {
+              "header": "Communication",
+              "field": "communication",
+              "sortable": true
+            },
+            {
+              "header": "Workload",
+              "field": "workload",
+              "sortable": true
+            },
+            {
+              "header": "Growth",
+              "field": "growth",
+              "sortable": true
+            },
+            {
+              "header": "Recommend",
+              "field": "recommend",
+              "sortable": true,
+              "filterable": true,
+              "colorMap": {
+                "Yes": "green",
+                "Maybe": "orange",
+                "No": "red"
+              }
+            },
+            {
+              "header": "Submitted",
+              "field": "submittedDate",
+              "sortable": true
+            }
+          ],
+          "defaultSort": {
+            "field": "submittedDate",
+            "direction": "desc"
+          },
+          "rowActions": [
+            {
+              "label": "Delete",
+              "action": "delete",
+              "dataSource": "surveyDeleter",
+              "matchField": "_id"
+            }
+          ],
+          "onRowTap": {
+            "action": "navigate",
+            "target": "responseDetailPage",
+            "populateForm": "responseDetailForm"
+          },
+          "summary": [
+            {
+              "column": "satisfaction",
+              "function": "avg",
+              "label": "Average"
+            },
+            {
+              "column": "communication",
+              "function": "avg",
+              "label": "Average"
+            },
+            {
+              "column": "workload",
+              "function": "avg",
+              "label": "Average"
+            },
+            {
+              "column": "growth",
+              "function": "avg",
+              "label": "Average"
+            }
+          ],
+          "visibleWhen": {
+            "source": "surveyReader",
+            "countMin": 1
+          }
+        },
+        {
+          "component": "button",
+          "label": "Take the Survey",
+          "onClick": [
+            {
+              "action": "navigate",
+              "target": "takeSurveyPage"
+            }
+          ],
+          "styleHint": {
+            "emphasis": "primary"
+          }
+        }
+      ]
+    },
+    "responseDetailPage": {
+      "component": "page",
+      "title": "Response Detail",
+      "content": [
+        {
+          "component": "form",
+          "id": "responseDetailForm",
+          "fields": [
+            {
+              "name": "role",
+              "label": "Role",
+              "type": "text",
+              "readOnly": true
+            },
+            {
+              "name": "satisfaction",
+              "label": "Satisfaction",
+              "type": "number",
+              "readOnly": true
+            },
+            {
+              "name": "communication",
+              "label": "Communication",
+              "type": "number",
+              "readOnly": true
+            },
+            {
+              "name": "workload",
+              "label": "Workload",
+              "type": "number",
+              "readOnly": true
+            },
+            {
+              "name": "growth",
+              "label": "Growth",
+              "type": "number",
+              "readOnly": true
+            },
+            {
+              "name": "recommend",
+              "label": "Recommend",
+              "type": "text",
+              "readOnly": true
+            },
+            {
+              "name": "bestThing",
+              "label": "Best Thing",
+              "type": "multiline",
+              "readOnly": true
+            },
+            {
+              "name": "improvement",
+              "label": "What Could Improve",
+              "type": "multiline",
+              "readOnly": true
+            },
+            {
+              "name": "submittedDate",
+              "label": "Submitted",
+              "type": "date",
+              "readOnly": true
+            }
+          ]
+        },
+        {
+          "component": "button",
+          "label": "Back to Results",
+          "onClick": [
+            {
+              "action": "navigate",
+              "target": "resultsPage"
+            }
+          ],
+          "styleHint": {
+            "emphasis": "secondary",
+            "icon": "arrow_back",
+            "variant": "outlined"
+          }
+        }
+      ]
+    }
+  },
+  "dataSources": {
+    "surveyStore": {
+      "url": "local://survey_responses",
+      "method": "POST"
+    },
+    "surveyReader": {
+      "url": "local://survey_responses",
+      "method": "GET",
+      "fields": [
+        {
+          "name": "role",
+          "type": "select"
+        },
+        {
+          "name": "otherRole",
+          "type": "text"
+        },
+        {
+          "name": "satisfaction",
+          "type": "number"
+        },
+        {
+          "name": "communication",
+          "type": "number"
+        },
+        {
+          "name": "workload",
+          "type": "number"
+        },
+        {
+          "name": "growth",
+          "type": "number"
+        },
+        {
+          "name": "bestThing",
+          "type": "multiline"
+        },
+        {
+          "name": "improvement",
+          "type": "multiline"
+        },
+        {
+          "name": "recommend",
+          "type": "select"
+        },
+        {
+          "name": "submittedDate",
+          "type": "date"
+        }
+      ],
+      "seedData": [
+        {
+          "role": "Developer",
+          "satisfaction": "4",
+          "communication": "3",
+          "workload": "4",
+          "growth": "5",
+          "bestThing": "Great mentorship and learning opportunities.",
+          "improvement": "More async communication, fewer meetings.",
+          "recommend": "Yes"
+        },
+        {
+          "role": "Designer",
+          "satisfaction": "5",
+          "communication": "4",
+          "workload": "3",
+          "growth": "4",
+          "bestThing": "Creative freedom and supportive team culture.",
+          "improvement": "Could use better tooling for design handoffs.",
+          "recommend": "Yes"
+        },
+        {
+          "role": "Manager",
+          "satisfaction": "3",
+          "communication": "4",
+          "workload": "2",
+          "growth": "3",
+          "bestThing": "Strong team that delivers consistently.",
+          "improvement": "Workload is unsustainable during crunch periods.",
+          "recommend": "Maybe"
+        }
+      ]
+    },
+    "surveyDeleter": {
+      "url": "local://survey_responses",
+      "method": "DELETE"
+    }
+  },
+  "help": {
+    "overview": "Team Survey collects anonymous feedback about satisfaction, communication, workload, and growth. The results page shows averages, breakdowns, and charts. Tap any response row to see the full open-ended comments.",
+    "pages": {
+      "takeSurveyPage": "Select your role, rate four dimensions on a 1-5 scale, share what you love and what could improve, and indicate whether you'd recommend the team.",
+      "thankYouPage": "Your response is saved. Submit another or view the collected results.",
+      "resultsPage": "Aggregate scores, recommendation breakdown, satisfaction chart by role, and full response table. Tap any row to see comments. Color-coded recommendations: green=Yes, orange=Maybe, red=No.",
+      "responseDetailPage": "View the full response including open-ended comments about what's best and what could improve."
+    }
+  },
+  "tour": [
+    {
+      "title": "Welcome to Team Survey",
+      "content": "Collect anonymous team feedback and see aggregate results. All data stays on your device."
+    },
+    {
+      "title": "Take the Survey",
+      "content": "Rate four areas on a 1-5 scale, share your thoughts, and indicate if you'd recommend the team. Select 'Other' for role to specify a custom role.",
+      "page": "takeSurveyPage"
+    },
+    {
+      "title": "View Results",
+      "content": "Average scores, recommendation breakdown, a chart, and the full response table. Tap any row to see the open-ended comments.",
+      "page": "resultsPage"
+    }
+  ]
+}

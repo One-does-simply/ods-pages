@@ -1,0 +1,35 @@
+# ---------------------------------------------------------------------------
+# Workspace-level ignores. Each sub-tree keeps its own .gitignore for
+# framework-specific artifacts (node_modules, dist, pubspec.lock, etc.);
+# this file covers cross-cutting concerns only.
+# ---------------------------------------------------------------------------
+
+# Never commit AI-assistant local state — per-user, noisy.
+.claude/
+
+# Editor / OS cruft
+.vscode/*
+!.vscode/settings.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local scratch / experimentation
+/scratch/
+*.tmp
+*.bak
+
+# Secrets / local-only notes. Never commit OAuth creds, DB URLs, etc.
+# If you need to share credentials, use a vault, not the repo.
+/pocketbasestuff.txt
+*.secrets
+*.env.local
+.env
+
+
+# Belt-and-braces (sub-tree .gitignores should cover these, but at root
+# in case a new sub-tree lands without one).
+node_modules/
+dist/
+build/
+coverage/

@@ -1,0 +1,66 @@
+{
+  "name": "garden",
+  "displayName": "Garden",
+  "author": "daisyui",
+  "nativeScheme": "light",
+  "design": {
+    "radiusSelector": "1rem",
+    "radiusField": ".5rem",
+    "radiusBox": "1rem",
+    "sizeSelector": ".25rem",
+    "sizeField": ".25rem",
+    "border": "1px",
+    "depth": 0,
+    "noise": 0
+  },
+  "light": {
+    "colorScheme": "light",
+    "colors": {
+      "primary": "oklch(62.45% .278 3.836)",
+      "primaryContent": "oklch(21.2% 0 0)",
+      "secondary": "oklch(48.495% .11 355.095)",
+      "secondaryContent": "oklch(89.699% .022 355.095)",
+      "accent": "oklch(56.273% .054 154.39)",
+      "accentContent": "oklch(9.77% 0 0)",
+      "neutral": "oklch(24.155% .049 89.07)",
+      "neutralContent": "oklch(92.951% .002 17.197)",
+      "base100": "oklch(92.951% .002 17.197)",
+      "base200": "oklch(86.445% .002 17.197)",
+      "base300": "oklch(79.938% .001 17.197)",
+      "baseContent": "oklch(16.961% .001 17.32)",
+      "info": "oklch(72.06% .191 231.6)",
+      "infoContent": "oklch(0% 0 0)",
+      "success": "oklch(64.8% .15 160)",
+      "successContent": "oklch(0% 0 0)",
+      "warning": "oklch(84.71% .199 83.87)",
+      "warningContent": "oklch(0% 0 0)",
+      "error": "oklch(71.76% .221 22.18)",
+      "errorContent": "oklch(0% 0 0)"
+    }
+  },
+  "dark": {
+    "colorScheme": "dark",
+    "colors": {
+      "primary": "oklch(62.45% 0.278 3.836)",
+      "primaryContent": "oklch(21.2% 0 0)",
+      "secondary": "oklch(48.495% .11 355.095)",
+      "secondaryContent": "oklch(89.699% .022 355.095)",
+      "accent": "oklch(56.273% .054 154.39)",
+      "accentContent": "oklch(9.77% 0 0)",
+      "neutral": "oklch(24.16% 0.049 89.07)",
+      "neutralContent": "oklch(80% 0.002 17.197)",
+      "base100": "oklch(25% 0.002 17.197)",
+      "base200": "oklch(22% 0.002 17.197)",
+      "base300": "oklch(19% 0.001 17.197)",
+      "baseContent": "oklch(95% 0.001 17.32)",
+      "info": "oklch(72.06% .191 231.6)",
+      "infoContent": "oklch(0% 0 0)",
+      "success": "oklch(64.8% .15 160)",
+      "successContent": "oklch(0% 0 0)",
+      "warning": "oklch(84.71% .199 83.87)",
+      "warningContent": "oklch(0% 0 0)",
+      "error": "oklch(71.76% .221 22.18)",
+      "errorContent": "oklch(0% 0 0)"
+    }
+  }
+}
