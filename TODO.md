@@ -31,15 +31,6 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
       and how to propose spec vs framework changes.
 - [ ] **`CHANGELOG.md`** — low value until releases start; relevant
       once the conformance suite pins spec versions.
-- [ ] **Org profile README** (`One-does-simply/.github` repo with
-      `profile/README.md`) — visitors landing on the org page today
-      see bare repo list. Should describe ODS as a family of
-      spec-driven frameworks, list active + upcoming families.
-- [ ] **Cross-family `CONVENTIONS.md`** — pin the patterns every
-      future family (`ods-chat`, `ods-workflow`, `ods-game`) will
-      copy: `publish.sh` structure, TODO/REGRESSION_LOG format, ADR
-      numbering, CLAUDE.md rules. Lives at ods-pages root for now;
-      moves to the umbrella `ods` repo if/when one exists.
 
 ## Docs — nice-to-haves
 
@@ -53,11 +44,13 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 
 ## Later — important, not urgent
 
-- [ ] **Windows widget-test unskip** — all 10 Flutter widget tests are
-      skipped on Windows due to a `flutter_tools` temp-dir race (AV/FS
-      interference). Options: (a) migrate widget tests to `integration_test`
-      which uses a real device/emulator, (b) run them in WSL. Tests pass
-      cleanly on Linux/macOS.
+- [ ] **Widget-test unskip** — the Flutter widget suite is excluded
+      from `publish.sh` and the GH CI workflow because it hangs on
+      both Windows (flutter_tools temp-dir race, AV/FS interference)
+      and on the GH Linux runners (new finding 2026-04-24 — a 21-min
+      hang on `ods-pages` commit `406be96`). Options: (a) migrate
+      widget tests to `integration_test` which uses a real
+      device/emulator, (b) debug the harness hang directly.
 - [ ] **Coverage thresholds in CI** — vitest's `test:coverage` already
       exists; pick a baseline after 2–3 stable runs, enforce in CI to
       prevent regression.
@@ -96,6 +89,18 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 ---
 
 ## Done — recent (trim quarterly)
+
+### 2026-04-24 — Cross-family setup (Session 2)
+
+- [x] [CONVENTIONS.md](CONVENTIONS.md) at root — documents patterns
+      every ODS family should copy (monorepo layout, `publish.sh`,
+      TODO/REGRESSION_LOG format, ADR convention, CI pattern,
+      CLAUDE.md) and what stays per-family. Calls the duplicate-
+      don't-extract decision explicitly.
+- [x] `One-does-simply/.github` repo created with
+      `profile/README.md`. Visitors landing on
+      [github.com/One-does-simply](https://github.com/One-does-simply)
+      now see an ODS family overview with active/planned siblings.
 
 ### 2026-04-24 — Public polish pass (Session 1)
 
