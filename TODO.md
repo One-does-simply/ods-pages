@@ -90,6 +90,20 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 
 ## Done — recent (trim quarterly)
 
+### 2026-04-24 — Org-level landing page
+
+- [x] Created `One-does-simply/one-does-simply.github.io` repo with a
+      standalone `index.html` — now live at
+      <https://one-does-simply.github.io/>. Inherits the indigo/purple
+      brand palette from
+      [Specification/index.html](Specification/index.html); lists
+      active (`ods-pages`) + planned (`ods-chat`, `ods-workflow`,
+      `ods-game`) families.
+- [x] Updated the org's public URL (`blog` field in the API) to the
+      new landing page. Old stale URL
+      (`one-does-simply.github.io/Specification/`) is now fully dead
+      everywhere: org URL, repo homepages, runtime code.
+
 ### 2026-04-24 — Pages migration
 
 - [x] Enabled GitHub Pages on `ods-pages` (main branch, `/` root);
