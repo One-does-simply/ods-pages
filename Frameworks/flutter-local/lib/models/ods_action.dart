@@ -170,25 +170,17 @@ class OdsAction {
 
   /// Parses the cascade map from JSON.
   ///
-  /// Accepts the React-style shape `{childDsId: fieldName, ...}`. Detects the
-  /// legacy flat-key form `{childDataSource, childLinkField, parentField}`
-  /// and auto-converts it to the new shape, emitting a warning.
+  /// Canonical shape is the **flat-key** form used by React and the bundled
+  /// templates: `{childDataSource, childLinkField, parentField}`. All values
+  /// are stringified and preserved as-is. Runtime (`AppEngine.executeActions`)
+  /// reads flat keys directly when present.
+  ///
+  /// The nested shorthand `{childDsId: fieldName, ...}` is still accepted as
+  /// a legacy form — it's less expressive (no `parentField`), so runtime
+  /// falls back to inferring `parentField` from `action.matchField`, which
+  /// only works when the matchField IS the field being renamed.
   static Map<String, String>? _parseCascade(Map<String, dynamic>? raw) {
     if (raw == null) return null;
-    final flat = raw.containsKey('childDataSource') &&
-        raw.containsKey('childLinkField');
-    if (flat) {
-      // ignore: avoid_print
-      print('[WARN] OdsAction: cascade is using legacy flat-key form '
-          '(childDataSource/childLinkField/parentField). Convert to the '
-          'React-aligned nested form {childDsId: fieldName}.');
-      final childDs = raw['childDataSource']?.toString();
-      final childField = raw['childLinkField']?.toString();
-      if (childDs != null && childField != null) {
-        return {childDs: childField};
-      }
-      return null;
-    }
     return raw.map((k, v) => MapEntry(k, v.toString()));
   }
 

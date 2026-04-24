@@ -75,6 +75,7 @@ OdsSpec ownershipPerUserSpec() => loadSpec('ownershipPerUser');
 OdsSpec tabsInitialStateSpec() => loadSpec('tabsInitialState');
 OdsSpec chartConfigSpec() => loadSpec('chartConfig');
 OdsSpec kanbanDragSpec() => loadSpec('kanbanDrag');
+OdsSpec cascadeRenameSpec() => loadSpec('cascadeRename');
 
 // ---------------------------------------------------------------------------
 // Scenarios (mirrors of the TS versions; keep ids + names aligned)
@@ -550,6 +551,36 @@ final s19KanbanDragUpdatesStatus = Scenario(
   },
 );
 
+final s20CascadeRenamePropagatesToChildren = Scenario(
+  name: 'cascade update renames matching children after renaming the parent',
+  spec: cascadeRenameSpec,
+  capabilities: const ['core', 'action:update', 'cascadeRename'],
+  run: (d) async {
+    final cats0 = await d.dataRows('categories');
+    final tasks0 = await d.dataRows('tasks');
+    assertEqual(cats0.length, 2, 'two categories seeded');
+    assertEqual(tasks0.length, 3, 'three tasks seeded');
+    final workCount0 = tasks0.where((t) => t['category'] == 'Work').length;
+    assertEqual(workCount0, 2, 'two tasks start with category=Work');
+
+    await d.clickButton('Rename Work to Projects');
+
+    final cats1 = await d.dataRows('categories');
+    final names = cats1.map((c) => c['name'].toString()).toList()..sort();
+    assertEqual(names.toString(), ['Home', 'Projects'].toString(),
+        'parent rename: Work -> Projects, Home untouched');
+
+    final tasks1 = await d.dataRows('tasks');
+    final projectsCount =
+        tasks1.where((t) => t['category'] == 'Projects').length;
+    final homeCount = tasks1.where((t) => t['category'] == 'Home').length;
+    final workCount1 = tasks1.where((t) => t['category'] == 'Work').length;
+    assertEqual(projectsCount, 2, 'both Work tasks cascaded to Projects');
+    assertEqual(homeCount, 1, 'Home task untouched by cascade');
+    assertEqual(workCount1, 0, 'no tasks still pointing at old Work name');
+  },
+);
+
 /// Full list of scenarios the runner executes.
 final List<Scenario> allScenarios = [
   s01SpecLoads,
@@ -571,4 +602,5 @@ final List<Scenario> allScenarios = [
   s17TabsSnapshotExposesLabelsAndFirstActive,
   s18ChartSnapshotPreservesConfig,
   s19KanbanDragUpdatesStatus,
+  s20CascadeRenamePropagatesToChildren,
 ];

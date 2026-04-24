@@ -460,28 +460,59 @@ class AppEngine extends ChangeNotifier {
         }
       }
 
-      // Handle cascade rename: update linked children when a parent field changes.
-      // New map shape (React-aligned): cascade = {childDsId: fieldName, ...}
+      // Handle cascade rename: update linked children when a parent field
+      // changes. Canonical (flat-key) shape:
+      //   cascade = {childDataSource, childLinkField, parentField}
+      // Legacy (nested) shape accepted as fallback:
+      //   cascade = {childDsId: fieldName, ...}
       if (result.cascade != null && result.cascade!.isNotEmpty) {
-        final parentField = result.cascadeMatchField;
+        final cascade = result.cascade!;
+        final isFlatKey = cascade.containsKey('childDataSource') &&
+            cascade.containsKey('childLinkField');
+
+        // Derive (parentField, [childPairs]). Flat-key path takes
+        // parentField from the cascade map itself — critical for specs
+        // where matchField differs from the renamed field. Legacy nested
+        // form falls back to cascadeMatchField (deduced from withData by
+        // ActionHandler).
+        final String? parentField;
+        final List<({String dsId, String field})> childPairs;
+        if (isFlatKey) {
+          parentField =
+              cascade['parentField'] ?? result.cascadeMatchField;
+          final childDs = cascade['childDataSource'];
+          final childField = cascade['childLinkField'];
+          childPairs = (childDs != null && childField != null)
+              ? [(dsId: childDs, field: childField)]
+              : const [];
+        } else {
+          parentField = result.cascadeMatchField;
+          childPairs = [
+            for (final entry in cascade.entries)
+              (dsId: entry.key, field: entry.value),
+          ];
+        }
+
         final oldValue = result.cascadeOldValue;
-        // The new value is what the update wrote — read it from either the
-        // action's withData (direct update path) or the form state (form path).
+        // newValue: from action.withData (direct update path) or form state.
         String? newValue;
-        if (action.withData != null && parentField != null &&
+        if (parentField != null &&
+            action.withData != null &&
             action.withData!.containsKey(parentField)) {
           newValue = action.withData![parentField]?.toString();
         }
-        newValue ??= formSnapshot[action.target]?[parentField];
+        if (newValue == null && parentField != null) {
+          newValue = formSnapshot[action.target]?[parentField];
+        }
 
-        if (parentField != null && oldValue != null && newValue != null &&
+        if (parentField != null &&
+            oldValue != null &&
+            newValue != null &&
             oldValue != newValue) {
-          for (final entry in result.cascade!.entries) {
-            final childDsId = entry.key;
-            final childField = entry.value;
+          for (final pair in childPairs) {
             await _cascadeChildOnly(
-              childDataSourceId: childDsId,
-              childLinkField: childField,
+              childDataSourceId: pair.dsId,
+              childLinkField: pair.field,
               oldValue: oldValue,
               newValue: newValue,
             );

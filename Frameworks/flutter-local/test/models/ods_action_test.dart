@@ -75,10 +75,11 @@ void main() {
       expect(a.onEnd!.target, 'resultsPage');
     });
 
-    test('action with filter and cascade maps (legacy flat-key converted)',
+    test('action with filter and flat-key cascade map (canonical form)',
         () {
-      // Legacy flat-key cascade form is converted to the React-aligned
-      // nested form {childDsId: fieldName} for forward compatibility.
+      // Flat-key cascade is the canonical form (matches the React runtime
+      // and the bundled templates). The parser preserves it as-is —
+      // runtime reads childDataSource/childLinkField/parentField directly.
       final a = OdsAction.fromJson({
         'action': 'firstRecord',
         'target': 'quizForm',
@@ -86,13 +87,18 @@ void main() {
         'cascade': {
           'childDataSource': 'childItems',
           'childLinkField': 'parentName',
+          'parentField': 'name',
         },
       });
       expect(a.filter, {'listId': '{selectedList}'});
-      expect(a.cascade, {'childItems': 'parentName'});
+      expect(a.cascade, {
+        'childDataSource': 'childItems',
+        'childLinkField': 'parentName',
+        'parentField': 'name',
+      });
     });
 
-    test('action with React-style nested cascade map', () {
+    test('action with legacy nested cascade map (still accepted)', () {
       final a = OdsAction.fromJson({
         'action': 'update',
         'target': 'c1',

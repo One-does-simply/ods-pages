@@ -72,6 +72,7 @@ const ownershipPerUserSpec = (): OdsSpec => loadSpec('ownershipPerUser')
 const tabsInitialStateSpec = (): OdsSpec => loadSpec('tabsInitialState')
 const chartConfigSpec = (): OdsSpec => loadSpec('chartConfig')
 const kanbanDragSpec = (): OdsSpec => loadSpec('kanbanDrag')
+const cascadeRenameSpec = (): OdsSpec => loadSpec('cascadeRename')
 
 // ---------------------------------------------------------------------------
 // Scenarios
@@ -581,6 +582,41 @@ export const s19_kanban_drag_updates_status: Scenario = {
   },
 }
 
+export const s20_cascade_rename_propagates_to_children: Scenario = {
+  name: 'cascade update renames matching children after renaming the parent',
+  spec: cascadeRenameSpec,
+  capabilities: ['core', 'action:update', 'cascadeRename'],
+  run: async (d) => {
+    // Seed data is applied during spec load; verify the starting state.
+    const cats0 = await d.dataRows('categories')
+    const tasks0 = await d.dataRows('tasks')
+    assertEqual(cats0.length, 2, 'two categories seeded')
+    assertEqual(tasks0.length, 3, 'three tasks seeded')
+    const workCount0 = tasks0.filter((t) => t.category === 'Work').length
+    assertEqual(workCount0, 2, 'two tasks start with category=Work')
+
+    await d.clickButton('Rename Work to Projects')
+
+    // Parent: the Work category is now Projects; Home untouched.
+    const cats1 = await d.dataRows('categories')
+    const names = cats1.map((c) => c.name).sort()
+    assertEqual(
+      JSON.stringify(names),
+      JSON.stringify(['Home', 'Projects']),
+      'parent rename: Work -> Projects, Home untouched',
+    )
+
+    // Children: both Work tasks now point at Projects; Home task untouched.
+    const tasks1 = await d.dataRows('tasks')
+    const projectsCount = tasks1.filter((t) => t.category === 'Projects').length
+    const homeCount = tasks1.filter((t) => t.category === 'Home').length
+    const workCount1 = tasks1.filter((t) => t.category === 'Work').length
+    assertEqual(projectsCount, 2, 'both Work tasks cascaded to Projects')
+    assertEqual(homeCount, 1, 'Home task untouched by cascade')
+    assertEqual(workCount1, 0, 'no tasks still pointing at old Work name')
+  },
+}
+
 /** Full list of scenarios the runner should execute. */
 export const allScenarios: ReadonlyArray<Scenario> = [
   s01_spec_loads,
@@ -602,4 +638,5 @@ export const allScenarios: ReadonlyArray<Scenario> = [
   s17_tabs_snapshot_exposes_labels_and_first_active,
   s18_chart_snapshot_preserves_config,
   s19_kanban_drag_updates_status,
+  s20_cascade_rename_propagates_to_children,
 ]

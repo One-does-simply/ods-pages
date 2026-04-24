@@ -8,14 +8,13 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 
 ## Now — actively being worked on
 
-- [ ] **Path B — more coverage** — Both drivers at parity: **19
-      scenarios passing on React and Flutter** (s01-s19), specs shared
-      via [Frameworks/conformance/specs/](Frameworks/conformance/specs/).
-      Remaining capabilities untested in conformance: `detail`,
-      `cascadeRename` (blocked — see Next). Tab coverage is
-      initial-state only; add a `clickTab` method later to test
-      switching. Chart coverage is config-only (no aggregation
-      math verified).
+- [ ] **Path B — active coverage complete** — Both drivers at parity:
+      **20 scenarios passing on React and Flutter** (s01-s20), specs
+      shared via [Frameworks/conformance/specs/](Frameworks/conformance/specs/).
+      All capabilities either covered or deferred: `detail` (Later
+      — needs new driver primitive), `clickTab` / deeper chart
+      (Later — deepen existing). Day-to-day maintenance: when a new
+      cross-framework bug comes up, add a scenario that pins it.
 
 ## Next — next 1–2 sessions
 
@@ -37,22 +36,6 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
       React parallels: FakeDataService is schema-flexible so it
       didn't surface the bug; the real PocketBase-backed path might
       or might not (PB auto-extends collections — needs a check).
-- [ ] **Cascade-rename parity bug** (discovered 2026-04-24 while
-      drafting the would-be s15 cascade scenario). React's
-      [handleCascade](Frameworks/react-web/src/engine/app-store.ts)
-      reads flat keys `{childDataSource, childLinkField,
-      parentField}` from `result.cascade`. Flutter's
-      [AppEngine.executeActions](Frameworks/flutter-local/lib/engine/app_engine.dart)
-      treats the nested shorthand `{childDsId: fieldName, ...}` as
-      canonical and uses `result.cascadeMatchField` as the
-      parentField. Neither accepts the other's form — no single
-      spec satisfies both. The regression log (Bug #6) claims
-      "Flutter adopted React form" but the runtime code disagrees.
-      Also: the `simple-checklist.json` template uses the flat-key
-      form, so React templates would break on Flutter. Fix: pick
-      one canonical shape (recommend nested shorthand, add a
-      `parentField` in withData resolution), update both runtimes,
-      migrate templates, unskip a cascade conformance scenario.
 
 ## Docs — priority 3 (pre-public polish)
 
@@ -75,6 +58,39 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 
 ## Later — important, not urgent
 
+- [ ] **Conformance: `detail` scenario** — the only ODS component kind
+      still not pinned cross-framework.
+      [OdsDetailComponent](Frameworks/react-web/src/models/ods-component.ts)
+      renders fields from a specific row, typically populated via
+      `populateForm` on a rowAction that navigates. To test, the
+      driver needs a scenario flow: spec with (a) list + rowAction
+      that navigates to a detail page and populates the form from
+      the row, (b) detail component reading from that form/row, (c)
+      assertions that the detail fields match the source row. Likely
+      requires a new driver primitive (`clickRowActionWithPopulate`
+      or similar) OR surfacing the record cursor state through an
+      existing snapshot. Medium-high complexity; low-urgency because
+      detail views tend to be thin read-only adapters over form/list
+      primitives we already test.
+- [ ] **Conformance: deepen existing narrow scenarios** — a few
+      scenarios pin only initial state or config, not behavior:
+      - **s17 tabs**: only asserts initial active state; add a
+        `clickTab(label)` primitive + test that switching tabs
+        changes which is active, and that the snapshot only exposes
+        the active tab's content (if that's the actual contract).
+      - **s18 chart**: only asserts config propagation; no
+        aggregation math. Add a variant that seeds rows, snapshots
+        the chart's series values (would need `seriesCount` /
+        `seriesData` in the snapshot, not just a hardcoded 1).
+- [ ] **Conformance: scenario catalog parity check** — the scenario
+      *list* (ids, names, capabilities) is duplicated between
+      [scenarios.ts](Frameworks/conformance/src/scenarios.ts) and
+      [scenarios.dart](Frameworks/flutter-local/test/conformance/scenarios.dart).
+      Extract to `conformance/scenarios.json` (just the metadata;
+      run bodies stay per-language); add a meta-test on each side
+      that asserts "every scenario id in the catalog has a scenario
+      implementation." Prevents the two sides from silently drifting
+      in which scenarios they advertise.
 - [ ] **Widget-test unskip** — the Flutter widget suite is excluded
       from `publish.sh` and the GH CI workflow because it hangs on
       both Windows (flutter_tools temp-dir race, AV/FS interference)
@@ -120,6 +136,41 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 ---
 
 ## Done — recent (trim quarterly)
+
+### 2026-04-24 — Path B Session L (cascade parity fix + s20)
+
+- [x] **Fixed cascade-rename parity bug.** Flutter parser no
+      longer converts flat-key cascade to nested shorthand — it
+      preserves the canonical form as-is. Flutter runtime in
+      [AppEngine.executeActions](Frameworks/flutter-local/lib/engine/app_engine.dart)
+      now detects flat-key shape and reads `parentField` /
+      `childDataSource` / `childLinkField` directly (instead of
+      using `cascadeMatchField` as parentField, which broke when
+      matchField differed from the renamed field). Legacy nested
+      form kept as fallback.
+- [x] [ActionHandler](Frameworks/flutter-local/lib/engine/action_handler.dart)
+      updated to prefer `cascade.parentField` over its withData-key
+      deduction when computing `cascadeOldValue`.
+- [x] **s20**: cascade update renames matching children after
+      renaming the parent. Uses matchField='id' + withData={name:
+      'Projects'} + cascade with explicit parentField='name' — the
+      pattern that failed before the fix. Passes on both drivers.
+- [x] Updated the legacy-flat-key model test to match the new
+      canonical preservation behavior.
+- [x] `cascadeRename` capability declared on FlutterDriver; React
+      already had it. Conformance total: 19 → 20 scenarios. React
+      1145 → 1146; Flutter 808 → 809. Test-count bump also
+      reflects the batch-2 integration tests which now compile/run
+      against the updated cascade runtime.
+
+### 2026-04-24 — Later list rearrangement (document deferred coverage)
+
+- [x] Moved remaining untested conformance capabilities to the
+      Later list with full fix direction: `detail` scenario,
+      deepening `tabs` (clickTab primitive) and `chart` (series
+      math) from initial-state to behavior, scenario-catalog
+      parity check. Each kept as a standalone Later item so the
+      Now/Next lists stay focused.
 
 ### 2026-04-24 — Path B Session K (s18 chart config + s19 kanban drag)
 

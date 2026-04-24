@@ -39,6 +39,7 @@ class FlutterDriver implements OdsDriver {
     'tabs',
     'chart',
     'kanban',
+    'cascadeRename',
     'auth:multiUser',
     'auth:selfRegistration',
     'auth:ownership',

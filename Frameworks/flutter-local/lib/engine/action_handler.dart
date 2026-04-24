@@ -152,15 +152,18 @@ class ActionHandler {
       safeData.remove('_createdAt');
 
       // For cascade: read the current (old) value of the parent field BEFORE
-      // applying the update. The parent field is the sole key of withData
-      // (after stripping match/framework keys). If there are multiple keys,
-      // fall back to the matchField.
+      // applying the update. Priority for resolving parentField:
+      //   1. explicit `cascade.parentField` (flat-key canonical form)
+      //   2. the sole key of withData after stripping match/framework keys
+      //   3. fallback to the matchField (legacy nested-shorthand form
+      //      where matchField IS the renamed field)
       String? cascadeParentField;
       String? cascadeOldValue;
       if (action.cascade != null && action.cascade!.isNotEmpty) {
-        cascadeParentField = safeData.length == 1
-            ? safeData.keys.first
-            : action.matchField;
+        cascadeParentField = action.cascade!['parentField'] ??
+            (safeData.length == 1
+                ? safeData.keys.first
+                : action.matchField);
         if (cascadeParentField != null) {
           try {
             final existingRows = await dataStore.queryWithFilter(
