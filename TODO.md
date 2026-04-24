@@ -8,18 +8,18 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 
 ## Now — actively being worked on
 
-- [ ] **Path B — FlutterDriver extensions + more scenarios** —
-      ReactDriver is feature-complete (11 scenarios, all capabilities).
-      **Session C landed 2026-04-24**: FlutterDriver MVP exists at
-      [Frameworks/flutter-local/test/conformance/](Frameworks/flutter-local/test/conformance/)
-      — mirrors the Dart contract, passes s01-s05 against the real
-      `AppEngine` + SQLite. Catches its first parity bug in the
-      process: Dart `OdsAction` was missing `level`; now added.
-      Remaining work: (a) bring FlutterDriver up to ReactDriver's
-      feature set (s06-s11 equivalents: clickRowAction, visibleWhen,
-      setClock, login/registerUser via a Dart fake), (b) port more
-      Batch 1–6 scenarios, (c) extract a shared scenario source so
-      we're not maintaining two copies long-term.
+- [ ] **Path B — shared scenarios + more coverage** — Both drivers
+      now at parity: **11 scenarios passing on both React and
+      Flutter**. ReactDriver at
+      [Frameworks/react-web/tests/conformance/react-driver.ts](Frameworks/react-web/tests/conformance/react-driver.ts);
+      FlutterDriver at
+      [Frameworks/flutter-local/test/conformance/flutter_driver.dart](Frameworks/flutter-local/test/conformance/flutter_driver.dart).
+      Remaining work: (a) extract shared scenarios — currently
+      duplicated in TS + Dart; biggest long-term leverage since
+      every new scenario must be ported twice, (b) port more
+      Batch 1–6 scenarios for broader coverage, (c) iterate as new
+      capabilities (kanban, chart, tabs, detail, formulas,
+      cascadeRename, auth:ownership) get their first scenarios.
 
 ## Next — next 1–2 sessions
 
@@ -91,6 +91,21 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 ---
 
 ## Done — recent (trim quarterly)
+
+### 2026-04-24 — Path B Session D (FlutterDriver full parity)
+
+- [x] FlutterDriver ported s06-s11 to full parity with ReactDriver.
+      `clickRowAction` (delete), full `visibleWhen` evaluation (field
+      + data), `setClock` via a driver-local `_fakeNow` that
+      `formValues` lazily consults for `CURRENTDATE`/`NOW` defaults,
+      and `login` / `registerUser` / `currentUser` / `logout` wired
+      through the real `AuthService` + SQLite `_ods_users` table.
+- [x] Driver's `_boot` now only sets `skipAppAuth=true` for
+      single-user specs, so multi-user scenarios get proper
+      `AuthService.initialize()` — creating `_ods_users` +
+      `_ods_user_roles` tables.
+- [x] Conformance total: **11 scenarios × 2 drivers = 22 parity
+      tests green.** Flutter suite 794 → 800.
 
 ### 2026-04-24 — Path B Session C (FlutterDriver MVP + parity bug caught)
 

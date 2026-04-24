@@ -107,6 +107,191 @@ OdsSpec miniTodoSpec() => {
       },
     };
 
+OdsSpec miniTodoWithDeleteSpec() => {
+      'appName': 'Mini Todo Delete',
+      'startPage': 'home',
+      'pages': {
+        'home': {
+          'component': 'page',
+          'title': 'Home',
+          'content': [
+            {
+              'component': 'form',
+              'id': 'addForm',
+              'dataSource': 'tasks',
+              'fields': [
+                {'name': 'title', 'type': 'text', 'label': 'Title', 'required': true},
+              ],
+            },
+            {
+              'component': 'button',
+              'label': 'Save',
+              'onClick': [
+                {'action': 'submit', 'dataSource': 'tasks', 'target': 'addForm'},
+              ],
+            },
+            {
+              'component': 'list',
+              'dataSource': 'tasks',
+              'columns': [
+                {'field': 'title', 'header': 'Title'},
+              ],
+              'rowActions': [
+                {
+                  'label': 'Delete',
+                  'action': 'delete',
+                  'dataSource': 'tasks',
+                  'matchField': '_id',
+                },
+              ],
+            },
+          ],
+        },
+      },
+      'dataSources': {
+        'tasks': {
+          'url': 'local://tasks',
+          'method': 'POST',
+          'fields': [
+            {'name': 'title', 'type': 'text'},
+          ],
+        },
+      },
+    };
+
+OdsSpec visibleWhenFieldSpec() => {
+      'appName': 'VisibleWhen Field',
+      'startPage': 'home',
+      'pages': {
+        'home': {
+          'component': 'page',
+          'title': 'Home',
+          'content': [
+            {
+              'component': 'form',
+              'id': 'gateForm',
+              'fields': [
+                {
+                  'name': 'mode',
+                  'type': 'select',
+                  'label': 'Mode',
+                  'options': ['basic', 'advanced'],
+                },
+              ],
+            },
+            {
+              'component': 'text',
+              'content': 'Advanced-only details',
+              'visibleWhen': {
+                'form': 'gateForm',
+                'field': 'mode',
+                'equals': 'advanced',
+              },
+            },
+          ],
+        },
+      },
+      'dataSources': <String, Object?>{},
+    };
+
+OdsSpec visibleWhenDataSpec() => {
+      'appName': 'VisibleWhen Data',
+      'startPage': 'home',
+      'pages': {
+        'home': {
+          'component': 'page',
+          'title': 'Home',
+          'content': [
+            {
+              'component': 'form',
+              'id': 'addForm',
+              'dataSource': 'items',
+              'fields': [
+                {'name': 'title', 'type': 'text', 'label': 'Title', 'required': true},
+              ],
+            },
+            {
+              'component': 'button',
+              'label': 'Save',
+              'onClick': [
+                {'action': 'submit', 'dataSource': 'items', 'target': 'addForm'},
+              ],
+            },
+            {
+              'component': 'text',
+              'content': 'No items yet — add one above.',
+              'visibleWhen': {'source': 'items', 'countEquals': 0},
+            },
+            {
+              'component': 'list',
+              'dataSource': 'items',
+              'columns': [
+                {'field': 'title', 'header': 'Title'},
+              ],
+              'visibleWhen': {'source': 'items', 'countMin': 1},
+            },
+          ],
+        },
+      },
+      'dataSources': {
+        'items': {
+          'url': 'local://items',
+          'method': 'POST',
+          'fields': [
+            {'name': 'title', 'type': 'text'},
+          ],
+        },
+      },
+    };
+
+OdsSpec currentDateDefaultSpec() => {
+      'appName': 'CURRENTDATE default',
+      'startPage': 'home',
+      'pages': {
+        'home': {
+          'component': 'page',
+          'title': 'Home',
+          'content': [
+            {
+              'component': 'form',
+              'id': 'editForm',
+              'fields': [
+                {'name': 'title', 'type': 'text', 'label': 'Title'},
+                {
+                  'name': 'createdAt',
+                  'type': 'date',
+                  'label': 'Created',
+                  'default': 'CURRENTDATE',
+                },
+              ],
+            },
+          ],
+        },
+      },
+      'dataSources': <String, Object?>{},
+    };
+
+OdsSpec multiUserAppSpec() => {
+      'appName': 'Multi User',
+      'startPage': 'home',
+      'auth': {
+        'multiUser': true,
+        'selfRegistration': true,
+        'defaultRole': 'user',
+        'roles': <String>[],
+      },
+      'pages': {
+        'home': {
+          'component': 'page',
+          'title': 'Home',
+          'content': [
+            {'component': 'text', 'content': 'You are logged in.'},
+          ],
+        },
+      },
+      'dataSources': <String, Object?>{},
+    };
+
 OdsSpec twoPageSpec() => {
       'appName': 'Two Page',
       'startPage': 'home',
@@ -218,6 +403,156 @@ final s05NavigateActionSwitchesPage = Scenario(
   },
 );
 
+final s06RowActionDeleteRemovesRow = Scenario(
+  name: 'rowAction delete removes the matching row from the data source',
+  spec: miniTodoWithDeleteSpec,
+  capabilities: const ['core', 'action:submit', 'action:delete', 'rowActions'],
+  run: (d) async {
+    await d.fillField('title', 'Keep me');
+    await d.clickButton('Save');
+    await d.fillField('title', 'Delete me');
+    await d.clickButton('Save');
+
+    final before = await d.dataRows('tasks');
+    assertEqual(before.length, 2, 'two rows before delete');
+
+    final target = before.firstWhere(
+      (r) => r['title'] == 'Delete me',
+      orElse: () => throw StateError('expected "Delete me" row to exist'),
+    );
+    await d.clickRowAction('tasks', target['_id'].toString(), 'Delete');
+
+    final after = await d.dataRows('tasks');
+    assertEqual(after.length, 1, 'one row after delete');
+    assertEqual(after[0]['title'], 'Keep me', 'surviving row is the one we kept');
+  },
+);
+
+final s07VisibleWhenFieldCondition = Scenario(
+  name: 'visibleWhen field-based condition hides/shows components with form state',
+  spec: visibleWhenFieldSpec,
+  capabilities: const ['core'],
+  run: (d) async {
+    final before = await d.pageContent();
+    final textBefore = before.whereType<TextSnapshot>().first;
+    assertEqual(textBefore.visible, false,
+        'advanced text hidden before mode is set');
+
+    await d.fillField('mode', 'advanced');
+
+    final after = await d.pageContent();
+    final textAfter = after.whereType<TextSnapshot>().first;
+    assertEqual(textAfter.visible, true,
+        'advanced text visible after mode=advanced');
+
+    await d.fillField('mode', 'basic');
+    final later = await d.pageContent();
+    final textLater = later.whereType<TextSnapshot>().first;
+    assertEqual(textLater.visible, false,
+        'advanced text hidden again after mode=basic');
+  },
+);
+
+final s08VisibleWhenDataCount = Scenario(
+  name: 'visibleWhen data-source count condition tracks row additions',
+  spec: visibleWhenDataSpec,
+  capabilities: const ['core', 'action:submit'],
+  run: (d) async {
+    final before = await d.pageContent();
+    final emptyText = before.whereType<TextSnapshot>().first;
+    final list = before.whereType<ListSnapshot>().first;
+    assertEqual(emptyText.visible, true, 'empty-state text visible at 0 rows');
+    assertEqual(list.visible, false, 'list hidden at 0 rows');
+
+    await d.fillField('title', 'First item');
+    await d.clickButton('Save');
+
+    final after = await d.pageContent();
+    final emptyTextAfter = after.whereType<TextSnapshot>().first;
+    final listAfter = after.whereType<ListSnapshot>().first;
+    assertEqual(emptyTextAfter.visible, false,
+        'empty-state text hidden after 1 row');
+    assertEqual(listAfter.visible, true, 'list visible after 1 row');
+  },
+);
+
+final s09CurrentDateDefaultHonorsClock = Scenario(
+  name: 'CURRENTDATE default value resolves using the driver clock',
+  spec: currentDateDefaultSpec,
+  capabilities: const ['core'],
+  run: (d) async {
+    // Harness already set the clock to 2026-01-01T00:00:00Z before run.
+    final initial = await d.formValues('editForm');
+    assertEqual(initial['createdAt'], '2026-01-01',
+        'CURRENTDATE resolved using the clock set by the harness');
+
+    await d.setClock('2026-06-15T12:00:00Z');
+    final later = await d.formValues('editForm');
+    assertEqual(later['createdAt'], '2026-06-15',
+        'CURRENTDATE reflects the updated clock on the next formValues call');
+
+    await d.fillField('createdAt', '2020-12-25');
+    final overridden = await d.formValues('editForm');
+    assertEqual(overridden['createdAt'], '2020-12-25',
+        'explicit fillField overrides the magic default');
+  },
+);
+
+final s10RegisterThenLoginFlow = Scenario(
+  name: 'registerUser creates an account; subsequent login authenticates that user',
+  spec: multiUserAppSpec,
+  capabilities: const ['core', 'auth:multiUser', 'auth:selfRegistration'],
+  run: (d) async {
+    final beforeAny = await d.currentUser();
+    assertEqual(beforeAny, null, 'no user before registration');
+
+    final newId = await d.registerUser(
+      email: 'alice@example.com',
+      password: 'secret-password',
+      displayName: 'Alice',
+    );
+    assertTrue(newId != null, 'registerUser should return a non-null id');
+
+    final afterRegister = await d.currentUser();
+    assertEqual(afterRegister, null, 'registerUser does not auto-login');
+
+    final ok = await d.login('alice@example.com', 'secret-password');
+    assertEqual(ok, true, 'login with correct credentials succeeds');
+
+    final loggedIn = await d.currentUser();
+    assertTrue(loggedIn != null, 'currentUser non-null after login');
+    assertEqual(loggedIn!.email, 'alice@example.com', 'currentUser email');
+    assertEqual(loggedIn.displayName, 'Alice', 'currentUser displayName');
+    assertTrue(loggedIn.roles.contains('user'),
+        'currentUser roles include default "user" (got ${loggedIn.roles})');
+
+    await d.logout();
+    final afterLogout = await d.currentUser();
+    assertEqual(afterLogout, null, 'currentUser null after logout');
+  },
+);
+
+final s11LoginWithWrongPasswordFails = Scenario(
+  name: 'login with wrong password returns false and leaves session unchanged',
+  spec: multiUserAppSpec,
+  capabilities: const ['core', 'auth:multiUser', 'auth:selfRegistration'],
+  run: (d) async {
+    await d.registerUser(
+      email: 'bob@example.com',
+      password: 'correct-password',
+    );
+
+    final bad = await d.login('bob@example.com', 'wrong-password');
+    assertEqual(bad, false, 'login with wrong password should return false');
+
+    final user = await d.currentUser();
+    assertEqual(user, null, 'no session after failed login');
+
+    final good = await d.login('bob@example.com', 'correct-password');
+    assertEqual(good, true, 'subsequent login with correct password succeeds');
+  },
+);
+
 /// Full list of scenarios the runner executes.
 final List<Scenario> allScenarios = [
   s01SpecLoads,
@@ -225,4 +560,10 @@ final List<Scenario> allScenarios = [
   s03ShowMessageAfterSubmit,
   s04ListReflectsSubmittedRows,
   s05NavigateActionSwitchesPage,
+  s06RowActionDeleteRemovesRow,
+  s07VisibleWhenFieldCondition,
+  s08VisibleWhenDataCount,
+  s09CurrentDateDefaultHonorsClock,
+  s10RegisterThenLoginFlow,
+  s11LoginWithWrongPasswordFails,
 ];

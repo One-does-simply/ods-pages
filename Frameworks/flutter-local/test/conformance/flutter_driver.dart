@@ -29,11 +29,18 @@ class FlutterDriver implements OdsDriver {
     'action:submit',
     'action:showMessage',
     'action:navigate',
+    'action:delete',
+    'rowActions',
+    'auth:multiUser',
+    'auth:selfRegistration',
   };
 
   AppEngine? _engine;
   Directory? _tempDir;
   String? _specJson;
+  /// Fixed "now" for magic default resolution (set by setClock). Null means
+  /// "use wall-clock time." Lazily consulted by formValues.
+  DateTime? _fakeNow;
 
   // -- Lifecycle -------------------------------------------------------------
 
@@ -48,6 +55,7 @@ class FlutterDriver implements OdsDriver {
     _engine?.dispose();
     _engine = null;
     _specJson = null;
+    _fakeNow = null;
     await _cleanupTempDir();
   }
 
@@ -69,9 +77,13 @@ class FlutterDriver implements OdsDriver {
     _tempDir = await Directory.systemTemp.createTemp('ods_conformance_');
     final engine = AppEngine();
     engine.storageFolder = _tempDir!.path;
-    // Skip app-level auth gating for conformance so scenarios that don't
-    // declare auth don't hit the admin-setup / login walls.
-    engine.skipAppAuth = true;
+    // Only skip app-level auth when the spec is single-user — for
+    // multi-user specs we want AuthService.initialize() to run so the
+    // users table exists and register/login scenarios work end-to-end.
+    final specMap = jsonDecode(specJson) as Map<String, Object?>;
+    final authMap = specMap['auth'] as Map<String, Object?>?;
+    final isMultiUser = (authMap?['multiUser'] as bool?) ?? false;
+    engine.skipAppAuth = !isMultiUser;
     final ok = await engine.loadSpec(specJson);
     if (!ok) {
       throw StateError(
@@ -143,9 +155,62 @@ class FlutterDriver implements OdsDriver {
     String rowId,
     String actionLabel,
   ) async {
-    throw UnimplementedError(
-      'clickRowAction: not yet implemented in the Flutter MVP driver',
+    final engine = _requireEngine();
+    final app = engine.app;
+    if (app == null) throw StateError('clickRowAction: no app loaded');
+    final ds = app.dataSources[dataSource];
+    if (ds == null) {
+      throw StateError('clickRowAction: unknown data source "$dataSource"');
+    }
+
+    // Locate the list component on the current page bound to this data
+    // source; row actions live on the list spec.
+    final page = _requireCurrentPage(engine) as dynamic;
+    final list = (page.content as List<OdsComponent>)
+        .whereType<OdsListComponent>()
+        .firstWhere(
+          (l) => l.dataSource == dataSource,
+          orElse: () => throw StateError(
+            'clickRowAction: no list bound to "$dataSource" on current page',
+          ),
+        );
+
+    final rowAction = list.rowActions.firstWhere(
+      (a) => a.label == actionLabel,
+      orElse: () => throw StateError(
+        'clickRowAction: no row action with label="$actionLabel" on list "$dataSource"',
+      ),
     );
+
+    // Resolve the match value. Contract's rowId is the canonical _id;
+    // for non-_id matchField, fetch the row first.
+    final matchField = rowAction.matchField.isEmpty ? '_id' : rowAction.matchField;
+    var matchValue = rowId;
+    if (matchField != '_id') {
+      final rows = await engine.dataStore.query(ds.tableName);
+      final row = rows.firstWhere(
+        (r) => r['_id']?.toString() == rowId,
+        orElse: () => throw StateError(
+          'clickRowAction: no row with _id="$rowId" in "$dataSource"',
+        ),
+      );
+      matchValue = (row[matchField] ?? '').toString();
+    }
+
+    switch (rowAction.action) {
+      case 'delete':
+        await engine.executeDeleteRowAction(
+          dataSourceId: rowAction.dataSource.isEmpty ? dataSource : rowAction.dataSource,
+          matchField: matchField,
+          matchValue: matchValue,
+        );
+        return;
+      default:
+        throw UnimplementedError(
+          'clickRowAction: action "${rowAction.action}" not yet supported '
+          '(only "delete" implemented in MVP)',
+        );
+    }
   }
 
   @override
@@ -210,7 +275,56 @@ class FlutterDriver implements OdsDriver {
   Future<Map<String, FieldValue>> formValues(String formId) async {
     final engine = _requireEngine();
     final state = engine.getFormState(formId);
-    return Map<String, FieldValue>.from(state);
+    final result = <String, FieldValue>{...state};
+
+    // Lazily resolve magic defaults (CURRENTDATE / NOW) for fields the
+    // user hasn't set. Reads "now" from _fakeNow if setClock has been
+    // called, so setClock mid-scenario takes effect on the next
+    // formValues call.
+    final form = _findFormOnCurrentPage(formId);
+    if (form != null) {
+      for (final field in form.fields) {
+        if (result.containsKey(field.name)) continue;
+        final dv = field.defaultValue;
+        if (dv == null || dv.isEmpty) continue;
+        final resolved = _resolveMagicDefault(dv, field.type);
+        if (resolved != null) result[field.name] = resolved;
+      }
+    }
+
+    return result;
+  }
+
+  OdsFormComponent? _findFormOnCurrentPage(String formId) {
+    final engine = _engine;
+    if (engine == null) return null;
+    final app = engine.app;
+    if (app == null) return null;
+    final pageId = engine.currentPageId ?? app.startPage;
+    final page = app.pages[pageId];
+    if (page == null) return null;
+    for (final c in page.content) {
+      if (c is OdsFormComponent && c.id == formId) return c;
+    }
+    return null;
+  }
+
+  /// Subset mirror of FormComponent's resolveMagicDefault: just CURRENTDATE
+  /// / NOW on date + datetime fields. Other magic values (CURRENT_USER.*,
+  /// +7d, etc.) are out of scope for MVP conformance.
+  String? _resolveMagicDefault(String defaultValue, String fieldType) {
+    final upper = defaultValue.toUpperCase();
+    if (upper == 'NOW' || upper == 'CURRENTDATE') {
+      final now = _fakeNow ?? DateTime.now();
+      final utc = now.toUtc();
+      if (fieldType == 'datetime') {
+        // YYYY-MM-DDThh:mm
+        return utc.toIso8601String().substring(0, 16);
+      }
+      // YYYY-MM-DD
+      return utc.toIso8601String().substring(0, 10);
+    }
+    return null;
   }
 
   @override
@@ -254,13 +368,15 @@ class FlutterDriver implements OdsDriver {
 
   @override
   Future<bool> login(String email, String password) async {
-    throw UnimplementedError('login: not yet implemented (MVP driver)');
+    final engine = _requireEngine();
+    final result = await engine.authService.login(email, password);
+    return result.success;
   }
 
   @override
   Future<void> logout() async {
-    // No-op in the MVP — scenarios that need it declare auth capabilities,
-    // which we don't advertise yet.
+    final engine = _engine;
+    engine?.authService.logout();
   }
 
   @override
@@ -270,21 +386,40 @@ class FlutterDriver implements OdsDriver {
     String? displayName,
     String? role,
   }) async {
-    throw UnimplementedError('registerUser: not yet implemented (MVP driver)');
+    final engine = _requireEngine();
+    final app = engine.app;
+    final defaultRole = role ?? app?.auth.defaultRole ?? 'user';
+    return engine.authService.registerUser(
+      email: email,
+      password: password,
+      role: defaultRole,
+      displayName: displayName,
+    );
   }
 
   @override
   Future<UserSnapshot?> currentUser() async {
-    // MVP treats everything as guest until auth scenarios land.
-    return null;
+    final engine = _engine;
+    if (engine == null) return null;
+    final auth = engine.authService;
+    if (!auth.isLoggedIn) return null;
+    return UserSnapshot(
+      id: auth.currentUserId ?? '',
+      email: auth.currentEmail,
+      displayName: auth.currentDisplayName,
+      roles: List<String>.from(auth.currentRoles),
+    );
   }
 
   // -- Determinism -----------------------------------------------------------
 
   @override
   Future<void> setClock(String isoTimestamp) async {
-    // Not implemented for MVP — Dart time-freezing is scenario-dependent.
-    // Follow-up work.
+    // We don't globally mock DateTime.now(); instead, `formValues` consults
+    // `_fakeNow` when resolving magic defaults. That covers the current
+    // conformance scope (CURRENTDATE / NOW on form fields) without touching
+    // production code paths that read wall-clock time.
+    _fakeNow = DateTime.parse(isoTimestamp);
   }
 
   @override
@@ -323,14 +458,41 @@ class FlutterDriver implements OdsDriver {
     return forms.first;
   }
 
+  /// Evaluate a component's visibleWhen against live state. Mirrors the
+  /// TS driver's logic: field-based conditions consult form state;
+  /// data-based conditions consult the data store row count.
+  Future<bool> _evaluateVisible(OdsComponent c, AppEngine engine) async {
+    final condition = c.visibleWhen;
+    if (condition == null) return true;
+
+    if (condition.isFieldBased) {
+      final state = engine.getFormState(condition.form!);
+      final value = state[condition.field!] ?? '';
+      if (condition.equals != null) return value == condition.equals;
+      if (condition.notEquals != null) return value != condition.notEquals;
+      return true;
+    }
+
+    if (condition.isDataBased) {
+      final ds = engine.app?.dataSources[condition.source!];
+      if (ds == null) return true;
+      final rows = await engine.dataStore.query(ds.tableName);
+      final count = rows.length;
+      if (condition.countEquals != null) return count == condition.countEquals;
+      if (condition.countMin != null && count < condition.countMin!) return false;
+      if (condition.countMax != null && count > condition.countMax!) return false;
+      return true;
+    }
+
+    return true;
+  }
+
   Future<ComponentSnapshot?> _snapshot(
     OdsComponent c,
     OdsApp app,
     AppEngine engine,
   ) async {
-    // visibleWhen evaluation — MVP treats missing visibleWhen as visible.
-    // Mirrors the MVP ReactDriver before s07/s08 added full evaluation.
-    const visible = true;
+    final visible = await _evaluateVisible(c, engine);
 
     if (c is OdsTextComponent) {
       return TextSnapshot(visible: visible, content: c.content);
