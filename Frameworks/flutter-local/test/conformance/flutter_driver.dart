@@ -37,6 +37,8 @@ class FlutterDriver implements OdsDriver {
     'formulas',
     'summary',
     'tabs',
+    'chart',
+    'kanban',
     'auth:multiUser',
     'auth:selfRegistration',
     'auth:ownership',
@@ -226,6 +228,50 @@ class FlutterDriver implements OdsDriver {
           '(only "delete"/"update" implemented in MVP)',
         );
     }
+  }
+
+  @override
+  Future<void> dragCard(
+    String dataSource,
+    String rowId,
+    String toStatus,
+  ) async {
+    final engine = _requireEngine();
+    final app = engine.app;
+    if (app == null) throw StateError('dragCard: no app loaded');
+    final ds = app.dataSources[dataSource];
+    if (ds == null) {
+      throw StateError('dragCard: unknown data source "$dataSource"');
+    }
+
+    // Locate the kanban on the current page to read its statusField.
+    final page = _requireCurrentPage(engine) as dynamic;
+    final kanban = (page.content as List<OdsComponent>)
+        .whereType<OdsKanbanComponent>()
+        .firstWhere(
+          (k) => k.dataSource == dataSource,
+          orElse: () => throw StateError(
+            'dragCard: no kanban bound to "$dataSource" on current page',
+          ),
+        );
+
+    // Prefer a PUT data source sharing the same local:// URL (mirrors
+    // kanban_widget's _findPutDataSourceId); fall back to the kanban's
+    // own dataSource.
+    String putDsId = dataSource;
+    for (final entry in app.dataSources.entries) {
+      if (entry.value.method == 'PUT' && entry.value.url == ds.url) {
+        putDsId = entry.key;
+        break;
+      }
+    }
+
+    await engine.executeRowAction(
+      dataSourceId: putDsId,
+      matchField: '_id',
+      matchValue: rowId,
+      values: {kanban.statusField: toStatus},
+    );
   }
 
   @override
@@ -555,6 +601,35 @@ class FlutterDriver implements OdsDriver {
     }
     if (c is OdsButtonComponent) {
       return ButtonSnapshot(visible: visible, label: c.label, enabled: true);
+    }
+    if (c is OdsKanbanComponent) {
+      final ds = app.dataSources[c.dataSource];
+      final rows = ds != null
+          ? await engine.dataStore.query(ds.tableName)
+          : const <Map<String, dynamic>>[];
+      final counts = <String, int>{};
+      for (final row in rows) {
+        final status = (row[c.statusField] ?? '').toString();
+        counts[status] = (counts[status] ?? 0) + 1;
+      }
+      return KanbanSnapshot(
+        visible: visible,
+        dataSource: c.dataSource,
+        statusField: c.statusField,
+        columns: [
+          for (final e in counts.entries)
+            KanbanColumn(status: e.key, cardCount: e.value),
+        ],
+      );
+    }
+    if (c is OdsChartComponent) {
+      return ChartSnapshot(
+        visible: visible,
+        dataSource: c.dataSource,
+        chartType: c.chartType,
+        title: c.title,
+        seriesCount: 1,
+      );
     }
     if (c is OdsTabsComponent) {
       return TabsSnapshot(

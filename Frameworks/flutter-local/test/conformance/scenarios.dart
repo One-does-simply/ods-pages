@@ -73,6 +73,8 @@ OdsSpec formulaComputeSpec() => loadSpec('formulaCompute');
 OdsSpec summaryAggregateSpec() => loadSpec('summaryAggregate');
 OdsSpec ownershipPerUserSpec() => loadSpec('ownershipPerUser');
 OdsSpec tabsInitialStateSpec() => loadSpec('tabsInitialState');
+OdsSpec chartConfigSpec() => loadSpec('chartConfig');
+OdsSpec kanbanDragSpec() => loadSpec('kanbanDrag');
 
 // ---------------------------------------------------------------------------
 // Scenarios (mirrors of the TS versions; keep ids + names aligned)
@@ -466,6 +468,88 @@ final s17TabsSnapshotExposesLabelsAndFirstActive = Scenario(
   },
 );
 
+final s18ChartSnapshotPreservesConfig = Scenario(
+  name: 'chart component snapshot preserves chartType, title, and dataSource',
+  spec: chartConfigSpec,
+  capabilities: const ['core', 'chart'],
+  run: (d) async {
+    final content = await d.pageContent();
+    final chart = content.whereType<ChartSnapshot>().firstOrNull;
+    assertTrue(chart != null, 'chart component present on the page');
+    assertEqual(chart!.chartType, 'bar', 'chart type propagates from spec');
+    assertEqual(chart.title, 'Tasks by Status',
+        'chart title propagates from spec');
+    assertEqual(chart.dataSource, 'tasks',
+        'chart dataSource propagates from spec');
+  },
+);
+
+final s19KanbanDragUpdatesStatus = Scenario(
+  name: 'dragging a kanban card updates the row status field',
+  spec: kanbanDragSpec,
+  capabilities: const [
+    'core',
+    'action:submit',
+    'action:update',
+    'kanban',
+  ],
+  run: (d) async {
+    for (final entry in const [
+      ['Task todo', 'todo'],
+      ['Task doing', 'doing'],
+      ['Task done', 'done'],
+    ]) {
+      await d.fillField('title', entry[0]);
+      await d.fillField('status', entry[1]);
+      await d.clickButton('Save');
+    }
+
+    final rowsBefore = await d.dataRows('tasks');
+    assertEqual(rowsBefore.length, 3, 'three rows inserted');
+
+    final before = await d.pageContent();
+    final kBefore = before.whereType<KanbanSnapshot>().firstOrNull;
+    assertTrue(kBefore != null, 'kanban component present');
+    final todoBefore = kBefore!.columns
+        .where((col) => col.status == 'todo')
+        .firstOrNull
+        ?.cardCount ?? 0;
+    final doingBefore = kBefore.columns
+        .where((col) => col.status == 'doing')
+        .firstOrNull
+        ?.cardCount ?? 0;
+    assertEqual(todoBefore, 1, 'todo column has 1 card before drag');
+    assertEqual(doingBefore, 1, 'doing column has 1 card before drag');
+
+    final todoRow = rowsBefore.firstWhere(
+      (r) => r['title'] == 'Task todo',
+      orElse: () => throw StateError('todo row missing'),
+    );
+    await d.dragCard('tasks', todoRow['_id'].toString(), 'doing');
+
+    final rowsAfter = await d.dataRows('tasks');
+    final draggedAfter = rowsAfter.firstWhere(
+      (r) => r['_id'] == todoRow['_id'],
+      orElse: () => throw StateError('dragged row missing after'),
+    );
+    assertEqual(draggedAfter['status'], 'doing',
+        'dragged row now has status=doing');
+
+    final after = await d.pageContent();
+    final kAfter = after.whereType<KanbanSnapshot>().first;
+    final todoAfter = kAfter.columns
+        .where((col) => col.status == 'todo')
+        .firstOrNull
+        ?.cardCount ?? 0;
+    final doingAfter = kAfter.columns
+        .where((col) => col.status == 'doing')
+        .firstOrNull
+        ?.cardCount ?? 0;
+    assertEqual(todoAfter, 0, 'todo column empty after drag');
+    assertEqual(doingAfter, 2, 'doing column has 2 cards after drag');
+  },
+);
+
 /// Full list of scenarios the runner executes.
 final List<Scenario> allScenarios = [
   s01SpecLoads,
@@ -485,4 +569,6 @@ final List<Scenario> allScenarios = [
   s15SummaryAggregateCountsRows,
   s16OwnershipScopesListToCurrentUser,
   s17TabsSnapshotExposesLabelsAndFirstActive,
+  s18ChartSnapshotPreservesConfig,
+  s19KanbanDragUpdatesStatus,
 ];

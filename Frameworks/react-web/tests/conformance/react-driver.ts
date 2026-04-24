@@ -280,6 +280,54 @@ export class ReactDriver implements OdsDriver {
     }
   }
 
+  async dragCard(
+    dataSource: string,
+    rowId: string,
+    toStatus: string,
+  ): Promise<void> {
+    const app = this.requireApp()
+    const ds = app.dataSources[dataSource]
+    if (!ds) throw new Error(`dragCard: unknown data source "${dataSource}"`)
+
+    // Locate the kanban on the current page bound to this data source —
+    // we need its statusField to know which field to update.
+    const page = currentPageModel(app, useAppStore.getState().currentPageId)
+    if (!page) throw new Error('dragCard: no current page')
+    const kanban = page.content.find(
+      (c): c is OdsKanbanComponent =>
+        c.component === 'kanban' &&
+        (c as OdsKanbanComponent).dataSource === dataSource,
+    )
+    if (!kanban) {
+      throw new Error(
+        `dragCard: no kanban bound to data source "${dataSource}" on current page`,
+      )
+    }
+
+    // Prefer a PUT data source on the same local:// URL (mirrors
+    // KanbanComponent.findPutDataSource); fall back to the kanban's own
+    // dataSource when none exists.
+    const putDsId = (() => {
+      const url = ds.url
+      for (const [id, other] of Object.entries(app.dataSources)) {
+        if (other.method === 'PUT' && other.url === url) return id
+      }
+      return dataSource
+    })()
+
+    await useAppStore.getState().executeActions([
+      {
+        action: 'update',
+        dataSource: putDsId,
+        matchField: '_id',
+        target: rowId,
+        withData: { [kanban.statusField]: toStatus },
+        computedFields: [],
+        preserveFields: [],
+      },
+    ])
+  }
+
   async clickMenuItem(label: string): Promise<void> {
     const app = this.requireApp()
     const item = app.menu.find((m) => m.label === label)

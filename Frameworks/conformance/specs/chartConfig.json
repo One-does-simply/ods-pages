@@ -1,0 +1,31 @@
+{
+  "appName": "Chart Config",
+  "startPage": "home",
+  "pages": {
+    "home": {
+      "component": "page",
+      "title": "Home",
+      "content": [
+        {
+          "component": "chart",
+          "chartType": "bar",
+          "title": "Tasks by Status",
+          "dataSource": "tasks",
+          "labelField": "status",
+          "valueField": "status",
+          "aggregate": "count"
+        }
+      ]
+    }
+  },
+  "dataSources": {
+    "tasks": {
+      "url": "local://tasks",
+      "method": "GET",
+      "fields": [
+        { "name": "title", "type": "text" },
+        { "name": "status", "type": "text" }
+      ]
+    }
+  }
+}

@@ -8,13 +8,14 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 
 ## Now — actively being worked on
 
-- [ ] **Path B — more coverage** — Both drivers at parity: **17
-      scenarios passing on React and Flutter** (s01-s17), specs shared
+- [ ] **Path B — more coverage** — Both drivers at parity: **19
+      scenarios passing on React and Flutter** (s01-s19), specs shared
       via [Frameworks/conformance/specs/](Frameworks/conformance/specs/).
-      Remaining capabilities untested in conformance: `kanban`,
-      `chart`, `detail`, `cascadeRename` (blocked — see Next). Tab
-      coverage is initial-state only; add a `clickTab` method later
-      to test switching.
+      Remaining capabilities untested in conformance: `detail`,
+      `cascadeRename` (blocked — see Next). Tab coverage is
+      initial-state only; add a `clickTab` method later to test
+      switching. Chart coverage is config-only (no aggregation
+      math verified).
 
 ## Next — next 1–2 sessions
 
@@ -119,6 +120,24 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 ---
 
 ## Done — recent (trim quarterly)
+
+### 2026-04-24 — Path B Session K (s18 chart config + s19 kanban drag)
+
+- [x] **s18**: chart component snapshot preserves `chartType`,
+      `title`, and `dataSource` config from spec. Narrow parity check
+      — no aggregation math verified. `ChartSnapshot` added to the
+      Dart contract; `chart` capability on FlutterDriver.
+- [x] **s19**: dragging a kanban card updates the row's status
+      field and the kanban snapshot counts shift accordingly.
+      Introduced new driver primitive
+      [`dragCard(dataSource, rowId, toStatus)`](Frameworks/conformance/src/contract.ts)
+      on both OdsDriver contracts; both drivers implement it via the
+      PUT data source (or fall back to the kanban's own dataSource).
+- [x] `KanbanSnapshot` + `KanbanColumn` added to Dart contract;
+      FlutterDriver emits it. `kanban` capability declared on
+      FlutterDriver.
+- [x] Conformance total: 17 → 19 scenarios. React 1143 → 1145;
+      Flutter 806 → 808.
 
 ### 2026-04-24 — Path B Session J (s17 tabs initial state)
 

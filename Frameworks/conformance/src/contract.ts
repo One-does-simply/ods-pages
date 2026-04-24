@@ -176,6 +176,16 @@ export interface OdsDriver {
     actionLabel: string,
   ): Promise<void>
 
+  /**
+   * Drag a kanban card to a different status column. Effectively an
+   * update of the row's statusField to `toStatus`.
+   */
+  dragCard(
+    dataSource: string,
+    rowId: string,
+    toStatus: string,
+  ): Promise<void>
+
   /** Navigate via a menu item (matches ODS menu[].label). */
   clickMenuItem(label: string): Promise<void>
 

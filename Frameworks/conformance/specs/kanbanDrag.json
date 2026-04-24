@@ -1,0 +1,54 @@
+{
+  "appName": "Kanban Drag",
+  "startPage": "home",
+  "pages": {
+    "home": {
+      "component": "page",
+      "title": "Home",
+      "content": [
+        {
+          "component": "form",
+          "id": "addForm",
+          "dataSource": "tasks",
+          "fields": [
+            { "name": "title", "type": "text", "label": "Title", "required": true },
+            {
+              "name": "status",
+              "type": "select",
+              "label": "Status",
+              "options": ["todo", "doing", "done"]
+            }
+          ]
+        },
+        {
+          "component": "button",
+          "label": "Save",
+          "onClick": [
+            { "action": "submit", "dataSource": "tasks", "target": "addForm" }
+          ]
+        },
+        {
+          "component": "kanban",
+          "dataSource": "tasks",
+          "statusField": "status",
+          "titleField": "title",
+          "cardFields": ["title"]
+        }
+      ]
+    }
+  },
+  "dataSources": {
+    "tasks": {
+      "url": "local://tasks",
+      "method": "POST",
+      "fields": [
+        { "name": "title", "type": "text" },
+        { "name": "status", "type": "text" }
+      ]
+    },
+    "tasksUpdater": {
+      "url": "local://tasks",
+      "method": "PUT"
+    }
+  }
+}

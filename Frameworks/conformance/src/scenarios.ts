@@ -70,6 +70,8 @@ const formulaComputeSpec = (): OdsSpec => loadSpec('formulaCompute')
 const summaryAggregateSpec = (): OdsSpec => loadSpec('summaryAggregate')
 const ownershipPerUserSpec = (): OdsSpec => loadSpec('ownershipPerUser')
 const tabsInitialStateSpec = (): OdsSpec => loadSpec('tabsInitialState')
+const chartConfigSpec = (): OdsSpec => loadSpec('chartConfig')
+const kanbanDragSpec = (): OdsSpec => loadSpec('kanbanDrag')
 
 // ---------------------------------------------------------------------------
 // Scenarios
@@ -507,6 +509,78 @@ export const s17_tabs_snapshot_exposes_labels_and_first_active: Scenario = {
   },
 }
 
+export const s18_chart_snapshot_preserves_config: Scenario = {
+  name: 'chart component snapshot preserves chartType, title, and dataSource',
+  spec: chartConfigSpec,
+  capabilities: ['core', 'chart'],
+  run: async (d) => {
+    const content = await d.pageContent()
+    const chart = content.find((c) => c.kind === 'chart')
+    assertTrue(chart != null, 'chart component present on the page')
+    const c = chart as {
+      chartType: string
+      title: string | null
+      dataSource: string
+    }
+    assertEqual(c.chartType, 'bar', 'chart type propagates from spec')
+    assertEqual(c.title, 'Tasks by Status', 'chart title propagates from spec')
+    assertEqual(c.dataSource, 'tasks', 'chart dataSource propagates from spec')
+  },
+}
+
+export const s19_kanban_drag_updates_status: Scenario = {
+  name: 'dragging a kanban card updates the row status field',
+  spec: kanbanDragSpec,
+  capabilities: ['core', 'action:submit', 'action:update', 'kanban'],
+  run: async (d) => {
+    // Create three rows in three different columns.
+    for (const [title, status] of [
+      ['Task todo', 'todo'],
+      ['Task doing', 'doing'],
+      ['Task done', 'done'],
+    ] as const) {
+      await d.fillField('title', title)
+      await d.fillField('status', status)
+      await d.clickButton('Save')
+    }
+
+    const rowsBefore = await d.dataRows('tasks')
+    assertEqual(rowsBefore.length, 3, 'three rows inserted')
+
+    // Snapshot: kanban component reports columns + counts.
+    const before = await d.pageContent()
+    const kBefore = before.find((c) => c.kind === 'kanban')
+    assertTrue(kBefore != null, 'kanban component present')
+    const colsBefore = (
+      kBefore as { columns: Array<{ status: string; cardCount: number }> }
+    ).columns
+    const todoBefore = colsBefore.find((c) => c.status === 'todo')
+    const doingBefore = colsBefore.find((c) => c.status === 'doing')
+    assertEqual(todoBefore?.cardCount ?? 0, 1, 'todo column has 1 card before drag')
+    assertEqual(doingBefore?.cardCount ?? 0, 1, 'doing column has 1 card before drag')
+
+    // Drag the todo card into doing.
+    const todoRow = rowsBefore.find((r) => r.title === 'Task todo')
+    assertTrue(todoRow != null, 'todo row exists')
+    await d.dragCard('tasks', String(todoRow!._id), 'doing')
+
+    // Row status changed; kanban counts shift.
+    const rowsAfter = await d.dataRows('tasks')
+    const draggedAfter = rowsAfter.find((r) => r._id === todoRow!._id)
+    assertEqual(draggedAfter?.status, 'doing', 'dragged row now has status=doing')
+
+    const after = await d.pageContent()
+    const kAfter = after.find((c) => c.kind === 'kanban')
+    const colsAfter = (
+      kAfter as { columns: Array<{ status: string; cardCount: number }> }
+    ).columns
+    const todoAfter = colsAfter.find((c) => c.status === 'todo')
+    const doingAfter = colsAfter.find((c) => c.status === 'doing')
+    assertEqual(todoAfter?.cardCount ?? 0, 0, 'todo column empty after drag')
+    assertEqual(doingAfter?.cardCount ?? 0, 2, 'doing column has 2 cards after drag')
+  },
+}
+
 /** Full list of scenarios the runner should execute. */
 export const allScenarios: ReadonlyArray<Scenario> = [
   s01_spec_loads,
@@ -526,4 +600,6 @@ export const allScenarios: ReadonlyArray<Scenario> = [
   s15_summary_aggregate_counts_rows,
   s16_ownership_scopes_list_to_current_user,
   s17_tabs_snapshot_exposes_labels_and_first_active,
+  s18_chart_snapshot_preserves_config,
+  s19_kanban_drag_updates_status,
 ]

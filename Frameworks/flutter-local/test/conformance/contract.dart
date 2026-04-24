@@ -158,8 +158,46 @@ class TabsSnapshot extends ComponentSnapshot {
   String get kind => 'tabs';
 }
 
-// The other snapshot variants (kanban, chart, detail) are defined here
-// when scenarios demand them. If you add one, mirror it in contract.ts.
+class ChartSnapshot extends ComponentSnapshot {
+  const ChartSnapshot({
+    required super.visible,
+    required this.dataSource,
+    required this.chartType,
+    required this.title,
+    required this.seriesCount,
+  });
+  final String dataSource;
+
+  /// 'bar' | 'line' | 'pie'.
+  final String chartType;
+  final String? title;
+  final int seriesCount;
+  @override
+  String get kind => 'chart';
+}
+
+class KanbanColumn {
+  const KanbanColumn({required this.status, required this.cardCount});
+  final String status;
+  final int cardCount;
+}
+
+class KanbanSnapshot extends ComponentSnapshot {
+  const KanbanSnapshot({
+    required super.visible,
+    required this.dataSource,
+    required this.statusField,
+    required this.columns,
+  });
+  final String dataSource;
+  final String statusField;
+  final List<KanbanColumn> columns;
+  @override
+  String get kind => 'kanban';
+}
+
+// The detail snapshot variant is defined here when a scenario demands
+// it. If you add one, mirror it in contract.ts.
 
 // ---------------------------------------------------------------------------
 // The OdsDriver interface every renderer implements
@@ -198,6 +236,14 @@ abstract class OdsDriver {
     String dataSource,
     String rowId,
     String actionLabel,
+  );
+
+  /// Drag a kanban card to a different status column. Effectively an
+  /// update of the row's statusField to `toStatus`.
+  Future<void> dragCard(
+    String dataSource,
+    String rowId,
+    String toStatus,
   );
 
   /// Navigate via a menu item (matches ODS `menu[].label`).
