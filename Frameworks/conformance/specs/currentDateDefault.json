@@ -1,0 +1,26 @@
+{
+  "appName": "CURRENTDATE default",
+  "startPage": "home",
+  "pages": {
+    "home": {
+      "component": "page",
+      "title": "Home",
+      "content": [
+        {
+          "component": "form",
+          "id": "editForm",
+          "fields": [
+            { "name": "title", "type": "text", "label": "Title" },
+            {
+              "name": "createdAt",
+              "type": "date",
+              "label": "Created",
+              "default": "CURRENTDATE"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "dataSources": {}
+}

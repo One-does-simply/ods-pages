@@ -8,16 +8,11 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 
 ## Now — actively being worked on
 
-- [ ] **Path B — shared scenarios + more coverage** — Both drivers
-      now at parity: **11 scenarios passing on both React and
-      Flutter**. ReactDriver at
-      [Frameworks/react-web/tests/conformance/react-driver.ts](Frameworks/react-web/tests/conformance/react-driver.ts);
-      FlutterDriver at
-      [Frameworks/flutter-local/test/conformance/flutter_driver.dart](Frameworks/flutter-local/test/conformance/flutter_driver.dart).
-      Remaining work: (a) extract shared scenarios — currently
-      duplicated in TS + Dart; biggest long-term leverage since
-      every new scenario must be ported twice, (b) port more
-      Batch 1–6 scenarios for broader coverage, (c) iterate as new
+- [ ] **Path B — more coverage** — Both drivers at parity: **11
+      scenarios passing on React and Flutter**, specs now shared via
+      [Frameworks/conformance/specs/](Frameworks/conformance/specs/)
+      (Session E 2026-04-24). Remaining work: (a) port more
+      Batch 1–6 scenarios for broader coverage, (b) iterate as new
       capabilities (kanban, chart, tabs, detail, formulas,
       cascadeRename, auth:ownership) get their first scenarios.
 
@@ -91,6 +86,24 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 ---
 
 ## Done — recent (trim quarterly)
+
+### 2026-04-24 — Path B Session E (shared scenario specs)
+
+- [x] Extracted 7 scenario specs to
+      [Frameworks/conformance/specs/](Frameworks/conformance/specs/)
+      as pure JSON files — the single source of truth for both
+      drivers. Kills the "write every scenario spec twice" tax that
+      caused the `label` vs `header` parity bug earlier today.
+- [x] TS loader at
+      [Frameworks/conformance/src/load-spec.ts](Frameworks/conformance/src/load-spec.ts);
+      Dart loader at
+      [Frameworks/flutter-local/test/conformance/load_spec.dart](Frameworks/flutter-local/test/conformance/load_spec.dart).
+      Both read the same bytes.
+- [x] Scenario definitions shrank: `scenarios.ts` dropped 260+
+      lines, `scenarios.dart` dropped ~270 lines. Run bodies stay
+      per-language — the per-driver assertion code is what needs
+      to diverge.
+- [x] 22 parity tests still green (11 scenarios × 2 drivers).
 
 ### 2026-04-24 — Path B Session D (FlutterDriver full parity)
 

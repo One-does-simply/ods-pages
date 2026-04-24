@@ -1,0 +1,32 @@
+{
+  "appName": "Two Page",
+  "startPage": "home",
+  "menu": [
+    { "label": "Home", "mapsTo": "home" },
+    { "label": "Second", "mapsTo": "second" }
+  ],
+  "pages": {
+    "home": {
+      "component": "page",
+      "title": "Home",
+      "content": [
+        { "component": "text", "content": "Welcome home" },
+        {
+          "component": "button",
+          "label": "Go Second",
+          "onClick": [
+            { "action": "navigate", "target": "second" }
+          ]
+        }
+      ]
+    },
+    "second": {
+      "component": "page",
+      "title": "Second",
+      "content": [
+        { "component": "text", "content": "On the second page" }
+      ]
+    }
+  },
+  "dataSources": {}
+}

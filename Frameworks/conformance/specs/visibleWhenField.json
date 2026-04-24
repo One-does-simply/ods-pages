@@ -1,0 +1,30 @@
+{
+  "appName": "VisibleWhen Field",
+  "startPage": "home",
+  "pages": {
+    "home": {
+      "component": "page",
+      "title": "Home",
+      "content": [
+        {
+          "component": "form",
+          "id": "gateForm",
+          "fields": [
+            {
+              "name": "mode",
+              "type": "select",
+              "label": "Mode",
+              "options": ["basic", "advanced"]
+            }
+          ]
+        },
+        {
+          "component": "text",
+          "content": "Advanced-only details",
+          "visibleWhen": { "form": "gateForm", "field": "mode", "equals": "advanced" }
+        }
+      ]
+    }
+  },
+  "dataSources": {}
+}

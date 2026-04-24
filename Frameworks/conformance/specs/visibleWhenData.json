@@ -1,0 +1,49 @@
+{
+  "appName": "VisibleWhen Data",
+  "startPage": "home",
+  "pages": {
+    "home": {
+      "component": "page",
+      "title": "Home",
+      "content": [
+        {
+          "component": "form",
+          "id": "addForm",
+          "dataSource": "items",
+          "fields": [
+            { "name": "title", "type": "text", "label": "Title", "required": true }
+          ]
+        },
+        {
+          "component": "button",
+          "label": "Save",
+          "onClick": [
+            { "action": "submit", "dataSource": "items", "target": "addForm" }
+          ]
+        },
+        {
+          "component": "text",
+          "content": "No items yet — add one above.",
+          "visibleWhen": { "source": "items", "countEquals": 0 }
+        },
+        {
+          "component": "list",
+          "dataSource": "items",
+          "columns": [
+            { "field": "title", "header": "Title" }
+          ],
+          "visibleWhen": { "source": "items", "countMin": 1 }
+        }
+      ]
+    }
+  },
+  "dataSources": {
+    "items": {
+      "url": "local://items",
+      "method": "POST",
+      "fields": [
+        { "name": "title", "type": "text" }
+      ]
+    }
+  }
+}

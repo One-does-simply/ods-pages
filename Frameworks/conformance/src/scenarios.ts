@@ -1,5 +1,6 @@
 import type { Capability } from './capabilities.ts'
 import type { OdsDriver, OdsSpec } from './contract.ts'
+import { loadSpec } from './load-spec.ts'
 
 /**
  * A parity scenario is a single (name, spec, capabilities, run) tuple.
@@ -51,92 +52,18 @@ function assertTrue(value: unknown, msg: string): void {
 }
 
 // ---------------------------------------------------------------------------
-// Spec helpers — keep specs readable inline, but factor out the common
-// shape so scenarios stay terse.
+// Spec helpers — each spec lives in specs/<name>.json and is loaded on
+// demand. Factories wrap loadSpec() so scenario tables can reference
+// them by name and the Dart runner mirrors the same `<name>.json` keys.
 // ---------------------------------------------------------------------------
 
-function miniTodoSpec(): OdsSpec {
-  return {
-    appName: 'Mini Todo',
-    startPage: 'home',
-    pages: {
-      home: {
-        component: 'page',
-        title: 'Home',
-        content: [
-          {
-            component: 'form',
-            id: 'addForm',
-            dataSource: 'tasks',
-            fields: [
-              { name: 'title', type: 'text', label: 'Title', required: true },
-              { name: 'done', type: 'checkbox', label: 'Done' },
-            ],
-          },
-          {
-            component: 'button',
-            label: 'Save',
-            onClick: [
-              { action: 'submit', dataSource: 'tasks', target: 'addForm' },
-              { action: 'showMessage', message: 'Saved!', level: 'success' },
-            ],
-          },
-          {
-            component: 'list',
-            dataSource: 'tasks',
-            columns: [
-              { field: 'title', header: 'Title' },
-              { field: 'done', header: 'Done' },
-            ],
-          },
-        ],
-      },
-    },
-    dataSources: {
-      tasks: {
-        url: 'local://tasks',
-        method: 'POST',
-        fields: [
-          { name: 'title', type: 'text' },
-          { name: 'done', type: 'checkbox' },
-        ],
-      },
-    },
-  }
-}
-
-function twoPageSpec(): OdsSpec {
-  return {
-    appName: 'Two Page',
-    startPage: 'home',
-    menu: [
-      { label: 'Home', mapsTo: 'home' },
-      { label: 'Second', mapsTo: 'second' },
-    ],
-    pages: {
-      home: {
-        component: 'page',
-        title: 'Home',
-        content: [
-          { component: 'text', content: 'Welcome home' },
-          {
-            component: 'button',
-            label: 'Go Second',
-            onClick: [{ action: 'navigate', target: 'second' }],
-          },
-        ],
-      },
-      second: {
-        component: 'page',
-        title: 'Second',
-        content: [
-          { component: 'text', content: 'On the second page' },
-        ],
-      },
-    },
-    dataSources: {},
-  }
-}
+const miniTodoSpec = (): OdsSpec => loadSpec('miniTodo')
+const twoPageSpec = (): OdsSpec => loadSpec('twoPage')
+const miniTodoWithDeleteSpec = (): OdsSpec => loadSpec('miniTodoWithDelete')
+const visibleWhenFieldSpec = (): OdsSpec => loadSpec('visibleWhenField')
+const visibleWhenDataSpec = (): OdsSpec => loadSpec('visibleWhenData')
+const currentDateDefaultSpec = (): OdsSpec => loadSpec('currentDateDefault')
+const multiUserAppSpec = (): OdsSpec => loadSpec('multiUserApp')
 
 // ---------------------------------------------------------------------------
 // Scenarios
@@ -197,56 +124,6 @@ export const s04_list_reflects_submitted_rows: Scenario = {
   },
 }
 
-function miniTodoWithDeleteSpec(): OdsSpec {
-  return {
-    appName: 'Mini Todo Delete',
-    startPage: 'home',
-    pages: {
-      home: {
-        component: 'page',
-        title: 'Home',
-        content: [
-          {
-            component: 'form',
-            id: 'addForm',
-            dataSource: 'tasks',
-            fields: [
-              { name: 'title', type: 'text', label: 'Title', required: true },
-            ],
-          },
-          {
-            component: 'button',
-            label: 'Save',
-            onClick: [
-              { action: 'submit', dataSource: 'tasks', target: 'addForm' },
-            ],
-          },
-          {
-            component: 'list',
-            dataSource: 'tasks',
-            columns: [{ field: 'title', header: 'Title' }],
-            rowActions: [
-              {
-                label: 'Delete',
-                action: 'delete',
-                dataSource: 'tasks',
-                matchField: '_id',
-              },
-            ],
-          },
-        ],
-      },
-    },
-    dataSources: {
-      tasks: {
-        url: 'local://tasks',
-        method: 'POST',
-        fields: [{ name: 'title', type: 'text' }],
-      },
-    },
-  }
-}
-
 export const s05_navigate_action_switches_page: Scenario = {
   name: 'navigate action moves to the target page',
   spec: twoPageSpec,
@@ -261,85 +138,6 @@ export const s05_navigate_action_switches_page: Scenario = {
     assertEqual(after.id, 'second', 'page after navigate')
     assertEqual(after.title, 'Second', 'title after navigate')
   },
-}
-
-function visibleWhenFieldSpec(): OdsSpec {
-  return {
-    appName: 'VisibleWhen Field',
-    startPage: 'home',
-    pages: {
-      home: {
-        component: 'page',
-        title: 'Home',
-        content: [
-          {
-            component: 'form',
-            id: 'gateForm',
-            fields: [
-              {
-                name: 'mode',
-                type: 'select',
-                label: 'Mode',
-                options: ['basic', 'advanced'],
-              },
-            ],
-          },
-          {
-            component: 'text',
-            content: 'Advanced-only details',
-            visibleWhen: { form: 'gateForm', field: 'mode', equals: 'advanced' },
-          },
-        ],
-      },
-    },
-    dataSources: {},
-  }
-}
-
-function visibleWhenDataSpec(): OdsSpec {
-  return {
-    appName: 'VisibleWhen Data',
-    startPage: 'home',
-    pages: {
-      home: {
-        component: 'page',
-        title: 'Home',
-        content: [
-          {
-            component: 'form',
-            id: 'addForm',
-            dataSource: 'items',
-            fields: [
-              { name: 'title', type: 'text', label: 'Title', required: true },
-            ],
-          },
-          {
-            component: 'button',
-            label: 'Save',
-            onClick: [{ action: 'submit', dataSource: 'items', target: 'addForm' }],
-          },
-          {
-            component: 'text',
-            content: 'No items yet — add one above.',
-            visibleWhen: { source: 'items', countEquals: 0 },
-          },
-          {
-            component: 'list',
-            dataSource: 'items',
-            columns: [{ field: 'title', header: 'Title' }],
-            visibleWhen: { source: 'items', countMin: 1 },
-          },
-        ],
-      },
-    },
-    dataSources: {
-      items: {
-        url: 'local://items',
-        method: 'POST',
-        fields: [{ name: 'title', type: 'text' }],
-      },
-    },
-  }
 }
 
 export const s06_row_action_delete_removes_row: Scenario = {
@@ -415,35 +213,6 @@ export const s08_visible_when_data_count: Scenario = {
   },
 }
 
-function currentDateDefaultSpec(): OdsSpec {
-  return {
-    appName: 'CURRENTDATE default',
-    startPage: 'home',
-    pages: {
-      home: {
-        component: 'page',
-        title: 'Home',
-        content: [
-          {
-            component: 'form',
-            id: 'editForm',
-            fields: [
-              { name: 'title', type: 'text', label: 'Title' },
-              {
-                name: 'createdAt',
-                type: 'date',
-                label: 'Created',
-                default: 'CURRENTDATE',
-              },
-            ],
-          },
-        ],
-      },
-    },
-    dataSources: {},
-  }
-}
-
 export const s09_current_date_default_honors_clock: Scenario = {
   name: 'CURRENTDATE default value resolves using the driver clock',
   spec: currentDateDefaultSpec,
@@ -475,29 +244,6 @@ export const s09_current_date_default_honors_clock: Scenario = {
       'explicit fillField overrides the magic default',
     )
   },
-}
-
-function multiUserAppSpec(): OdsSpec {
-  return {
-    appName: 'Multi User',
-    startPage: 'home',
-    auth: {
-      multiUser: true,
-      selfRegistration: true,
-      defaultRole: 'user',
-      roles: [],
-    },
-    pages: {
-      home: {
-        component: 'page',
-        title: 'Home',
-        content: [
-          { component: 'text', content: 'You are logged in.' },
-        ],
-      },
-    },
-    dataSources: {},
-  }
 }
 
 export const s10_register_then_login_flow: Scenario = {

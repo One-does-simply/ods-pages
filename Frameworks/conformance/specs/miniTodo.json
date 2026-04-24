@@ -1,0 +1,47 @@
+{
+  "appName": "Mini Todo",
+  "startPage": "home",
+  "pages": {
+    "home": {
+      "component": "page",
+      "title": "Home",
+      "content": [
+        {
+          "component": "form",
+          "id": "addForm",
+          "dataSource": "tasks",
+          "fields": [
+            { "name": "title", "type": "text", "label": "Title", "required": true },
+            { "name": "done", "type": "checkbox", "label": "Done" }
+          ]
+        },
+        {
+          "component": "button",
+          "label": "Save",
+          "onClick": [
+            { "action": "submit", "dataSource": "tasks", "target": "addForm" },
+            { "action": "showMessage", "message": "Saved!", "level": "success" }
+          ]
+        },
+        {
+          "component": "list",
+          "dataSource": "tasks",
+          "columns": [
+            { "field": "title", "header": "Title" },
+            { "field": "done", "header": "Done" }
+          ]
+        }
+      ]
+    }
+  },
+  "dataSources": {
+    "tasks": {
+      "url": "local://tasks",
+      "method": "POST",
+      "fields": [
+        { "name": "title", "type": "text" },
+        { "name": "done", "type": "checkbox" }
+      ]
+    }
+  }
+}

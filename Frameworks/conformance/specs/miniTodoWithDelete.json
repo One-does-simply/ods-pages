@@ -1,0 +1,51 @@
+{
+  "appName": "Mini Todo Delete",
+  "startPage": "home",
+  "pages": {
+    "home": {
+      "component": "page",
+      "title": "Home",
+      "content": [
+        {
+          "component": "form",
+          "id": "addForm",
+          "dataSource": "tasks",
+          "fields": [
+            { "name": "title", "type": "text", "label": "Title", "required": true }
+          ]
+        },
+        {
+          "component": "button",
+          "label": "Save",
+          "onClick": [
+            { "action": "submit", "dataSource": "tasks", "target": "addForm" }
+          ]
+        },
+        {
+          "component": "list",
+          "dataSource": "tasks",
+          "columns": [
+            { "field": "title", "header": "Title" }
+          ],
+          "rowActions": [
+            {
+              "label": "Delete",
+              "action": "delete",
+              "dataSource": "tasks",
+              "matchField": "_id"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "dataSources": {
+    "tasks": {
+      "url": "local://tasks",
+      "method": "POST",
+      "fields": [
+        { "name": "title", "type": "text" }
+      ]
+    }
+  }
+}

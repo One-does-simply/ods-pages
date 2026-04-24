@@ -1,0 +1,20 @@
+{
+  "appName": "Multi User",
+  "startPage": "home",
+  "auth": {
+    "multiUser": true,
+    "selfRegistration": true,
+    "defaultRole": "user",
+    "roles": []
+  },
+  "pages": {
+    "home": {
+      "component": "page",
+      "title": "Home",
+      "content": [
+        { "component": "text", "content": "You are logged in." }
+      ]
+    }
+  },
+  "dataSources": {}
+}
