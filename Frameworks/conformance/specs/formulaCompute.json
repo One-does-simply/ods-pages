@@ -1,0 +1,35 @@
+{
+  "appName": "Formula Compute",
+  "startPage": "home",
+  "pages": {
+    "home": {
+      "component": "page",
+      "title": "Home",
+      "content": [
+        {
+          "component": "form",
+          "id": "orderForm",
+          "fields": [
+            { "name": "quantity", "type": "number", "label": "Quantity" },
+            { "name": "unitPrice", "type": "number", "label": "Unit Price" },
+            {
+              "name": "total",
+              "type": "number",
+              "label": "Total",
+              "formula": "{quantity} * {unitPrice}"
+            },
+            { "name": "firstName", "type": "text", "label": "First" },
+            { "name": "lastName", "type": "text", "label": "Last" },
+            {
+              "name": "fullName",
+              "type": "text",
+              "label": "Full Name",
+              "formula": "{firstName} {lastName}"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "dataSources": {}
+}

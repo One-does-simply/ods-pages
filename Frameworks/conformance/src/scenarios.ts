@@ -66,6 +66,7 @@ const currentDateDefaultSpec = (): OdsSpec => loadSpec('currentDateDefault')
 const multiUserAppSpec = (): OdsSpec => loadSpec('multiUserApp')
 const submitThenNavigateSpec = (): OdsSpec => loadSpec('submitThenNavigate')
 const rowActionUpdateSpec = (): OdsSpec => loadSpec('rowActionUpdate')
+const formulaComputeSpec = (): OdsSpec => loadSpec('formulaCompute')
 
 // ---------------------------------------------------------------------------
 // Scenarios
@@ -354,6 +355,38 @@ export const s13_row_action_update_changes_field: Scenario = {
   },
 }
 
+export const s14_formula_fields_compute_from_dependencies: Scenario = {
+  name: 'formula fields compute from their dependencies and update on change',
+  spec: formulaComputeSpec,
+  capabilities: ['core', 'formulas'],
+  run: async (d) => {
+    // Formulas with any missing dependency resolve to "" — both the
+    // number formula (math can't evaluate) and the text formula (string
+    // interpolation guard on any empty ref).
+    const empty = await d.formValues('orderForm')
+    assertEqual(empty.total, '', 'total empty before dependencies filled')
+    assertEqual(empty.fullName, '', 'fullName empty when any dependency is blank')
+
+    await d.fillField('quantity', '5')
+    await d.fillField('unitPrice', '10')
+    const math = await d.formValues('orderForm')
+    assertEqual(math.total, '50', 'total = quantity * unitPrice')
+
+    await d.fillField('quantity', '6')
+    const updated = await d.formValues('orderForm')
+    assertEqual(updated.total, '60', 'total updates when a dependency changes')
+
+    await d.fillField('firstName', 'Ada')
+    await d.fillField('lastName', 'Lovelace')
+    const text = await d.formValues('orderForm')
+    assertEqual(
+      text.fullName,
+      'Ada Lovelace',
+      'text formula interpolates field values',
+    )
+  },
+}
+
 /** Full list of scenarios the runner should execute. */
 export const allScenarios: ReadonlyArray<Scenario> = [
   s01_spec_loads,
@@ -369,4 +402,5 @@ export const allScenarios: ReadonlyArray<Scenario> = [
   s11_login_with_wrong_password_fails,
   s12_submit_on_end_navigate,
   s13_row_action_update_changes_field,
+  s14_formula_fields_compute_from_dependencies,
 ]

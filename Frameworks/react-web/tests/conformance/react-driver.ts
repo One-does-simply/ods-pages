@@ -16,6 +16,7 @@ import type {
   OdsTextComponent,
 } from '../../src/models/ods-component.ts'
 import { tableName } from '../../src/models/ods-data-source.ts'
+import { evaluateFormula } from '../../src/engine/formula-evaluator.ts'
 import { FakeDataService } from '../helpers/fake-data-service.ts'
 import { FakePocketBase } from '../helpers/fake-pocketbase.ts'
 
@@ -322,17 +323,30 @@ export class ReactDriver implements OdsDriver {
     const raw = useAppStore.getState().getFormState(formId)
     const result: Record<string, FieldValue> = { ...raw }
 
-    // Lazily resolve magic defaults (CURRENTDATE / NOW) for fields the
-    // user hasn't explicitly set. Reads "now" from the current clock so
-    // setClock mid-scenario takes effect on the next formValues call.
     const form = this.findFormOnCurrentPage(formId)
     if (form) {
+      // Lazily resolve magic defaults (CURRENTDATE / NOW) for fields the
+      // user hasn't explicitly set. Reads "now" from the current clock so
+      // setClock mid-scenario takes effect on the next formValues call.
       for (const field of form.fields) {
         if (result[field.name] !== undefined) continue
         const dv = (field as { defaultValue?: string }).defaultValue
         if (!dv) continue
         const resolved = this.resolveMagicDefault(dv, field.type)
         if (resolved !== undefined) result[field.name] = resolved
+      }
+
+      // Evaluate formulas AFTER defaults are in place. Mirrors the form
+      // renderer: formulas are computed from the current values of
+      // referenced fields; fields that aren't set yield "".
+      for (const field of form.fields) {
+        const formula = (field as { formula?: string }).formula
+        if (!formula) continue
+        const stringValues: Record<string, string> = {}
+        for (const [k, v] of Object.entries(result)) {
+          stringValues[k] = v == null ? '' : String(v)
+        }
+        result[field.name] = evaluateFormula(formula, field.type, stringValues)
       }
     }
 

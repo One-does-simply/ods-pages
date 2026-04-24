@@ -16,6 +16,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:ods_flutter_local/engine/app_engine.dart';
+import 'package:ods_flutter_local/engine/formula_evaluator.dart';
 import 'package:ods_flutter_local/models/ods_action.dart';
 import 'package:ods_flutter_local/models/ods_app.dart';
 import 'package:ods_flutter_local/models/ods_component.dart';
@@ -32,6 +33,7 @@ class FlutterDriver implements OdsDriver {
     'action:delete',
     'action:update',
     'rowActions',
+    'formulas',
     'auth:multiUser',
     'auth:selfRegistration',
   };
@@ -286,18 +288,29 @@ class FlutterDriver implements OdsDriver {
     final state = engine.getFormState(formId);
     final result = <String, FieldValue>{...state};
 
-    // Lazily resolve magic defaults (CURRENTDATE / NOW) for fields the
-    // user hasn't set. Reads "now" from _fakeNow if setClock has been
-    // called, so setClock mid-scenario takes effect on the next
-    // formValues call.
     final form = _findFormOnCurrentPage(formId);
     if (form != null) {
+      // Lazily resolve magic defaults (CURRENTDATE / NOW) for fields the
+      // user hasn't set.
       for (final field in form.fields) {
         if (result.containsKey(field.name)) continue;
         final dv = field.defaultValue;
         if (dv == null || dv.isEmpty) continue;
         final resolved = _resolveMagicDefault(dv, field.type);
         if (resolved != null) result[field.name] = resolved;
+      }
+
+      // Evaluate formulas AFTER defaults are in place. Same evaluator
+      // the form renderer uses — so the observable form values mirror
+      // what a user would see.
+      for (final field in form.fields) {
+        final formula = field.formula;
+        if (formula == null || formula.isEmpty) continue;
+        final stringValues = <String, String?>{
+          for (final entry in result.entries) entry.key: entry.value.toString(),
+        };
+        result[field.name] =
+            FormulaEvaluator.evaluate(formula, field.type, stringValues);
       }
     }
 

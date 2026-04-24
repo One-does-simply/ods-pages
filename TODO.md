@@ -8,14 +8,13 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 
 ## Now — actively being worked on
 
-- [ ] **Path B — more coverage** — Both drivers at parity: **13
-      scenarios passing on React and Flutter** (s01-s13), specs shared
+- [ ] **Path B — more coverage** — Both drivers at parity: **14
+      scenarios passing on React and Flutter** (s01-s14), specs shared
       via [Frameworks/conformance/specs/](Frameworks/conformance/specs/).
       Remaining capabilities untested in conformance: `kanban`,
-      `chart`, `tabs`, `detail`, `summary`, `formulas`,
-      `cascadeRename`, `auth:ownership`. Steady-state: each
-      capability gets its first scenario when there's reason to pin
-      that behavior cross-framework.
+      `chart`, `tabs`, `detail`, `summary`, `cascadeRename`,
+      `auth:ownership`. Steady-state: each capability gets its first
+      scenario when there's reason to pin that behavior cross-framework.
 
 ## Next — next 1–2 sessions
 
@@ -87,6 +86,20 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 ---
 
 ## Done — recent (trim quarterly)
+
+### 2026-04-24 — Path B Session G (s14 formulas)
+
+- [x] **s14**: formula fields compute from their dependencies and
+      update on change. Tests both number formulas (`{quantity} *
+      {unitPrice}`) and text interpolation (`{firstName}
+      {lastName}`), plus the "any empty dependency → empty result"
+      guard both evaluators enforce.
+- [x] Both drivers now evaluate formulas in `formValues` using their
+      native `evaluateFormula` / `FormulaEvaluator` — the same
+      evaluator the form renderer uses, so driver output mirrors
+      what a user would see in the UI.
+- [x] `formulas` capability declared on both drivers. Conformance
+      total: 13 → 14 scenarios. React 1139 → 1140; Flutter 802 → 803.
 
 ### 2026-04-24 — Path B Session F (s12 onEnd + s13 update rowAction)
 

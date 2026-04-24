@@ -69,6 +69,7 @@ OdsSpec currentDateDefaultSpec() => loadSpec('currentDateDefault');
 OdsSpec multiUserAppSpec() => loadSpec('multiUserApp');
 OdsSpec submitThenNavigateSpec() => loadSpec('submitThenNavigate');
 OdsSpec rowActionUpdateSpec() => loadSpec('rowActionUpdate');
+OdsSpec formulaComputeSpec() => loadSpec('formulaCompute');
 
 // ---------------------------------------------------------------------------
 // Scenarios (mirrors of the TS versions; keep ids + names aligned)
@@ -341,6 +342,34 @@ final s13RowActionUpdateChangesField = Scenario(
   },
 );
 
+final s14FormulaFieldsComputeFromDependencies = Scenario(
+  name: 'formula fields compute from their dependencies and update on change',
+  spec: formulaComputeSpec,
+  capabilities: const ['core', 'formulas'],
+  run: (d) async {
+    final empty = await d.formValues('orderForm');
+    assertEqual(empty['total'], '', 'total empty before dependencies filled');
+    assertEqual(empty['fullName'], '',
+        'fullName empty when any dependency is blank');
+
+    await d.fillField('quantity', '5');
+    await d.fillField('unitPrice', '10');
+    final math = await d.formValues('orderForm');
+    assertEqual(math['total'], '50', 'total = quantity * unitPrice');
+
+    await d.fillField('quantity', '6');
+    final updated = await d.formValues('orderForm');
+    assertEqual(updated['total'], '60',
+        'total updates when a dependency changes');
+
+    await d.fillField('firstName', 'Ada');
+    await d.fillField('lastName', 'Lovelace');
+    final text = await d.formValues('orderForm');
+    assertEqual(text['fullName'], 'Ada Lovelace',
+        'text formula interpolates field values');
+  },
+);
+
 /// Full list of scenarios the runner executes.
 final List<Scenario> allScenarios = [
   s01SpecLoads,
@@ -356,4 +385,5 @@ final List<Scenario> allScenarios = [
   s11LoginWithWrongPasswordFails,
   s12SubmitOnEndNavigate,
   s13RowActionUpdateChangesField,
+  s14FormulaFieldsComputeFromDependencies,
 ];
