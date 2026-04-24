@@ -8,17 +8,33 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 
 ## Now — actively being worked on
 
-- [ ] **Path B — more coverage** — Both drivers at parity: **14
-      scenarios passing on React and Flutter** (s01-s14), specs shared
+- [ ] **Path B — more coverage** — Both drivers at parity: **15
+      scenarios passing on React and Flutter** (s01-s15), specs shared
       via [Frameworks/conformance/specs/](Frameworks/conformance/specs/).
       Remaining capabilities untested in conformance: `kanban`,
-      `chart`, `tabs`, `detail`, `summary`, `cascadeRename`,
-      `auth:ownership`. Steady-state: each capability gets its first
-      scenario when there's reason to pin that behavior cross-framework.
+      `chart`, `tabs`, `detail`, `cascadeRename` (blocked — see
+      Next), `auth:ownership`. Steady-state: each capability gets
+      its first scenario when there's reason to pin that behavior
+      cross-framework.
 
 ## Next — next 1–2 sessions
 
-<!-- empty; drop new items here as they come up -->
+- [ ] **Cascade-rename parity bug** (discovered 2026-04-24 while
+      drafting the would-be s15 cascade scenario). React's
+      [handleCascade](Frameworks/react-web/src/engine/app-store.ts)
+      reads flat keys `{childDataSource, childLinkField,
+      parentField}` from `result.cascade`. Flutter's
+      [AppEngine.executeActions](Frameworks/flutter-local/lib/engine/app_engine.dart)
+      treats the nested shorthand `{childDsId: fieldName, ...}` as
+      canonical and uses `result.cascadeMatchField` as the
+      parentField. Neither accepts the other's form — no single
+      spec satisfies both. The regression log (Bug #6) claims
+      "Flutter adopted React form" but the runtime code disagrees.
+      Also: the `simple-checklist.json` template uses the flat-key
+      form, so React templates would break on Flutter. Fix: pick
+      one canonical shape (recommend nested shorthand, add a
+      `parentField` in withData resolution), update both runtimes,
+      migrate templates, unskip a cascade conformance scenario.
 
 ## Docs — priority 3 (pre-public polish)
 
@@ -86,6 +102,30 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 ---
 
 ## Done — recent (trim quarterly)
+
+### 2026-04-24 — Path B Session H (s15 summary aggregates + cascade bug surfaced)
+
+- [x] **s15**: summary component `value` resolves aggregate
+      expressions (`{COUNT(tasks)}`) against the data source; label
+      passes through from spec. Exercises the `summary` capability
+      on both drivers and the `AggregateEvaluator` /
+      `resolveAggregates` cross-framework equivalence.
+- [x] Fixed ReactDriver's `snapshotComponent` summary branch —
+      previously read non-existent `s.defaultValue` and returned ''.
+      Now uses `s.value` and resolves aggregates via the real
+      `AggregateEvaluator`. Added `SummarySnapshot` to the Dart
+      contract + `summary` capability on FlutterDriver.
+- [x] Seeded-data support added to
+      [FakeDataService.setupDataSources](Frameworks/react-web/tests/helpers/fake-data-service.ts) —
+      mirrors the real `DataService.setupDataSources` so scenarios
+      can declare `seedData` on local data sources.
+- [x] **Cascade parity bug surfaced** (see Next list) — writing a
+      cascade scenario revealed that React's `handleCascade` and
+      Flutter's `AppEngine.executeActions` disagree on which cascade
+      shape is canonical. No spec satisfies both. Scenario deferred
+      until the bug is fixed; new Next-list item captures the work.
+- [x] Conformance total: 14 → 15 scenarios. React 1140 → 1141;
+      Flutter 803 → 804.
 
 ### 2026-04-24 — Path B Session G (s14 formulas)
 

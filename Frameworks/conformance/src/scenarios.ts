@@ -67,6 +67,7 @@ const multiUserAppSpec = (): OdsSpec => loadSpec('multiUserApp')
 const submitThenNavigateSpec = (): OdsSpec => loadSpec('submitThenNavigate')
 const rowActionUpdateSpec = (): OdsSpec => loadSpec('rowActionUpdate')
 const formulaComputeSpec = (): OdsSpec => loadSpec('formulaCompute')
+const summaryAggregateSpec = (): OdsSpec => loadSpec('summaryAggregate')
 
 // ---------------------------------------------------------------------------
 // Scenarios
@@ -387,6 +388,41 @@ export const s14_formula_fields_compute_from_dependencies: Scenario = {
   },
 }
 
+export const s15_summary_aggregate_counts_rows: Scenario = {
+  name: 'summary component value resolves aggregate expressions against data',
+  spec: summaryAggregateSpec,
+  capabilities: ['core', 'action:submit', 'summary'],
+  run: async (d) => {
+    const before = await d.pageContent()
+    const sBefore = before.find((c) => c.kind === 'summary')
+    assertTrue(sBefore != null, 'summary component present in snapshot')
+    assertEqual(sBefore!.kind, 'summary', 'snapshot kind is summary')
+    assertEqual(
+      (sBefore as { value: string }).value,
+      '0',
+      'COUNT(tasks) is 0 with no rows',
+    )
+
+    for (const title of ['a', 'b', 'c']) {
+      await d.fillField('title', title)
+      await d.clickButton('Save')
+    }
+
+    const after = await d.pageContent()
+    const sAfter = after.find((c) => c.kind === 'summary')
+    assertEqual(
+      (sAfter as { value: string }).value,
+      '3',
+      'COUNT(tasks) reflects three submissions',
+    )
+    assertEqual(
+      (sAfter as { label: string }).label,
+      'Total Tasks',
+      'summary label is passed through from the spec',
+    )
+  },
+}
+
 /** Full list of scenarios the runner should execute. */
 export const allScenarios: ReadonlyArray<Scenario> = [
   s01_spec_loads,
@@ -403,4 +439,5 @@ export const allScenarios: ReadonlyArray<Scenario> = [
   s12_submit_on_end_navigate,
   s13_row_action_update_changes_field,
   s14_formula_fields_compute_from_dependencies,
+  s15_summary_aggregate_counts_rows,
 ]

@@ -133,9 +133,21 @@ class ButtonSnapshot extends ComponentSnapshot {
   String get kind => 'button';
 }
 
-// The other snapshot variants (kanban, chart, summary, tabs, detail) are
-// defined alongside these when scenarios demand them. MVP only needs the
-// five above. If you add one here, mirror it in contract.ts.
+class SummarySnapshot extends ComponentSnapshot {
+  const SummarySnapshot({
+    required super.visible,
+    required this.label,
+    required this.value,
+  });
+  final String label;
+  final String value;
+  @override
+  String get kind => 'summary';
+}
+
+// The other snapshot variants (kanban, chart, tabs, detail) are defined
+// here when scenarios demand them. If you add one, mirror it in
+// contract.ts.
 
 // ---------------------------------------------------------------------------
 // The OdsDriver interface every renderer implements

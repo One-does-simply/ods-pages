@@ -17,6 +17,7 @@ import type {
 } from '../../src/models/ods-component.ts'
 import { tableName } from '../../src/models/ods-data-source.ts'
 import { evaluateFormula } from '../../src/engine/formula-evaluator.ts'
+import { hasAggregates, resolveAggregates } from '../../src/engine/aggregate-evaluator.ts'
 import { FakeDataService } from '../helpers/fake-data-service.ts'
 import { FakePocketBase } from '../helpers/fake-pocketbase.ts'
 
@@ -577,12 +578,15 @@ export class ReactDriver implements OdsDriver {
       }
       case 'summary': {
         const s = c as OdsSummaryComponent
-        return {
-          kind: 'summary',
-          visible,
-          label: s.label,
-          value: String(s.defaultValue ?? ''),
+        let value = s.value ?? ''
+        if (hasAggregates(value)) {
+          value = await resolveAggregates(value, async (dsId: string) => {
+            const ds = this.requireApp().dataSources[dsId]
+            if (!ds) return []
+            return this.dataService!.query(tableName(ds))
+          })
         }
+        return { kind: 'summary', visible, label: s.label, value }
       }
       case 'tabs': {
         const t = c as OdsTabsComponent

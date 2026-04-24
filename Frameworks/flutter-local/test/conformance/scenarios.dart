@@ -70,6 +70,7 @@ OdsSpec multiUserAppSpec() => loadSpec('multiUserApp');
 OdsSpec submitThenNavigateSpec() => loadSpec('submitThenNavigate');
 OdsSpec rowActionUpdateSpec() => loadSpec('rowActionUpdate');
 OdsSpec formulaComputeSpec() => loadSpec('formulaCompute');
+OdsSpec summaryAggregateSpec() => loadSpec('summaryAggregate');
 
 // ---------------------------------------------------------------------------
 // Scenarios (mirrors of the TS versions; keep ids + names aligned)
@@ -370,6 +371,29 @@ final s14FormulaFieldsComputeFromDependencies = Scenario(
   },
 );
 
+final s15SummaryAggregateCountsRows = Scenario(
+  name: 'summary component value resolves aggregate expressions against data',
+  spec: summaryAggregateSpec,
+  capabilities: const ['core', 'action:submit', 'summary'],
+  run: (d) async {
+    final before = await d.pageContent();
+    final sBefore = before.whereType<SummarySnapshot>().firstOrNull;
+    assertTrue(sBefore != null, 'summary component present in snapshot');
+    assertEqual(sBefore!.value, '0', 'COUNT(tasks) is 0 with no rows');
+
+    for (final title in const ['a', 'b', 'c']) {
+      await d.fillField('title', title);
+      await d.clickButton('Save');
+    }
+
+    final after = await d.pageContent();
+    final sAfter = after.whereType<SummarySnapshot>().first;
+    assertEqual(sAfter.value, '3', 'COUNT(tasks) reflects three submissions');
+    assertEqual(sAfter.label, 'Total Tasks',
+        'summary label is passed through from the spec');
+  },
+);
+
 /// Full list of scenarios the runner executes.
 final List<Scenario> allScenarios = [
   s01SpecLoads,
@@ -386,4 +410,5 @@ final List<Scenario> allScenarios = [
   s12SubmitOnEndNavigate,
   s13RowActionUpdateChangesField,
   s14FormulaFieldsComputeFromDependencies,
+  s15SummaryAggregateCountsRows,
 ];

@@ -15,6 +15,7 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:ods_flutter_local/engine/aggregate_evaluator.dart';
 import 'package:ods_flutter_local/engine/app_engine.dart';
 import 'package:ods_flutter_local/engine/formula_evaluator.dart';
 import 'package:ods_flutter_local/models/ods_action.dart';
@@ -34,6 +35,7 @@ class FlutterDriver implements OdsDriver {
     'action:update',
     'rowActions',
     'formulas',
+    'summary',
     'auth:multiUser',
     'auth:selfRegistration',
   };
@@ -552,6 +554,17 @@ class FlutterDriver implements OdsDriver {
     }
     if (c is OdsButtonComponent) {
       return ButtonSnapshot(visible: visible, label: c.label, enabled: true);
+    }
+    if (c is OdsSummaryComponent) {
+      var value = c.value;
+      if (AggregateEvaluator.hasAggregates(value)) {
+        value = await AggregateEvaluator.resolve(value, (dsId) async {
+          final ds = engine.app?.dataSources[dsId];
+          if (ds == null) return <Map<String, dynamic>>[];
+          return engine.dataStore.query(ds.tableName);
+        });
+      }
+      return SummarySnapshot(visible: visible, label: c.label, value: value);
     }
     // Other component kinds not yet rendered in the MVP driver.
     return null;

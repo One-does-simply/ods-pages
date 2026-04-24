@@ -23,8 +23,21 @@ export class FakeDataService {
     // No-op for fake
   }
 
-  async setupDataSources(_dataSources: Record<string, unknown>): Promise<void> {
-    // No-op for fake
+  async setupDataSources(
+    dataSources: Record<string, { url?: string; seedData?: Array<Record<string, unknown>> }>,
+  ): Promise<void> {
+    // Mirror DataService.setupDataSources: seed rows into empty local
+    // tables so scenarios can rely on declarative `seedData`.
+    for (const [, ds] of Object.entries(dataSources)) {
+      const url = ds?.url
+      if (typeof url !== 'string' || !url.startsWith('local://')) continue
+      const table = url.substring('local://'.length)
+      const existing = this.tables[table] ?? []
+      if (existing.length > 0) continue
+      for (const row of ds.seedData ?? []) {
+        await this.insert(table, row)
+      }
+    }
   }
 
   async insert(table: string, data: Record<string, unknown>): Promise<string> {
