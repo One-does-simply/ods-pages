@@ -1,10 +1,18 @@
-name: Test
+name: Flutter
 
 on:
   push:
     branches: [main]
+    paths:
+      - 'Frameworks/flutter-local/**'
+      - 'Specification/**'
+      - '.github/workflows/flutter.yml'
   pull_request:
     branches: [main]
+    paths:
+      - 'Frameworks/flutter-local/**'
+      - 'Specification/**'
+      - '.github/workflows/flutter.yml'
 
 jobs:
   test:
@@ -12,17 +20,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          path: Frameworks/flutter-local
-
-      - uses: actions/checkout@v4
-        with:
-          repository: One-does-simply/Specification
-          path: Specification
 
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          cache: true
 
       - name: Install dependencies
         working-directory: Frameworks/flutter-local
@@ -32,6 +34,9 @@ jobs:
         working-directory: Frameworks/flutter-local
         run: flutter analyze --fatal-errors --no-fatal-warnings --no-fatal-infos
 
+      # Batch 9 perf tests are tagged `slow` (see dart_test.yaml) — excluded
+      # from the gate because their I/O timing budgets flake on cold runners.
+      # Widget tests are skipped on Windows only; on Linux they run normally.
       - name: Run tests
         working-directory: Frameworks/flutter-local
-        run: flutter test
+        run: flutter test --exclude-tags=slow

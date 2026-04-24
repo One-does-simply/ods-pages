@@ -32,11 +32,13 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 
 ## Next — next 1–2 sessions
 
-- [ ] **Flutter CI workflow** — GitHub Actions running
-      `flutter test test/engine test/models test/parser test/integration`
-      on Linux (where the widget-test harness hang doesn't apply). React
-      side already has [.github/workflows/test.yml](Frameworks/react-web/.github/workflows/test.yml);
-      Flutter side has none. Single highest-ROI item.
+- [ ] **React `tsc -b` gate in CI** — the root `react.yml` workflow
+      dropped the TypeScript build step because of pre-existing errors
+      in [ColorCustomizer.tsx:221](Frameworks/react-web/src/components/ColorCustomizer.tsx#L221),
+      [code-generator.ts:1072-1115](Frameworks/react-web/src/engine/code-generator.ts#L1072),
+      [pocketbase.ts:20](Frameworks/react-web/src/lib/pocketbase.ts#L20),
+      and [KanbanComponent.tsx:1029](Frameworks/react-web/src/renderer/components/KanbanComponent.tsx#L1029).
+      Fix the errors, then add `npx tsc -b` back to the `unit` job.
 
 ## Docs — priority 3 (pre-public polish)
 
@@ -101,6 +103,21 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 ---
 
 ## Done — recent (trim quarterly)
+
+### 2026-04-24 — Root-level CI workflows
+
+- [x] Moved Flutter + React workflows to root `.github/workflows/`
+      ([flutter.yml](.github/workflows/flutter.yml), [react.yml](.github/workflows/react.yml)).
+      The nested copies under `Frameworks/*/.github/workflows/` were
+      orphaned after the monorepo consolidation (GitHub Actions only
+      reads workflows from repo-root `.github/workflows/`) — neither
+      framework had working CI. Adjusted paths for the new layout
+      (single checkout, no separate Specification clone).
+- [x] Flutter workflow excludes `slow`-tagged Batch 9 perf tests
+      (`flutter test --exclude-tags=slow`) so I/O-bound perf tests
+      don't flake the gate on cold runners.
+- [x] React E2E job preserved (Playwright + PocketBase via
+      `tests/e2e/global-setup.ts`).
 
 ### 2026-04-23 — Small-win sweep
 

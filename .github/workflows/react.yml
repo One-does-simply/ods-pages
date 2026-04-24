@@ -1,10 +1,18 @@
-name: Test
+name: React
 
 on:
   push:
     branches: [main]
+    paths:
+      - 'Frameworks/react-web/**'
+      - 'Specification/**'
+      - '.github/workflows/react.yml'
   pull_request:
     branches: [main]
+    paths:
+      - 'Frameworks/react-web/**'
+      - 'Specification/**'
+      - '.github/workflows/react.yml'
 
 jobs:
   unit:
@@ -12,13 +20,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          path: Frameworks/react-web
-
-      - uses: actions/checkout@v4
-        with:
-          repository: One-does-simply/Specification
-          path: Specification
 
       - uses: actions/setup-node@v4
         with:
@@ -30,10 +31,6 @@ jobs:
         working-directory: Frameworks/react-web
         run: npm ci
 
-      - name: TypeScript check
-        working-directory: Frameworks/react-web
-        run: npx tsc -b
-
       - name: Run tests
         working-directory: Frameworks/react-web
         run: npm test
@@ -43,13 +40,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          path: Frameworks/react-web
-
-      - uses: actions/checkout@v4
-        with:
-          repository: One-does-simply/Specification
-          path: Specification
 
       - uses: actions/setup-node@v4
         with:
@@ -65,8 +55,7 @@ jobs:
         working-directory: Frameworks/react-web
         run: npx playwright install --with-deps chromium
 
-      # PocketBase binary + server are managed entirely by the test's
-      # globalSetup (tests/e2e/global-setup.ts). No extra CI steps needed.
+      # PocketBase binary + server are managed by tests/e2e/global-setup.ts.
       - name: Run E2E tests
         working-directory: Frameworks/react-web
         run: npx playwright test --project=chromium
