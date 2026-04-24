@@ -8,17 +8,34 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 
 ## Now — actively being worked on
 
-- [ ] **Path B — more coverage** — Both drivers at parity: **15
-      scenarios passing on React and Flutter** (s01-s15), specs shared
+- [ ] **Path B — more coverage** — Both drivers at parity: **16
+      scenarios passing on React and Flutter** (s01-s16), specs shared
       via [Frameworks/conformance/specs/](Frameworks/conformance/specs/).
       Remaining capabilities untested in conformance: `kanban`,
       `chart`, `tabs`, `detail`, `cascadeRename` (blocked — see
-      Next), `auth:ownership`. Steady-state: each capability gets
-      its first scenario when there's reason to pin that behavior
-      cross-framework.
+      Next). Steady-state: each capability gets its first scenario
+      when there's reason to pin that behavior cross-framework.
 
 ## Next — next 1–2 sessions
 
+- [ ] **Flutter ownership column not auto-added to schema** —
+      discovered 2026-04-24 while writing s16 (auth:ownership).
+      Flutter's
+      [DataStore.setupDataSources](Frameworks/flutter-local/lib/engine/data_store.dart)
+      creates the table from the spec's `fields` only; it doesn't
+      add the `ownership.ownerField` column. Then the submit action
+      (`ActionHandler.insert`) injects `_owner` into row data and
+      SQLite rejects it with "no such column." Existing bundled
+      examples like
+      [team-tasks-app.json](Specification/Examples/team-tasks-app.json)
+      would hit this — either they've never been submitted to on
+      Flutter, or someone has manually added `_owner` to their
+      `fields`. Fix: in `setupDataSources`/`ensureTable`, when
+      `ds.ownership.enabled` is true, append an `OdsFieldDefinition`
+      for `ownerField` to the fields list (unless already present).
+      React parallels: FakeDataService is schema-flexible so it
+      didn't surface the bug; the real PocketBase-backed path might
+      or might not (PB auto-extends collections — needs a check).
 - [ ] **Cascade-rename parity bug** (discovered 2026-04-24 while
       drafting the would-be s15 cascade scenario). React's
       [handleCascade](Frameworks/react-web/src/engine/app-store.ts)
@@ -102,6 +119,27 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 ---
 
 ## Done — recent (trim quarterly)
+
+### 2026-04-24 — Path B Session I (s16 row-level ownership + Flutter schema bug surfaced)
+
+- [x] **s16**: ownership-enabled data source hides rows owned by
+      other users. Alice + Bob each register + submit; each sees
+      only their own rows in the list snapshot; `dataRows` (the
+      god view) sees all rows regardless of session.
+- [x] Both drivers' list snapshots now route through
+      `queryDataSource` (React store) / `engine.queryDataSource`
+      (Flutter) — so `rowCount` reflects what the current user
+      would actually see, including ownership filtering. Previously
+      both used the raw unfiltered query.
+- [x] `auth:ownership` capability declared on FlutterDriver (was
+      already on React).
+- [x] **Flutter schema bug surfaced** (see Next list) — writing
+      s16 revealed that Flutter's DataStore doesn't auto-add the
+      `_owner` column for ownership-enabled data sources; the
+      insert then fails on SQLite's strict schema. Workaround in
+      the scenario spec: declare `_owner` explicitly in `fields`.
+- [x] Conformance total: 15 → 16 scenarios. React 1141 → 1142;
+      Flutter 804 → 805.
 
 ### 2026-04-24 — Path B Session H (s15 summary aggregates + cascade bug surfaced)
 

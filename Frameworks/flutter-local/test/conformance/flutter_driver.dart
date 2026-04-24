@@ -38,6 +38,7 @@ class FlutterDriver implements OdsDriver {
     'summary',
     'auth:multiUser',
     'auth:selfRegistration',
+    'auth:ownership',
   };
 
   AppEngine? _engine;
@@ -539,10 +540,9 @@ class FlutterDriver implements OdsDriver {
       );
     }
     if (c is OdsListComponent) {
-      final ds = app.dataSources[c.dataSource];
-      final rows = ds != null
-          ? await engine.dataStore.query(ds.tableName)
-          : const <Map<String, dynamic>>[];
+      // Route through the engine so ownership (and future row-level
+      // filters) apply — matches what the user actually sees.
+      final rows = await engine.queryDataSource(c.dataSource);
       return ListSnapshot(
         visible: visible,
         dataSource: c.dataSource,

@@ -524,10 +524,9 @@ export class ReactDriver implements OdsDriver {
       }
       case 'list': {
         const l = c as OdsListComponent
-        const ds = this.requireApp().dataSources[l.dataSource]
-        const rows = ds
-          ? await this.dataService!.query(tableName(ds))
-          : []
+        // Route through the store so ownership (and future row-level
+        // filters) apply — matches what the user actually sees.
+        const rows = await useAppStore.getState().queryDataSource(l.dataSource)
         return {
           kind: 'list',
           visible,

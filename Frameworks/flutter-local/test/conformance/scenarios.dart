@@ -71,6 +71,7 @@ OdsSpec submitThenNavigateSpec() => loadSpec('submitThenNavigate');
 OdsSpec rowActionUpdateSpec() => loadSpec('rowActionUpdate');
 OdsSpec formulaComputeSpec() => loadSpec('formulaCompute');
 OdsSpec summaryAggregateSpec() => loadSpec('summaryAggregate');
+OdsSpec ownershipPerUserSpec() => loadSpec('ownershipPerUser');
 
 // ---------------------------------------------------------------------------
 // Scenarios (mirrors of the TS versions; keep ids + names aligned)
@@ -394,6 +395,55 @@ final s15SummaryAggregateCountsRows = Scenario(
   },
 );
 
+final s16OwnershipScopesListToCurrentUser = Scenario(
+  name: 'ownership-enabled data source hides rows owned by other users',
+  spec: ownershipPerUserSpec,
+  capabilities: const [
+    'core',
+    'action:submit',
+    'auth:multiUser',
+    'auth:selfRegistration',
+    'auth:ownership',
+  ],
+  run: (d) async {
+    // Alice creates two tasks.
+    await d.registerUser(email: 'alice@example.com', password: 'pw-alice-1');
+    await d.login('alice@example.com', 'pw-alice-1');
+    await d.fillField('title', 'Alice task 1');
+    await d.clickButton('Save');
+    await d.fillField('title', 'Alice task 2');
+    await d.clickButton('Save');
+
+    final aliceView = await d.pageContent();
+    final aliceList = aliceView.whereType<ListSnapshot>().first;
+    assertEqual(aliceList.rowCount, 2, 'Alice sees her two rows');
+
+    // Bob creates one task.
+    await d.logout();
+    await d.registerUser(email: 'bob@example.com', password: 'pw-bob-1');
+    await d.login('bob@example.com', 'pw-bob-1');
+    await d.fillField('title', 'Bob task 1');
+    await d.clickButton('Save');
+
+    final bobView = await d.pageContent();
+    final bobList = bobView.whereType<ListSnapshot>().first;
+    assertEqual(
+        bobList.rowCount, 1, 'Bob sees only his own row, not Alice\'s');
+
+    // Swap back to Alice.
+    await d.logout();
+    await d.login('alice@example.com', 'pw-alice-1');
+    final aliceAgain = await d.pageContent();
+    final aliceList2 = aliceAgain.whereType<ListSnapshot>().first;
+    assertEqual(aliceList2.rowCount, 2,
+        'Alice still sees her two rows after Bob logged in and out');
+
+    // God view is unfiltered.
+    final allRows = await d.dataRows('tasks');
+    assertEqual(allRows.length, 3, 'dataRows is unfiltered — sees all 3 rows');
+  },
+);
+
 /// Full list of scenarios the runner executes.
 final List<Scenario> allScenarios = [
   s01SpecLoads,
@@ -411,4 +461,5 @@ final List<Scenario> allScenarios = [
   s13RowActionUpdateChangesField,
   s14FormulaFieldsComputeFromDependencies,
   s15SummaryAggregateCountsRows,
+  s16OwnershipScopesListToCurrentUser,
 ];

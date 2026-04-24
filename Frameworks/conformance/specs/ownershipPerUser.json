@@ -1,0 +1,55 @@
+{
+  "appName": "Ownership Per User",
+  "startPage": "home",
+  "auth": {
+    "multiUser": true,
+    "selfRegistration": true,
+    "defaultRole": "user",
+    "roles": []
+  },
+  "pages": {
+    "home": {
+      "component": "page",
+      "title": "Home",
+      "content": [
+        {
+          "component": "form",
+          "id": "addForm",
+          "dataSource": "tasks",
+          "fields": [
+            { "name": "title", "type": "text", "label": "Title", "required": true }
+          ]
+        },
+        {
+          "component": "button",
+          "label": "Save",
+          "onClick": [
+            { "action": "submit", "dataSource": "tasks", "target": "addForm" }
+          ]
+        },
+        {
+          "component": "list",
+          "dataSource": "tasks",
+          "columns": [
+            { "field": "title", "header": "Title" }
+          ]
+        }
+      ]
+    }
+  },
+  "dataSources": {
+    "tasks": {
+      "url": "local://tasks",
+      "method": "POST",
+      "fields": [
+        { "name": "title", "type": "text" },
+        { "name": "_owner", "type": "text" }
+      ],
+      "ownership": {
+        "enabled": true,
+        "ownerField": "_owner",
+        "adminOverride": true
+      }
+    }
+  }
+}

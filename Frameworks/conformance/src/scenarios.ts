@@ -68,6 +68,7 @@ const submitThenNavigateSpec = (): OdsSpec => loadSpec('submitThenNavigate')
 const rowActionUpdateSpec = (): OdsSpec => loadSpec('rowActionUpdate')
 const formulaComputeSpec = (): OdsSpec => loadSpec('formulaCompute')
 const summaryAggregateSpec = (): OdsSpec => loadSpec('summaryAggregate')
+const ownershipPerUserSpec = (): OdsSpec => loadSpec('ownershipPerUser')
 
 // ---------------------------------------------------------------------------
 // Scenarios
@@ -423,6 +424,67 @@ export const s15_summary_aggregate_counts_rows: Scenario = {
   },
 }
 
+export const s16_ownership_scopes_list_to_current_user: Scenario = {
+  name: 'ownership-enabled data source hides rows owned by other users',
+  spec: ownershipPerUserSpec,
+  capabilities: [
+    'core',
+    'action:submit',
+    'auth:multiUser',
+    'auth:selfRegistration',
+    'auth:ownership',
+  ],
+  run: async (d) => {
+    // Alice creates two tasks.
+    await d.registerUser({ email: 'alice@example.com', password: 'pw-alice-1' })
+    await d.login('alice@example.com', 'pw-alice-1')
+    await d.fillField('title', 'Alice task 1')
+    await d.clickButton('Save')
+    await d.fillField('title', 'Alice task 2')
+    await d.clickButton('Save')
+
+    // Alice sees her own two rows in the list snapshot.
+    const aliceView = await d.pageContent()
+    const aliceList = aliceView.find((c) => c.kind === 'list')
+    assertEqual(
+      (aliceList as { rowCount: number }).rowCount,
+      2,
+      'Alice sees her two rows',
+    )
+
+    // Bob creates one task.
+    await d.logout()
+    await d.registerUser({ email: 'bob@example.com', password: 'pw-bob-1' })
+    await d.login('bob@example.com', 'pw-bob-1')
+    await d.fillField('title', 'Bob task 1')
+    await d.clickButton('Save')
+
+    // Bob sees only his own row — Alice's two are hidden.
+    const bobView = await d.pageContent()
+    const bobList = bobView.find((c) => c.kind === 'list')
+    assertEqual(
+      (bobList as { rowCount: number }).rowCount,
+      1,
+      'Bob sees only his own row, not Alice\'s',
+    )
+
+    // Swap back to Alice — she still sees exactly her two rows.
+    await d.logout()
+    await d.login('alice@example.com', 'pw-alice-1')
+    const aliceAgain = await d.pageContent()
+    const aliceList2 = aliceAgain.find((c) => c.kind === 'list')
+    assertEqual(
+      (aliceList2 as { rowCount: number }).rowCount,
+      2,
+      'Alice still sees her two rows after Bob logged in and out',
+    )
+
+    // God view (dataRows) sees everything regardless of session.
+    const allRows = await d.dataRows('tasks')
+    assertEqual(allRows.length, 3, 'dataRows is unfiltered — sees all 3 rows')
+  },
+}
+
 /** Full list of scenarios the runner should execute. */
 export const allScenarios: ReadonlyArray<Scenario> = [
   s01_spec_loads,
@@ -440,4 +502,5 @@ export const allScenarios: ReadonlyArray<Scenario> = [
   s13_row_action_update_changes_field,
   s14_formula_fields_compute_from_dependencies,
   s15_summary_aggregate_counts_rows,
+  s16_ownership_scopes_list_to_current_user,
 ]
