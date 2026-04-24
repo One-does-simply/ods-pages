@@ -255,9 +255,25 @@ export class ReactDriver implements OdsDriver {
           matchValue,
         )
         return
+      case 'update':
+        // Mirrors ListComponent's row-action dispatch: synthesize an
+        // update action with the matchValue in `target` and the
+        // rowAction's literal values in `withData`.
+        await useAppStore.getState().executeActions([
+          {
+            action: 'update',
+            dataSource: rowAction.dataSource || dataSource,
+            matchField,
+            target: matchValue,
+            withData: rowAction.values as Record<string, unknown>,
+            computedFields: [],
+            preserveFields: [],
+          },
+        ])
+        return
       default:
         throw new Error(
-          `clickRowAction: action "${rowAction.action}" not yet implemented (only "delete" supported for MVP)`,
+          `clickRowAction: action "${rowAction.action}" not yet implemented (only "delete"/"update" supported for MVP)`,
         )
     }
   }

@@ -1,0 +1,55 @@
+{
+  "appName": "Row Action Update",
+  "startPage": "home",
+  "pages": {
+    "home": {
+      "component": "page",
+      "title": "Home",
+      "content": [
+        {
+          "component": "form",
+          "id": "addForm",
+          "dataSource": "tasks",
+          "fields": [
+            { "name": "title", "type": "text", "label": "Title", "required": true },
+            { "name": "status", "type": "text", "label": "Status" }
+          ]
+        },
+        {
+          "component": "button",
+          "label": "Save",
+          "onClick": [
+            { "action": "submit", "dataSource": "tasks", "target": "addForm" }
+          ]
+        },
+        {
+          "component": "list",
+          "dataSource": "tasks",
+          "columns": [
+            { "field": "title", "header": "Title" },
+            { "field": "status", "header": "Status" }
+          ],
+          "rowActions": [
+            {
+              "label": "Mark Done",
+              "action": "update",
+              "dataSource": "tasks",
+              "matchField": "_id",
+              "values": { "status": "done" }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "dataSources": {
+    "tasks": {
+      "url": "local://tasks",
+      "method": "POST",
+      "fields": [
+        { "name": "title", "type": "text" },
+        { "name": "status", "type": "text" }
+      ]
+    }
+  }
+}

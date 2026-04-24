@@ -1,0 +1,54 @@
+{
+  "appName": "Submit Then Navigate",
+  "startPage": "home",
+  "pages": {
+    "home": {
+      "component": "page",
+      "title": "Home",
+      "content": [
+        {
+          "component": "form",
+          "id": "addForm",
+          "dataSource": "tasks",
+          "fields": [
+            { "name": "title", "type": "text", "label": "Title", "required": true }
+          ]
+        },
+        {
+          "component": "button",
+          "label": "Save",
+          "onClick": [
+            {
+              "action": "submit",
+              "dataSource": "tasks",
+              "target": "addForm",
+              "onEnd": { "action": "navigate", "target": "list" }
+            }
+          ]
+        }
+      ]
+    },
+    "list": {
+      "component": "page",
+      "title": "All Tasks",
+      "content": [
+        {
+          "component": "list",
+          "dataSource": "tasks",
+          "columns": [
+            { "field": "title", "header": "Title" }
+          ]
+        }
+      ]
+    }
+  },
+  "dataSources": {
+    "tasks": {
+      "url": "local://tasks",
+      "method": "POST",
+      "fields": [
+        { "name": "title", "type": "text" }
+      ]
+    }
+  }
+}

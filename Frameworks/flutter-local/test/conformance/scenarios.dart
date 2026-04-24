@@ -67,6 +67,8 @@ OdsSpec visibleWhenFieldSpec() => loadSpec('visibleWhenField');
 OdsSpec visibleWhenDataSpec() => loadSpec('visibleWhenData');
 OdsSpec currentDateDefaultSpec() => loadSpec('currentDateDefault');
 OdsSpec multiUserAppSpec() => loadSpec('multiUserApp');
+OdsSpec submitThenNavigateSpec() => loadSpec('submitThenNavigate');
+OdsSpec rowActionUpdateSpec() => loadSpec('rowActionUpdate');
 
 // ---------------------------------------------------------------------------
 // Scenarios (mirrors of the TS versions; keep ids + names aligned)
@@ -296,6 +298,49 @@ final s11LoginWithWrongPasswordFails = Scenario(
   },
 );
 
+final s12SubmitOnEndNavigate = Scenario(
+  name: 'submit action with onEnd navigate lands on the target page after insert',
+  spec: submitThenNavigateSpec,
+  capabilities: const ['core', 'action:submit', 'action:navigate'],
+  run: (d) async {
+    final before = await d.currentPage();
+    assertEqual(before.id, 'home', 'start on home page');
+
+    await d.fillField('title', 'Go-to task');
+    await d.clickButton('Save');
+
+    final after = await d.currentPage();
+    assertEqual(after.id, 'list', 'onEnd navigate lands us on the list page');
+    assertEqual(after.title, 'All Tasks', 'page title reflects destination');
+
+    final rows = await d.dataRows('tasks');
+    assertEqual(rows.length, 1, 'submit inserted a row before firing onEnd');
+    assertEqual(rows[0]['title'], 'Go-to task', 'inserted row matches fillField');
+  },
+);
+
+final s13RowActionUpdateChangesField = Scenario(
+  name: 'rowAction update writes new field values to the matched row',
+  spec: rowActionUpdateSpec,
+  capabilities: const ['core', 'action:submit', 'action:update', 'rowActions'],
+  run: (d) async {
+    await d.fillField('title', 'Test task');
+    await d.fillField('status', 'todo');
+    await d.clickButton('Save');
+
+    final before = await d.dataRows('tasks');
+    assertEqual(before.length, 1, 'one row after submit');
+    assertEqual(before[0]['status'], 'todo', 'row starts with status=todo');
+
+    await d.clickRowAction('tasks', before[0]['_id'].toString(), 'Mark Done');
+
+    final after = await d.dataRows('tasks');
+    assertEqual(after.length, 1, 'update preserves row count');
+    assertEqual(after[0]['status'], 'done', 'update set status=done');
+    assertEqual(after[0]['title'], 'Test task', 'update leaves other fields alone');
+  },
+);
+
 /// Full list of scenarios the runner executes.
 final List<Scenario> allScenarios = [
   s01SpecLoads,
@@ -309,4 +354,6 @@ final List<Scenario> allScenarios = [
   s09CurrentDateDefaultHonorsClock,
   s10RegisterThenLoginFlow,
   s11LoginWithWrongPasswordFails,
+  s12SubmitOnEndNavigate,
+  s13RowActionUpdateChangesField,
 ];

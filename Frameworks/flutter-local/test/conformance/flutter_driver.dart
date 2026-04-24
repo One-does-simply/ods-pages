@@ -30,6 +30,7 @@ class FlutterDriver implements OdsDriver {
     'action:showMessage',
     'action:navigate',
     'action:delete',
+    'action:update',
     'rowActions',
     'auth:multiUser',
     'auth:selfRegistration',
@@ -205,10 +206,18 @@ class FlutterDriver implements OdsDriver {
           matchValue: matchValue,
         );
         return;
+      case 'update':
+        await engine.executeRowAction(
+          dataSourceId: rowAction.dataSource.isEmpty ? dataSource : rowAction.dataSource,
+          matchField: matchField,
+          matchValue: matchValue,
+          values: rowAction.values,
+        );
+        return;
       default:
         throw UnimplementedError(
           'clickRowAction: action "${rowAction.action}" not yet supported '
-          '(only "delete" implemented in MVP)',
+          '(only "delete"/"update" implemented in MVP)',
         );
     }
   }

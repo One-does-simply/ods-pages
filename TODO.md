@@ -8,13 +8,14 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 
 ## Now — actively being worked on
 
-- [ ] **Path B — more coverage** — Both drivers at parity: **11
-      scenarios passing on React and Flutter**, specs now shared via
-      [Frameworks/conformance/specs/](Frameworks/conformance/specs/)
-      (Session E 2026-04-24). Remaining work: (a) port more
-      Batch 1–6 scenarios for broader coverage, (b) iterate as new
-      capabilities (kanban, chart, tabs, detail, formulas,
-      cascadeRename, auth:ownership) get their first scenarios.
+- [ ] **Path B — more coverage** — Both drivers at parity: **13
+      scenarios passing on React and Flutter** (s01-s13), specs shared
+      via [Frameworks/conformance/specs/](Frameworks/conformance/specs/).
+      Remaining capabilities untested in conformance: `kanban`,
+      `chart`, `tabs`, `detail`, `summary`, `formulas`,
+      `cascadeRename`, `auth:ownership`. Steady-state: each
+      capability gets its first scenario when there's reason to pin
+      that behavior cross-framework.
 
 ## Next — next 1–2 sessions
 
@@ -86,6 +87,21 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 ---
 
 ## Done — recent (trim quarterly)
+
+### 2026-04-24 — Path B Session F (s12 onEnd + s13 update rowAction)
+
+- [x] **s12**: submit action with `onEnd` navigate — pins Bug #2
+      fix (universal onEnd). New
+      [submitThenNavigate.json](Frameworks/conformance/specs/submitThenNavigate.json).
+- [x] **s13**: rowAction with `action: update` writes literal
+      `values` to the matched row. Forces both drivers to extend
+      `clickRowAction` beyond delete-only — the ReactDriver now
+      dispatches update via `executeActions`, the FlutterDriver
+      via `engine.executeRowAction`. New
+      [rowActionUpdate.json](Frameworks/conformance/specs/rowActionUpdate.json).
+- [x] `action:update` capability declared on both drivers.
+      Conformance total: 11 → 13 scenarios. React 1137 → 1139;
+      Flutter 800 → 802.
 
 ### 2026-04-24 — Path B Session E (shared scenario specs)
 
