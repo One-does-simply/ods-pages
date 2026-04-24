@@ -8,13 +8,13 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 
 ## Now — actively being worked on
 
-- [ ] **Path B — more coverage** — Both drivers at parity: **16
-      scenarios passing on React and Flutter** (s01-s16), specs shared
+- [ ] **Path B — more coverage** — Both drivers at parity: **17
+      scenarios passing on React and Flutter** (s01-s17), specs shared
       via [Frameworks/conformance/specs/](Frameworks/conformance/specs/).
       Remaining capabilities untested in conformance: `kanban`,
-      `chart`, `tabs`, `detail`, `cascadeRename` (blocked — see
-      Next). Steady-state: each capability gets its first scenario
-      when there's reason to pin that behavior cross-framework.
+      `chart`, `detail`, `cascadeRename` (blocked — see Next). Tab
+      coverage is initial-state only; add a `clickTab` method later
+      to test switching.
 
 ## Next — next 1–2 sessions
 
@@ -119,6 +119,17 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 ---
 
 ## Done — recent (trim quarterly)
+
+### 2026-04-24 — Path B Session J (s17 tabs initial state)
+
+- [x] **s17**: tabs component snapshot reports labels in spec order
+      with the first tab active by default. Pins the tabs snapshot
+      contract across both frameworks.
+- [x] Added `TabsSnapshot` + `TabsTab` to the Dart contract;
+      FlutterDriver now emits a `TabsSnapshot` for `OdsTabsComponent`.
+- [x] `tabs` capability declared on FlutterDriver (already on React).
+- [x] Conformance total: 16 → 17 scenarios. React 1142 → 1143;
+      Flutter 805 → 806.
 
 ### 2026-04-24 — Path B Session I (s16 row-level ownership + Flutter schema bug surfaced)
 

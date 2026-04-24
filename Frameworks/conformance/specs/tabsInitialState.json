@@ -1,0 +1,36 @@
+{
+  "appName": "Tabs Initial",
+  "startPage": "home",
+  "pages": {
+    "home": {
+      "component": "page",
+      "title": "Home",
+      "content": [
+        {
+          "component": "tabs",
+          "tabs": [
+            {
+              "label": "Overview",
+              "content": [
+                { "component": "text", "content": "Overview content" }
+              ]
+            },
+            {
+              "label": "Details",
+              "content": [
+                { "component": "text", "content": "Details content" }
+              ]
+            },
+            {
+              "label": "Settings",
+              "content": [
+                { "component": "text", "content": "Settings content" }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "dataSources": {}
+}

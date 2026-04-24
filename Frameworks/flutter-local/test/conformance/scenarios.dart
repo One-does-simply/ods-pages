@@ -72,6 +72,7 @@ OdsSpec rowActionUpdateSpec() => loadSpec('rowActionUpdate');
 OdsSpec formulaComputeSpec() => loadSpec('formulaCompute');
 OdsSpec summaryAggregateSpec() => loadSpec('summaryAggregate');
 OdsSpec ownershipPerUserSpec() => loadSpec('ownershipPerUser');
+OdsSpec tabsInitialStateSpec() => loadSpec('tabsInitialState');
 
 // ---------------------------------------------------------------------------
 // Scenarios (mirrors of the TS versions; keep ids + names aligned)
@@ -444,6 +445,27 @@ final s16OwnershipScopesListToCurrentUser = Scenario(
   },
 );
 
+final s17TabsSnapshotExposesLabelsAndFirstActive = Scenario(
+  name: 'tabs component snapshot reports labels in order with the first tab active',
+  spec: tabsInitialStateSpec,
+  capabilities: const ['core', 'tabs'],
+  run: (d) async {
+    final content = await d.pageContent();
+    final tabs = content.whereType<TabsSnapshot>().firstOrNull;
+    assertTrue(tabs != null, 'tabs component present on the page');
+
+    final tabList = tabs!.tabs;
+    assertEqual(tabList.length, 3, 'three tabs declared in the spec');
+    assertEqual(tabList[0].label, 'Overview', 'tab 0 label');
+    assertEqual(tabList[1].label, 'Details', 'tab 1 label');
+    assertEqual(tabList[2].label, 'Settings', 'tab 2 label');
+
+    final activeCount = tabList.where((t) => t.active).length;
+    assertEqual(activeCount, 1, 'exactly one tab is active');
+    assertEqual(tabList[0].active, true, 'first tab is the active one by default');
+  },
+);
+
 /// Full list of scenarios the runner executes.
 final List<Scenario> allScenarios = [
   s01SpecLoads,
@@ -462,4 +484,5 @@ final List<Scenario> allScenarios = [
   s14FormulaFieldsComputeFromDependencies,
   s15SummaryAggregateCountsRows,
   s16OwnershipScopesListToCurrentUser,
+  s17TabsSnapshotExposesLabelsAndFirstActive,
 ];

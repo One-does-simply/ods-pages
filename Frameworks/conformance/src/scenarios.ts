@@ -69,6 +69,7 @@ const rowActionUpdateSpec = (): OdsSpec => loadSpec('rowActionUpdate')
 const formulaComputeSpec = (): OdsSpec => loadSpec('formulaCompute')
 const summaryAggregateSpec = (): OdsSpec => loadSpec('summaryAggregate')
 const ownershipPerUserSpec = (): OdsSpec => loadSpec('ownershipPerUser')
+const tabsInitialStateSpec = (): OdsSpec => loadSpec('tabsInitialState')
 
 // ---------------------------------------------------------------------------
 // Scenarios
@@ -485,6 +486,27 @@ export const s16_ownership_scopes_list_to_current_user: Scenario = {
   },
 }
 
+export const s17_tabs_snapshot_exposes_labels_and_first_active: Scenario = {
+  name: 'tabs component snapshot reports labels in order with the first tab active',
+  spec: tabsInitialStateSpec,
+  capabilities: ['core', 'tabs'],
+  run: async (d) => {
+    const content = await d.pageContent()
+    const tabs = content.find((c) => c.kind === 'tabs')
+    assertTrue(tabs != null, 'tabs component present on the page')
+
+    const tabList = (tabs as { tabs: Array<{ label: string; active: boolean }> }).tabs
+    assertEqual(tabList.length, 3, 'three tabs declared in the spec')
+    assertEqual(tabList[0].label, 'Overview', 'tab 0 label')
+    assertEqual(tabList[1].label, 'Details', 'tab 1 label')
+    assertEqual(tabList[2].label, 'Settings', 'tab 2 label')
+
+    const activeCount = tabList.filter((t) => t.active).length
+    assertEqual(activeCount, 1, 'exactly one tab is active')
+    assertEqual(tabList[0].active, true, 'first tab is the active one by default')
+  },
+}
+
 /** Full list of scenarios the runner should execute. */
 export const allScenarios: ReadonlyArray<Scenario> = [
   s01_spec_loads,
@@ -503,4 +525,5 @@ export const allScenarios: ReadonlyArray<Scenario> = [
   s14_formula_fields_compute_from_dependencies,
   s15_summary_aggregate_counts_rows,
   s16_ownership_scopes_list_to_current_user,
+  s17_tabs_snapshot_exposes_labels_and_first_active,
 ]

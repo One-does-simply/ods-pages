@@ -145,9 +145,21 @@ class SummarySnapshot extends ComponentSnapshot {
   String get kind => 'summary';
 }
 
-// The other snapshot variants (kanban, chart, tabs, detail) are defined
-// here when scenarios demand them. If you add one, mirror it in
-// contract.ts.
+class TabsTab {
+  const TabsTab({required this.label, required this.active});
+  final String label;
+  final bool active;
+}
+
+class TabsSnapshot extends ComponentSnapshot {
+  const TabsSnapshot({required super.visible, required this.tabs});
+  final List<TabsTab> tabs;
+  @override
+  String get kind => 'tabs';
+}
+
+// The other snapshot variants (kanban, chart, detail) are defined here
+// when scenarios demand them. If you add one, mirror it in contract.ts.
 
 // ---------------------------------------------------------------------------
 // The OdsDriver interface every renderer implements

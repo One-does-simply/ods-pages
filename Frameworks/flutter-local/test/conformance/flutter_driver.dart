@@ -36,6 +36,7 @@ class FlutterDriver implements OdsDriver {
     'rowActions',
     'formulas',
     'summary',
+    'tabs',
     'auth:multiUser',
     'auth:selfRegistration',
     'auth:ownership',
@@ -554,6 +555,15 @@ class FlutterDriver implements OdsDriver {
     }
     if (c is OdsButtonComponent) {
       return ButtonSnapshot(visible: visible, label: c.label, enabled: true);
+    }
+    if (c is OdsTabsComponent) {
+      return TabsSnapshot(
+        visible: visible,
+        tabs: [
+          for (var i = 0; i < c.tabs.length; i++)
+            TabsTab(label: c.tabs[i].label, active: i == 0),
+        ],
+      );
     }
     if (c is OdsSummaryComponent) {
       var value = c.value;
