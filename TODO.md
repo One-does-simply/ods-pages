@@ -25,11 +25,21 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 
 ## Docs — priority 3 (pre-public polish)
 
-- [ ] **Workspace-root `LICENSE`, `CONTRIBUTING.md`, `SECURITY.md`** —
-      Specification repo has them; workspace root doesn't. Only matters
-      when this workspace itself goes public as a monorepo-style view.
+- [ ] **Root `CONTRIBUTING.md`** — LICENSE + SECURITY landed
+      2026-04-24; CONTRIBUTING still open. Should explain the
+      "one monorepo per ODS family" model, the `publish.sh` flow,
+      and how to propose spec vs framework changes.
 - [ ] **`CHANGELOG.md`** — low value until releases start; relevant
       once the conformance suite pins spec versions.
+- [ ] **Org profile README** (`One-does-simply/.github` repo with
+      `profile/README.md`) — visitors landing on the org page today
+      see bare repo list. Should describe ODS as a family of
+      spec-driven frameworks, list active + upcoming families.
+- [ ] **Cross-family `CONVENTIONS.md`** — pin the patterns every
+      future family (`ods-chat`, `ods-workflow`, `ods-game`) will
+      copy: `publish.sh` structure, TODO/REGRESSION_LOG format, ADR
+      numbering, CLAUDE.md rules. Lives at ods-pages root for now;
+      moves to the umbrella `ods` repo if/when one exists.
 
 ## Docs — nice-to-haves
 
@@ -86,6 +96,26 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 ---
 
 ## Done — recent (trim quarterly)
+
+### 2026-04-24 — Public polish pass (Session 1)
+
+- [x] Root `LICENSE` (MIT) — mirrors
+      [Specification/LICENSE](Specification/LICENSE). Fixes "No
+      license" label visitors see in the GitHub sidebar.
+- [x] Root [SECURITY.md](SECURITY.md) — points to private
+      vulnerability reporting + lays out scope.
+- [x] README rewritten to reflect monorepo reality (dropped the
+      "three sibling repositories" framing) + CI badges + framing as
+      first family in the ODS ecosystem
+      ([README.md](README.md)).
+- [x] Repo description + 8 topics set via `gh repo edit`
+      (`spec-driven`, `low-code`, `react`, `flutter`, `pocketbase`,
+      `typescript`, `dart`, `monorepo`) — improves discoverability.
+- [x] Flutter CI aligned with `publish.sh`: runs
+      `test/engine test/models test/parser test/integration
+      --exclude-tags=slow` instead of the whole tree. Widget tests
+      were hanging on GH Linux runners (same root cause as the
+      local Windows skip).
 
 ### 2026-04-24 — Monorepo consolidation closed out
 
