@@ -42,5 +42,5 @@ assets/        Build helper prompt
 ## Links
 
 - [ODS Specification](https://github.com/One-does-simply/Specification)
-- [Landing Page](https://one-does-simply.github.io/Specification/)
-- [Example Catalog](https://one-does-simply.github.io/Specification/Examples/catalog.json)
+- [Landing Page](https://one-does-simply.github.io/ods-pages/Specification/)
+- [Example Catalog](https://one-does-simply.github.io/ods-pages/Specification/Examples/catalog.json)

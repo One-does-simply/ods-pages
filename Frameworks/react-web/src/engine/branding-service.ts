@@ -8,7 +8,7 @@ import type { OdsBranding } from '../models/ods-branding.ts'
  */
 
 // Theme catalog URL — fetched from the ODS GitHub Pages site
-const THEMES_BASE = 'https://one-does-simply.github.io/Specification/Themes'
+const THEMES_BASE = 'https://one-does-simply.github.io/ods-pages/Specification/Themes'
 
 /** Cached theme data to avoid refetching. */
 const themeCache = new Map<string, Record<string, unknown>>()

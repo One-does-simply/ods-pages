@@ -14,7 +14,7 @@ import { Check, Palette } from 'lucide-react'
 // ThemePicker — reusable theme selector with catalog, tag filters, color dots
 // ---------------------------------------------------------------------------
 
-const THEMES_BASE = 'https://one-does-simply.github.io/Specification/Themes'
+const THEMES_BASE = 'https://one-does-simply.github.io/ods-pages/Specification/Themes'
 
 interface ThemePickerProps {
   value: string

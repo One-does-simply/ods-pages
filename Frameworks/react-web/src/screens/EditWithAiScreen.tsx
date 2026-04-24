@@ -21,7 +21,7 @@ import {
 // ---------------------------------------------------------------------------
 
 const BUILD_HELPER_URL =
-  'https://one-does-simply.github.io/Specification/build-helper-prompt.txt'
+  'https://one-does-simply.github.io/ods-pages/Specification/build-helper-prompt.txt'
 
 // ---------------------------------------------------------------------------
 // EditWithAiScreen — 3-step guided flow: copy prompt, copy spec, paste back

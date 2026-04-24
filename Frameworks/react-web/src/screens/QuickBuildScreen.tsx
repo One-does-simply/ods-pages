@@ -1741,7 +1741,7 @@ function toCamelCase(input: string): string {
 // ThemePreview — shows sample UI elements styled with the selected theme
 // ---------------------------------------------------------------------------
 
-const THEMES_BASE = 'https://one-does-simply.github.io/Specification/Themes'
+const THEMES_BASE = 'https://one-does-simply.github.io/ods-pages/Specification/Themes'
 
 function ThemePreview({ themeName }: { themeName: string }) {
   const [colors, setColors] = useState<Record<string, string> | null>(null)

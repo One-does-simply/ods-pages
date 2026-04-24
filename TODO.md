@@ -90,6 +90,24 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 
 ## Done — recent (trim quarterly)
 
+### 2026-04-24 — Pages migration
+
+- [x] Enabled GitHub Pages on `ods-pages` (main branch, `/` root);
+      URL base moves from
+      `https://one-does-simply.github.io/Specification/...`
+      (stale archived snapshot, can't update) to
+      `https://one-does-simply.github.io/ods-pages/Specification/...`
+      (tracks `main`).
+- [x] Updated 13 tracked files (Flutter + React source, Flutter
+      README) — runtime fetches for Examples, Templates, Themes, and
+      the Build Helper prompt all point at the new URL. Old URL
+      intentionally left to die.
+- [x] Seeded
+      [Specification/build-helper-prompt.txt](Specification/build-helper-prompt.txt)
+      (copy of the Flutter bundled asset) — the URL was a latent 404
+      on both old and new deployments; the React "Edit with AI"
+      screen had been broken. Now resolves.
+
 ### 2026-04-24 — Cross-family setup (Session 2)
 
 - [x] [CONVENTIONS.md](CONVENTIONS.md) at root — documents patterns

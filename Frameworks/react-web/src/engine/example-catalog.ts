@@ -4,7 +4,7 @@
  */
 
 const CATALOG_BASE_URL =
-  'https://one-does-simply.github.io/Specification/Examples'
+  'https://one-does-simply.github.io/ods-pages/Specification/Examples'
 
 export interface CatalogEntry {
   id: string

@@ -238,7 +238,7 @@ class _LinksSectionCard extends StatelessWidget {
               _LinkTile(
                 icon: Icons.language,
                 label: 'Project Homepage',
-                url: 'https://one-does-simply.github.io/Specification/index.html',
+                url: 'https://one-does-simply.github.io/ods-pages/Specification/index.html',
               ),
             ],
           ),

@@ -340,7 +340,7 @@ export function AdminDashboard() {
 
           {/* Learn More */}
           <a
-            href="https://one-does-simply.github.io/Specification/"
+            href="https://one-does-simply.github.io/ods-pages/Specification/"
             target="_blank"
             rel="noopener noreferrer"
             className="rounded-md p-1.5 text-white/70 hover:text-white hover:bg-white/10 transition-colors"

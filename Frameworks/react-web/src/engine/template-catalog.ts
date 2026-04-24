@@ -4,7 +4,7 @@
  */
 
 const TEMPLATE_BASE_URL =
-  'https://one-does-simply.github.io/Specification/Templates'
+  'https://one-does-simply.github.io/ods-pages/Specification/Templates'
 
 export interface TemplateCatalogEntry {
   id: string

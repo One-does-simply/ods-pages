@@ -10,7 +10,7 @@ import '../widgets/color_picker_widgets.dart';
 
 /// Base URL for the ODS template catalog on GitHub Pages.
 const _templateBaseUrl =
-    'https://one-does-simply.github.io/Specification/Templates';
+    'https://one-does-simply.github.io/ods-pages/Specification/Templates';
 
 // ---------------------------------------------------------------------------
 // Template catalog model

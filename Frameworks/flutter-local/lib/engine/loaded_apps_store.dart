@@ -9,7 +9,7 @@ import 'settings_store.dart';
 
 /// Base URL for the ODS example catalog on GitHub Pages.
 const _catalogBaseUrl =
-    'https://one-does-simply.github.io/Specification/Examples';
+    'https://one-does-simply.github.io/ods-pages/Specification/Examples';
 
 /// A saved app entry in the user's "My Apps" list on the welcome screen.
 ///

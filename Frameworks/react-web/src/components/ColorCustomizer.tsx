@@ -16,7 +16,7 @@ import { hexToRgb, rgbToHex, contrastRatio, fixContrast } from '@/engine/color-h
 // Constants
 // ---------------------------------------------------------------------------
 
-const THEMES_BASE = 'https://one-does-simply.github.io/Specification/Themes'
+const THEMES_BASE = 'https://one-does-simply.github.io/ods-pages/Specification/Themes'
 
 /** 6x8 curated color grid: 6 hue rows (reds, oranges, greens, teals, blues, purples) x 8 shades + 1 grayscale row */
 export const COLOR_GRID: string[][] = [
