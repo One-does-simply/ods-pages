@@ -190,9 +190,7 @@ export class ReactDriver implements OdsDriver {
     // string, not the declared level.
     const lastShowMsg = [...button.onClick]
       .reverse()
-      .find((a: OdsAction) => a.action === 'showMessage') as
-      | { message?: string; level?: Message['level'] }
-      | undefined
+      .find((a: OdsAction) => a.action === 'showMessage')
     if (lastShowMsg?.message) {
       this._lastMessage = {
         text: lastShowMsg.message,

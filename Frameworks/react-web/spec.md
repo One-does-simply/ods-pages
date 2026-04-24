@@ -297,7 +297,7 @@ Actions are triggered by buttons and row actions. They execute sequentially.
 | `submit` | Insert form data | `target`: form ID, `dataSource` |
 | `update` | Update existing record | `target`: form ID or row ID, `dataSource`, `matchField` |
 | `delete` | Delete a record | `dataSource`, `matchField` |
-| `showMessage` | Show toast message | `message` |
+| `showMessage` | Show toast message | `message`, optional `level` (`info` \| `success` \| `warning` \| `error`, default `info`) |
 | `firstRecord` | Navigate to first record | — |
 | `nextRecord` | Navigate to next record | — |
 | `previousRecord` | Navigate to previous record | — |

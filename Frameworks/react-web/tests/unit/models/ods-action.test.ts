@@ -27,11 +27,22 @@ describe('parseAction', () => {
     expect(result.withData).toBeUndefined()
     expect(result.confirm).toBeUndefined()
     expect(result.message).toBeUndefined()
+    expect(result.level).toBeUndefined()
     expect(result.computedFields).toEqual([])
     expect(result.filter).toBeUndefined()
     expect(result.onEnd).toBeUndefined()
     expect(result.cascade).toBeUndefined()
     expect(result.preserveFields).toEqual([])
+  })
+
+  it('preserves level on showMessage actions', () => {
+    const result = parseAction({
+      action: 'showMessage',
+      message: 'Saved!',
+      level: 'success',
+    })
+    expect(result.message).toBe('Saved!')
+    expect(result.level).toBe('success')
   })
 
   // -------------------------------------------------------------------------

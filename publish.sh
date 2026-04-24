@@ -40,8 +40,10 @@ run_flutter_tests() {
   cd "$ODS_ROOT/Frameworks/flutter-local"
   # Widget tests are skipped on Windows (flutter_tools temp-dir race).
   # Perf tests live in test/integration/batch9_performance_test.dart and
-  # are known to flake on slow I/O; exclude them from the test gate.
-  if ! "$FLUTTER" test test/engine test/models test/parser test/integration --reporter compact 2>&1 | tail -20; then
+  # are tagged `slow` — excluded from the gate because their Windows I/O
+  # timing budgets flake. Run them on demand with `flutter test --tags=slow`.
+  if ! "$FLUTTER" test test/engine test/models test/parser test/integration \
+      --exclude-tags=slow --reporter compact 2>&1 | tail -20; then
     echo -e "${RED}Flutter${NC} — tests failed"
     return 1
   fi

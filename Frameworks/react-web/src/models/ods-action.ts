@@ -22,6 +22,7 @@ export interface OdsAction {
   filter?: Record<string, string>
   onEnd?: OdsAction
   message?: string
+  level?: 'info' | 'success' | 'warning' | 'error'
   cascade?: Record<string, string>
   preserveFields: string[]
 }
@@ -57,6 +58,7 @@ export function parseAction(json: unknown): OdsAction {
       : undefined,
     onEnd: onEndRaw ? parseAction(onEndRaw) : undefined,
     message: j['message'] as string | undefined,
+    level: j['level'] as OdsAction['level'],
     cascade: cascadeRaw
       ? Object.fromEntries(Object.entries(cascadeRaw).map(([k, v]) => [k, String(v)]))
       : undefined,

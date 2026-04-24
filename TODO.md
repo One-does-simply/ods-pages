@@ -32,38 +32,11 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 
 ## Next — next 1–2 sessions
 
-- [ ] **`OdsAction` parser preserves `level` on `showMessage`** — gap
-      found by conformance scenario s03. The JSON `{"action":
-      "showMessage", "message": "Saved!", "level": "success"}` loses
-      `level` during parse ([ods-action.ts](Frameworks/react-web/src/models/ods-action.ts)
-      `parseAction`). Fix: add `level: j['level'] as Message['level'] |
-      undefined` to the parsed shape + model interface, then tighten
-      s03 to assert the level too.
-- [ ] **Tag Batch 9 perf tests `@slow`** — promoted from *Later*. Five
-      tests in
-      [batch9_performance_test.dart](Frameworks/flutter-local/test/integration/batch9_performance_test.dart)
-      flake on Windows I/O timing budgets and poisoned this session's
-      `publish.sh` run. Add a `slow` tag to each and either exclude them
-      from `flutter test` by default (`--exclude-tags=slow`) or move to
-      a dedicated job. Unblocks the test gate in publish.sh.
 - [ ] **Flutter CI workflow** — GitHub Actions running
       `flutter test test/engine test/models test/parser test/integration`
       on Linux (where the widget-test harness hang doesn't apply). React
       side already has [.github/workflows/test.yml](Frameworks/react-web/.github/workflows/test.yml);
       Flutter side has none. Single highest-ROI item.
-- [ ] **`appPrefix` isolation unit test** — `appPrefix` is the keystone of
-      multi-app mode ([data-service.ts:106](Frameworks/react-web/src/engine/data-service.ts#L106))
-      but there's no explicit "app A's tasks ≠ app B's tasks" test. Write one.
-- [ ] **LoginScreen `needsAdminSetup`-on-signup unit test** — the latent
-      bug Batch 8 caught ([LoginScreen.tsx:115-121](Frameworks/react-web/src/screens/LoginScreen.tsx#L115-L121)).
-      Render LoginScreen with `needsAdminSetup=true`, run signup, assert
-      both gates clear.
-- [ ] **Admin session survives navigation** — we removed
-      `pb.authStore.clear()` from [pocketbase.ts](Frameworks/react-web/src/lib/pocketbase.ts)
-      to fix E2E auth + general UX. Pin that behavior with a test so the
-      line doesn't creep back.
-- [ ] **Delete `A couple of comments.txt`** — items processed; can be
-      removed from the repo root.
 
 ## Docs — priority 3 (pre-public polish)
 
@@ -128,6 +101,32 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 ---
 
 ## Done — recent (trim quarterly)
+
+### 2026-04-23 — Small-win sweep
+
+- [x] `OdsAction` parser preserves `level` on `showMessage`
+      ([ods-action.ts](Frameworks/react-web/src/models/ods-action.ts));
+      conformance s03 tightened to assert `level: 'success'`; driver
+      dropped its unsafe cast
+      ([react-driver.ts](Frameworks/react-web/tests/conformance/react-driver.ts)).
+- [x] Batch 9 perf tests tagged `slow` via library-level `@Tags(['slow'])`
+      in [batch9_performance_test.dart](Frameworks/flutter-local/test/integration/batch9_performance_test.dart);
+      `dart_test.yaml` declares the tag; `publish.sh` runs with
+      `--exclude-tags=slow`.
+- [x] Stale `A couple of comments.txt` TODO entry removed (file was
+      already gone).
+- [x] `appPrefix` isolation unit tests — pin the multi-app collection
+      contract at the real `DataService` boundary
+      ([data-service.test.ts](Frameworks/react-web/tests/unit/engine/data-service.test.ts)).
+- [x] `LoginScreen` signup-clears-both-gates regression test — renders
+      `<LoginScreen>` with `needsAdminSetup=true`, runs signup,
+      asserts both `needsLogin` and `needsAdminSetup` clear; failure
+      path leaves gates intact
+      ([LoginScreen.test.tsx](Frameworks/react-web/tests/component/screens/LoginScreen.test.tsx)).
+- [x] `pocketbase.ts` module-init guard — source-level test fails if
+      `pb.authStore.clear()` creeps back into
+      [pocketbase.ts](Frameworks/react-web/src/lib/pocketbase.ts)
+      ([pocketbase.test.ts](Frameworks/react-web/tests/unit/lib/pocketbase.test.ts)).
 
 ### 2026-04-19 — Batch 8 E2E + gap closure + storage/auth infra + docs pass
 

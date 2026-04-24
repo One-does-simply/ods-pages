@@ -18,6 +18,11 @@
 ///   - P2 uses a real SQLite-backed DataStore against a temp folder to
 ///     capture realistic I/O throughput for the "data service" scenario.
 ///   - P4 uses the full AppEngine to exercise the real action chain path.
+///
+/// Every test carries the `slow` tag via `@Tags` so `publish.sh` can
+/// exclude the file with `--exclude-tags=slow`. Run them on demand
+/// with `flutter test --tags=slow`.
+@Tags(['slow'])
 library;
 
 import 'dart:convert';
@@ -284,6 +289,9 @@ Future<Stopwatch> _measure(String label, Future<void> Function() fn) async {
 // ---------------------------------------------------------------------------
 
 void main() {
+  // All perf tests carry the `slow` tag so CI / publish.sh can exclude them
+  // by default via `--exclude-tags=slow`. They flake on Windows I/O budgets
+  // and are not the target of the normal test gate.
   group('Batch 9: Performance baselines', () {
     // -----------------------------------------------------------------------
     // P1: Spec parsing at scale

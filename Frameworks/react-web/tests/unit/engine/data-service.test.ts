@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { FakeDataService } from '../../helpers/fake-data-service.ts'
+import { DataService } from '../../../src/engine/data-service.ts'
 
 describe('FakeDataService (mirrors DataService interface)', () => {
   let ds: FakeDataService
@@ -129,5 +130,97 @@ describe('FakeDataService (mirrors DataService interface)', () => {
       await ds.insert('tasks', { name: 'B' })
       expect(await ds.getRowCount('tasks')).toBe(2)
     })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Multi-app isolation via appPrefix
+// ---------------------------------------------------------------------------
+//
+// appPrefix is the keystone of multi-app mode: two apps that both declare a
+// `local://tasks` data source must end up on physically separate PocketBase
+// collections so "App A's tasks" can never leak into "App B's tasks". These
+// tests pin that contract at the DataService boundary.
+
+describe('DataService multi-app isolation (appPrefix)', () => {
+  /**
+   * Builds a fake PocketBase that keeps rows grouped by collection name.
+   * We assert against which collection names were actually hit.
+   */
+  function makeFakePb() {
+    const store: Record<string, Array<Record<string, unknown>>> = {}
+    const pb = {
+      collection: vi.fn((name: string) => ({
+        getList: vi.fn(async () => ({ totalItems: (store[name] ?? []).length })),
+        getFullList: vi.fn(async () => [...(store[name] ?? [])]),
+        create: vi.fn(async (data: Record<string, unknown>) => {
+          const row = { ...data, id: `id_${(store[name]?.length ?? 0) + 1}` }
+          store[name] = [...(store[name] ?? []), row]
+          return row
+        }),
+        update: vi.fn(async () => ({})),
+        delete: vi.fn(async () => {}),
+      })),
+    }
+    return { pb, store }
+  }
+
+  it('collectionName() produces app-specific names from the same logical table', () => {
+    const { pb } = makeFakePb()
+
+    const dsA = new DataService(pb as never)
+    dsA.initialize('App A')
+    const dsB = new DataService(pb as never)
+    dsB.initialize('App B')
+
+    expect(dsA.collectionName('tasks')).toBe('app_a_tasks')
+    expect(dsB.collectionName('tasks')).toBe('app_b_tasks')
+    expect(dsA.collectionName('tasks')).not.toBe(dsB.collectionName('tasks'))
+  })
+
+  it('inserting into app A does not surface in app B queries for the same logical table', async () => {
+    const { pb, store } = makeFakePb()
+
+    const dsA = new DataService(pb as never)
+    dsA.initialize('App A')
+    const dsB = new DataService(pb as never)
+    dsB.initialize('App B')
+
+    await dsA.insert('tasks', { title: 'A-only' })
+    await dsB.insert('tasks', { title: 'B-only' })
+
+    const aRows = await dsA.query('tasks')
+    const bRows = await dsB.query('tasks')
+
+    expect(aRows).toHaveLength(1)
+    expect(aRows[0]['title']).toBe('A-only')
+    expect(bRows).toHaveLength(1)
+    expect(bRows[0]['title']).toBe('B-only')
+
+    // The underlying PB store landed in two distinct collections.
+    expect(Object.keys(store).sort()).toEqual(['app_a_tasks', 'app_b_tasks'])
+  })
+
+  it('re-initializing the same instance with a new app name switches the collection', async () => {
+    const { pb, store } = makeFakePb()
+    const ds = new DataService(pb as never)
+
+    ds.initialize('App A')
+    await ds.insert('tasks', { title: 'A-only' })
+
+    ds.initialize('App B')
+    const bRows = await ds.query('tasks')
+
+    expect(bRows).toEqual([])
+    expect(store['app_a_tasks']).toHaveLength(1)
+    expect(store['app_b_tasks']).toBeUndefined()
+  })
+
+  it('sanitizes app names into safe collection prefixes', () => {
+    const { pb } = makeFakePb()
+    const ds = new DataService(pb as never)
+
+    ds.initialize('My App 2.0!')
+    expect(ds.collectionName('tasks')).toBe('my_app_2_0__tasks')
   })
 })

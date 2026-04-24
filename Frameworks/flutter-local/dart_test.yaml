@@ -1,0 +1,5 @@
+tags:
+  slow:
+    # Performance / load tests (Batch 9). Excluded from the default
+    # `publish.sh` gate via `--exclude-tags=slow` because they flake
+    # on Windows I/O timing budgets.

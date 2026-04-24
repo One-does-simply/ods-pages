@@ -176,9 +176,7 @@ export const s03_show_message_after_submit: Scenario = {
     const msg = await d.lastMessage()
     assertTrue(msg != null, 'expected a message after Save')
     assertEqual(msg!.text, 'Saved!', 'message text')
-    // NOTE: asserting message *level* is deferred — the current OdsAction
-    // parser doesn't preserve `level` from the spec. Track the parser
-    // gap on TODO.md before adding a level-aware scenario.
+    assertEqual(msg!.level, 'success', 'message level')
   },
 }
 
