@@ -1,5 +1,13 @@
 include: package:flutter_lints/flutter.yaml
 
+analyzer:
+  # The `packages/` directory is a vendored copy of pub.dev's `markdown`
+  # package (see pubspec.yaml). Its own tests depend on packages that
+  # aren't transitive dev-deps, so analyzing them here produces spurious
+  # errors. The markdown package carries its own analysis config.
+  exclude:
+    - packages/**
+
 linter:
   rules:
     prefer_const_constructors: true
