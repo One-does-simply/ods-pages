@@ -9,15 +9,17 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 ## Now — actively being worked on
 
 - [ ] **Path B — FlutterDriver + remaining driver surface** — Phase A
-      MVP landed (ADR-0001 accepted; `OdsDriver` contract + 5 passing
-      conformance scenarios in
+      MVP landed (ADR-0001 accepted; 9 passing scenarios in
       [Frameworks/conformance/](Frameworks/conformance/); ReactDriver at
       [Frameworks/react-web/tests/conformance/react-driver.ts](Frameworks/react-web/tests/conformance/react-driver.ts)).
-      Remaining work: (a) FlutterDriver in Dart mirroring the same
-      surface, (b) fill in the MVP driver's "not yet implemented"
-      corners (`clickRowAction`, `login`, `registerUser`, real
-      `setClock`, proper `visibleWhen` evaluation in snapshots),
-      (c) port more Batch 1–6 scenarios into conformance format.
+      **Session A landed 2026-04-24**: ReactDriver gained
+      `clickRowAction`, real `visibleWhen` evaluation (field + data
+      conditions), and real `setClock` (via vitest fake timers) +
+      lazy `CURRENTDATE`/`NOW` default resolution; 4 new scenarios
+      (s06-s09) pin the behavior. Remaining work: (a) FlutterDriver
+      in Dart mirroring the same surface, (b) `login` +
+      `registerUser` stubs (needs an auth harness design), (c) port
+      more Batch 1–6 scenarios into conformance format.
 
 ## Next — next 1–2 sessions
 
@@ -89,6 +91,23 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 ---
 
 ## Done — recent (trim quarterly)
+
+### 2026-04-24 — Path B Session A (ReactDriver stubs + 4 scenarios)
+
+- [x] `clickRowAction` implemented — delegates to
+      `executeDeleteRowAction` on the store; resolves non-`_id`
+      matchFields by looking up the row first. Non-delete actions
+      still throw (MVP scope). Pinned by **s06**
+      ([scenarios.ts](Frameworks/conformance/src/scenarios.ts)).
+- [x] `visibleWhen` evaluation in snapshots — mirrors the React
+      renderer's logic: field-based conditions read form state,
+      data-based conditions query the data service for row counts.
+      Pinned by **s07** (field) + **s08** (data count).
+- [x] `setClock` uses `vi.setSystemTime` + `useFakeTimers`; restored
+      on `unmount`. `formValues` now lazily resolves
+      `CURRENTDATE`/`NOW` defaults for unset fields using the current
+      clock. Pinned by **s09**.
+- [x] Conformance total: 5 → 9 scenarios; React suite 1131 → 1135.
 
 ### 2026-04-24 — Org-level landing page
 

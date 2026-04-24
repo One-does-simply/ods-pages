@@ -197,6 +197,56 @@ export const s04_list_reflects_submitted_rows: Scenario = {
   },
 }
 
+function miniTodoWithDeleteSpec(): OdsSpec {
+  return {
+    appName: 'Mini Todo Delete',
+    startPage: 'home',
+    pages: {
+      home: {
+        component: 'page',
+        title: 'Home',
+        content: [
+          {
+            component: 'form',
+            id: 'addForm',
+            dataSource: 'tasks',
+            fields: [
+              { name: 'title', type: 'text', label: 'Title', required: true },
+            ],
+          },
+          {
+            component: 'button',
+            label: 'Save',
+            onClick: [
+              { action: 'submit', dataSource: 'tasks', target: 'addForm' },
+            ],
+          },
+          {
+            component: 'list',
+            dataSource: 'tasks',
+            columns: [{ field: 'title', label: 'Title' }],
+            rowActions: [
+              {
+                label: 'Delete',
+                action: 'delete',
+                dataSource: 'tasks',
+                matchField: '_id',
+              },
+            ],
+          },
+        ],
+      },
+    },
+    dataSources: {
+      tasks: {
+        url: 'local://tasks',
+        method: 'POST',
+        fields: [{ name: 'title', type: 'text' }],
+      },
+    },
+  }
+}
+
 export const s05_navigate_action_switches_page: Scenario = {
   name: 'navigate action moves to the target page',
   spec: twoPageSpec,
@@ -213,6 +263,220 @@ export const s05_navigate_action_switches_page: Scenario = {
   },
 }
 
+function visibleWhenFieldSpec(): OdsSpec {
+  return {
+    appName: 'VisibleWhen Field',
+    startPage: 'home',
+    pages: {
+      home: {
+        component: 'page',
+        title: 'Home',
+        content: [
+          {
+            component: 'form',
+            id: 'gateForm',
+            fields: [
+              {
+                name: 'mode',
+                type: 'select',
+                label: 'Mode',
+                options: ['basic', 'advanced'],
+              },
+            ],
+          },
+          {
+            component: 'text',
+            content: 'Advanced-only details',
+            visibleWhen: { form: 'gateForm', field: 'mode', equals: 'advanced' },
+          },
+        ],
+      },
+    },
+    dataSources: {},
+  }
+}
+
+function visibleWhenDataSpec(): OdsSpec {
+  return {
+    appName: 'VisibleWhen Data',
+    startPage: 'home',
+    pages: {
+      home: {
+        component: 'page',
+        title: 'Home',
+        content: [
+          {
+            component: 'form',
+            id: 'addForm',
+            dataSource: 'items',
+            fields: [
+              { name: 'title', type: 'text', label: 'Title', required: true },
+            ],
+          },
+          {
+            component: 'button',
+            label: 'Save',
+            onClick: [{ action: 'submit', dataSource: 'items', target: 'addForm' }],
+          },
+          {
+            component: 'text',
+            content: 'No items yet — add one above.',
+            visibleWhen: { source: 'items', countEquals: 0 },
+          },
+          {
+            component: 'list',
+            dataSource: 'items',
+            columns: [{ field: 'title', label: 'Title' }],
+            visibleWhen: { source: 'items', countMin: 1 },
+          },
+        ],
+      },
+    },
+    dataSources: {
+      items: {
+        url: 'local://items',
+        method: 'POST',
+        fields: [{ name: 'title', type: 'text' }],
+      },
+    },
+  }
+}
+
+export const s06_row_action_delete_removes_row: Scenario = {
+  name: 'rowAction delete removes the matching row from the data source',
+  spec: miniTodoWithDeleteSpec,
+  capabilities: ['core', 'action:submit', 'action:delete', 'rowActions'],
+  run: async (d) => {
+    await d.fillField('title', 'Keep me')
+    await d.clickButton('Save')
+    await d.fillField('title', 'Delete me')
+    await d.clickButton('Save')
+
+    const before = await d.dataRows('tasks')
+    assertEqual(before.length, 2, 'two rows before delete')
+
+    const target = before.find((r) => r.title === 'Delete me')
+    assertTrue(target != null, 'expected "Delete me" row to exist')
+    await d.clickRowAction('tasks', String(target!._id), 'Delete')
+
+    const after = await d.dataRows('tasks')
+    assertEqual(after.length, 1, 'one row after delete')
+    assertEqual(after[0].title, 'Keep me', 'surviving row is the one we kept')
+  },
+}
+
+export const s07_visible_when_field_condition: Scenario = {
+  name: 'visibleWhen field-based condition hides/shows components with form state',
+  spec: visibleWhenFieldSpec,
+  capabilities: ['core'],
+  run: async (d) => {
+    // Initially `mode` is blank — the advanced text should be hidden.
+    const before = await d.pageContent()
+    const textBefore = before.find((c) => c.kind === 'text')
+    assertTrue(textBefore != null, 'text component present')
+    assertEqual(textBefore!.visible, false, 'advanced text hidden before mode is set')
+
+    await d.fillField('mode', 'advanced')
+
+    const after = await d.pageContent()
+    const textAfter = after.find((c) => c.kind === 'text')
+    assertTrue(textAfter != null, 'text component still present')
+    assertEqual(textAfter!.visible, true, 'advanced text visible after mode=advanced')
+
+    await d.fillField('mode', 'basic')
+    const later = await d.pageContent()
+    const textLater = later.find((c) => c.kind === 'text')
+    assertEqual(textLater!.visible, false, 'advanced text hidden again after mode=basic')
+  },
+}
+
+export const s08_visible_when_data_count: Scenario = {
+  name: 'visibleWhen data-source count condition tracks row additions',
+  spec: visibleWhenDataSpec,
+  capabilities: ['core', 'action:submit'],
+  run: async (d) => {
+    // Zero rows → "No items yet" visible, list hidden.
+    const before = await d.pageContent()
+    const emptyText = before.find((c) => c.kind === 'text')
+    const list = before.find((c) => c.kind === 'list')
+    assertTrue(emptyText != null, 'empty-state text present')
+    assertTrue(list != null, 'list present (snapshot emitted even when hidden)')
+    assertEqual(emptyText!.visible, true, 'empty-state text visible at 0 rows')
+    assertEqual(list!.visible, false, 'list hidden at 0 rows')
+
+    await d.fillField('title', 'First item')
+    await d.clickButton('Save')
+
+    const after = await d.pageContent()
+    const emptyTextAfter = after.find((c) => c.kind === 'text')
+    const listAfter = after.find((c) => c.kind === 'list')
+    assertEqual(emptyTextAfter!.visible, false, 'empty-state text hidden after 1 row')
+    assertEqual(listAfter!.visible, true, 'list visible after 1 row')
+  },
+}
+
+function currentDateDefaultSpec(): OdsSpec {
+  return {
+    appName: 'CURRENTDATE default',
+    startPage: 'home',
+    pages: {
+      home: {
+        component: 'page',
+        title: 'Home',
+        content: [
+          {
+            component: 'form',
+            id: 'editForm',
+            fields: [
+              { name: 'title', type: 'text', label: 'Title' },
+              {
+                name: 'createdAt',
+                type: 'date',
+                label: 'Created',
+                default: 'CURRENTDATE',
+              },
+            ],
+          },
+        ],
+      },
+    },
+    dataSources: {},
+  }
+}
+
+export const s09_current_date_default_honors_clock: Scenario = {
+  name: 'CURRENTDATE default value resolves using the driver clock',
+  spec: currentDateDefaultSpec,
+  capabilities: ['core'],
+  run: async (d) => {
+    // The harness already set the clock to 2026-01-01T00:00:00Z before run.
+    const initial = await d.formValues('editForm')
+    assertEqual(
+      initial.createdAt,
+      '2026-01-01',
+      'CURRENTDATE resolved using the clock set by the harness',
+    )
+
+    // Move the clock; the default should pick up the new "now" lazily.
+    await d.setClock('2026-06-15T12:00:00Z')
+    const later = await d.formValues('editForm')
+    assertEqual(
+      later.createdAt,
+      '2026-06-15',
+      'CURRENTDATE reflects the updated clock on the next formValues call',
+    )
+
+    // Explicitly setting a field overrides the magic default.
+    await d.fillField('createdAt', '2020-12-25')
+    const overridden = await d.formValues('editForm')
+    assertEqual(
+      overridden.createdAt,
+      '2020-12-25',
+      'explicit fillField overrides the magic default',
+    )
+  },
+}
+
 /** Full list of scenarios the runner should execute. */
 export const allScenarios: ReadonlyArray<Scenario> = [
   s01_spec_loads,
@@ -220,4 +484,8 @@ export const allScenarios: ReadonlyArray<Scenario> = [
   s03_show_message_after_submit,
   s04_list_reflects_submitted_rows,
   s05_navigate_action_switches_page,
+  s06_row_action_delete_removes_row,
+  s07_visible_when_field_condition,
+  s08_visible_when_data_count,
+  s09_current_date_default_honors_clock,
 ]

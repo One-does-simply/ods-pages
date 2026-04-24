@@ -1,3 +1,4 @@
+import { vi } from 'vitest'
 import { useAppStore } from '../../src/engine/app-store.ts'
 import { AuthService } from '../../src/engine/auth-service.ts'
 import type { OdsAction } from '../../src/models/ods-action.ts'
@@ -104,6 +105,8 @@ export class ReactDriver implements OdsDriver {
   private authService: AuthService | null = null
   /** Mirrors the most recent showMessage action's message + level from the spec. */
   private _lastMessage: Message | null = null
+  /** True when fake timers are active (set by setClock, cleared by unmount). */
+  private _fakeTimers = false
 
   // -- Lifecycle -------------------------------------------------------------
 
@@ -134,6 +137,10 @@ export class ReactDriver implements OdsDriver {
     this.dataService = null
     this.authService = null
     this._lastMessage = null
+    if (this._fakeTimers) {
+      vi.useRealTimers()
+      this._fakeTimers = false
+    }
   }
 
   async reset(): Promise<void> {
@@ -202,11 +209,62 @@ export class ReactDriver implements OdsDriver {
   }
 
   async clickRowAction(
-    _dataSource: string,
-    _rowId: string,
-    _actionLabel: string,
+    dataSource: string,
+    rowId: string,
+    actionLabel: string,
   ): Promise<void> {
-    throw new Error('clickRowAction: not yet implemented in the MVP driver')
+    const app = this.requireApp()
+    const ds = app.dataSources[dataSource]
+    if (!ds) throw new Error(`clickRowAction: unknown data source "${dataSource}"`)
+
+    // Locate the list component on the current page that binds to this
+    // data source. Row actions live on the list definition in the spec.
+    const page = currentPageModel(app, useAppStore.getState().currentPageId)
+    if (!page) throw new Error('clickRowAction: no current page')
+    const list = page.content.find(
+      (c): c is OdsListComponent =>
+        c.component === 'list' && (c as OdsListComponent).dataSource === dataSource,
+    )
+    if (!list) {
+      throw new Error(
+        `clickRowAction: no list bound to data source "${dataSource}" on current page`,
+      )
+    }
+
+    const rowAction = list.rowActions.find((a) => a.label === actionLabel)
+    if (!rowAction) {
+      throw new Error(
+        `clickRowAction: no row action with label="${actionLabel}" on list (data source "${dataSource}")`,
+      )
+    }
+
+    // Resolve the match value for this specific row. The contract's rowId
+    // is the row's canonical _id; if the action uses a non-_id matchField,
+    // fetch the row and extract that field.
+    const matchField = rowAction.matchField || '_id'
+    let matchValue = rowId
+    if (matchField !== '_id') {
+      const rows = await this.dataService!.query(tableName(ds))
+      const row = rows.find((r) => String(r['_id']) === rowId)
+      if (!row) {
+        throw new Error(`clickRowAction: no row with _id="${rowId}" in "${dataSource}"`)
+      }
+      matchValue = String(row[matchField] ?? '')
+    }
+
+    switch (rowAction.action) {
+      case 'delete':
+        await useAppStore.getState().executeDeleteRowAction(
+          rowAction.dataSource || dataSource,
+          matchField,
+          matchValue,
+        )
+        return
+      default:
+        throw new Error(
+          `clickRowAction: action "${rowAction.action}" not yet implemented (only "delete" supported for MVP)`,
+        )
+    }
   }
 
   async clickMenuItem(label: string): Promise<void> {
@@ -251,8 +309,55 @@ export class ReactDriver implements OdsDriver {
 
   async formValues(formId: string): Promise<Record<string, FieldValue>> {
     const raw = useAppStore.getState().getFormState(formId)
-    // FormValues are stored as strings; coerce checkboxes / numbers per spec.
-    return { ...raw }
+    const result: Record<string, FieldValue> = { ...raw }
+
+    // Lazily resolve magic defaults (CURRENTDATE / NOW) for fields the
+    // user hasn't explicitly set. Reads "now" from the current clock so
+    // setClock mid-scenario takes effect on the next formValues call.
+    const form = this.findFormOnCurrentPage(formId)
+    if (form) {
+      for (const field of form.fields) {
+        if (result[field.name] !== undefined) continue
+        const dv = (field as { defaultValue?: string }).defaultValue
+        if (!dv) continue
+        const resolved = this.resolveMagicDefault(dv, field.type)
+        if (resolved !== undefined) result[field.name] = resolved
+      }
+    }
+
+    return result
+  }
+
+  /** Locate a form on the current page by id (for lazy default resolution). */
+  private findFormOnCurrentPage(formId: string): OdsFormComponent | null {
+    const app = this.requireApp()
+    const page = currentPageModel(app, useAppStore.getState().currentPageId)
+    if (!page) return null
+    return (
+      (page.content.find(
+        (c): c is OdsFormComponent =>
+          c.component === 'form' && (c as OdsFormComponent).id === formId,
+      ) as OdsFormComponent | undefined) ?? null
+    )
+  }
+
+  /**
+   * Subset of FormComponent.resolveMagicDefault — just CURRENTDATE/NOW for
+   * date + datetime fields. Other magic values (CURRENT_USER.*, +7d, etc.)
+   * are out of scope for MVP conformance scenarios.
+   */
+  private resolveMagicDefault(
+    defaultValue: string,
+    fieldType: string,
+  ): string | undefined {
+    const upper = defaultValue.toUpperCase()
+    if (upper === 'NOW' || upper === 'CURRENTDATE') {
+      const now = new Date()
+      return fieldType === 'datetime'
+        ? now.toISOString().slice(0, 16)
+        : now.toISOString().slice(0, 10)
+    }
+    return undefined
   }
 
   async lastMessage(): Promise<Message | null> {
@@ -290,9 +395,15 @@ export class ReactDriver implements OdsDriver {
 
   // -- Determinism -----------------------------------------------------------
 
-  async setClock(_iso: string): Promise<void> {
-    // Not implemented for MVP — relative dates aren't exercised by the
-    // first batch of scenarios. Follow-up work.
+  async setClock(iso: string): Promise<void> {
+    // vitest's fake timers intercept Date/setTimeout/setInterval etc. Any
+    // code under test that reads `new Date()` now sees the fixed time.
+    // Safe to call repeatedly; vi.setSystemTime updates the frozen "now."
+    if (!this._fakeTimers) {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      this._fakeTimers = true
+    }
+    vi.setSystemTime(new Date(iso))
   }
 
   async setSeed(_seed: number): Promise<void> {
@@ -307,12 +418,46 @@ export class ReactDriver implements OdsDriver {
     return app
   }
 
+  /**
+   * Evaluate a component's visibleWhen condition against live state.
+   * Mirrors the React renderer's `VisibilityWrapper` (PageRenderer.tsx):
+   * field-based conditions consult form state; data-based conditions
+   * consult the data service row count. Absent condition = visible.
+   */
+  private async evaluateVisible(c: OdsComponent): Promise<boolean> {
+    const condition = (c as { visibleWhen?: unknown }).visibleWhen as
+      | { field?: string; form?: string; equals?: string; notEquals?: string; source?: string; countEquals?: number; countMin?: number; countMax?: number }
+      | undefined
+    if (!condition) return true
+
+    // Field-based: { form, field, equals|notEquals }
+    if (condition.field && condition.form) {
+      const state = useAppStore.getState().formStates[condition.form] ?? {}
+      const value = state[condition.field] ?? ''
+      if (condition.equals != null) return value === condition.equals
+      if (condition.notEquals != null) return value !== condition.notEquals
+      return true
+    }
+
+    // Data-based: { source, countEquals|countMin|countMax }
+    if (condition.source) {
+      const ds = this.requireApp().dataSources[condition.source]
+      if (!ds) return true
+      const rows = await this.dataService!.query(tableName(ds))
+      const count = rows.length
+      if (condition.countEquals != null) return count === condition.countEquals
+      if (condition.countMin != null && count < condition.countMin) return false
+      if (condition.countMax != null && count > condition.countMax) return false
+      return true
+    }
+
+    return true
+  }
+
   private async snapshotComponent(
     c: OdsComponent,
   ): Promise<ComponentSnapshot | null> {
-    // visibleWhen evaluation — MVP treats "no visibleWhen" as visible.
-    // Full evaluation would consult form state + record context.
-    const visible = true
+    const visible = await this.evaluateVisible(c)
 
     switch (c.component) {
       case 'text': {
