@@ -130,7 +130,7 @@ Every family has two names and a tagline:
   `One Does Simply` uses the unqualified *"Vibe Coding with
   Guardrails"*, and each family specializes the middle:
   - ODS Pages → *Vibe Coding data-driven apps with Guardrails*
-  - ODS Chat → *Vibe Coding conversational agents with Guardrails*
+  - ODS Chat → *Vibe Coding chat and voice apps with Guardrails*
   - ODS Workflow → *Vibe Coding automation with Guardrails*
   - ODS Game → *Vibe Coding games with Guardrails*
 
