@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>One Does Simply — Vibe Coding with Guardrails</title>
+  <title>ODS Pages — Vibe Coding data-driven apps with Guardrails</title>
+  <meta name="description" content="Describe your app in plain JSON, render it as a full React or Flutter app. Part of the One Does Simply family.">
   <style>
     :root {
       --indigo: #4F46E5;
@@ -26,8 +27,26 @@
     .hero {
       background: linear-gradient(135deg, var(--indigo), var(--purple));
       color: white;
-      padding: 80px 24px 64px;
+      padding: 64px 24px 64px;
       text-align: center;
+    }
+
+    .hero .parent-link {
+      font-size: 0.9rem;
+      opacity: 0.75;
+      margin-bottom: 20px;
+    }
+
+    .hero .parent-link a {
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+    }
+
+    .hero .parent-link a:hover {
+      opacity: 0.85;
+      text-decoration: underline;
     }
 
     .hero h1 {
@@ -213,8 +232,9 @@
 <body>
 
   <div class="hero">
-    <h1>One Does Simply</h1>
-    <p class="tagline">Vibe Coding with Guardrails</p>
+    <p class="parent-link"><a href="https://one-does-simply.github.io/">← One Does Simply</a></p>
+    <h1>ODS Pages</h1>
+    <p class="tagline">Vibe Coding data-driven apps with Guardrails</p>
     <p class="subtitle">
       Describe your app in plain JSON. An AI Build Helper writes it for you.
       A framework renders it instantly — on desktop, mobile, or the web.
@@ -222,7 +242,7 @@
       solution, there is an off-ramp: generate real source code that you own
       and can modify in any way you want.
     </p>
-    <a class="cta" href="https://github.com/One-does-simply">View on GitHub</a>
+    <a class="cta" href="https://github.com/One-does-simply/ods-pages">View on GitHub</a>
   </div>
 
   <div class="quote">
@@ -338,14 +358,14 @@
       <h2>Getting Started</h2>
       <p><strong>For personal/desktop apps (Flutter Local):</strong></p>
       <p>
-        <strong>1.</strong> Download the <a href="https://github.com/One-does-simply/Frameworks" style="color: var(--indigo);">Flutter Local Framework</a> and run it.<br>
+        <strong>1.</strong> Download the <a href="https://github.com/One-does-simply/ods-pages/tree/main/Frameworks/flutter-local" style="color: var(--indigo);">Flutter Local Framework</a> and run it.<br>
         <strong>2.</strong> Pick some example apps to explore — or tap <strong>Create New</strong> to build your own with the AI Build Helper.<br>
         <strong>3.</strong> When you're ready to move on, use <strong>Export Data</strong> or <strong>Generate Code</strong> from the app menu.
       </p>
       <p style="margin-top: 16px;"><strong>For multi-user web apps (React Web):</strong></p>
       <p>
         <strong>1.</strong> Install <a href="https://pocketbase.io" style="color: var(--indigo);">PocketBase</a> and start it locally.<br>
-        <strong>2.</strong> Clone the <a href="https://github.com/One-does-simply/Frameworks" style="color: var(--indigo);">React Web Framework</a>, run <code>npm install &amp;&amp; npm run dev</code>.<br>
+        <strong>2.</strong> Clone the <a href="https://github.com/One-does-simply/ods-pages/tree/main/Frameworks/react-web" style="color: var(--indigo);">React Web Framework</a>, run <code>npm install &amp;&amp; npm run dev</code>.<br>
         <strong>3.</strong> Log in as the PocketBase admin, load specs, and share app URLs with your team.
       </p>
     </section>
@@ -354,10 +374,11 @@
 
   <footer>
     <p>
-      One Does Simply is open source.
-      <a href="https://github.com/One-does-simply">GitHub</a> ·
-      <a href="https://github.com/One-does-simply/Specification">Specification</a> ·
-      <a href="https://github.com/One-does-simply/Frameworks">Frameworks</a>
+      ODS Pages is open source — part of the
+      <a href="https://one-does-simply.github.io/">One Does Simply</a> family.
+      <a href="https://github.com/One-does-simply/ods-pages">GitHub</a> ·
+      <a href="https://github.com/One-does-simply/ods-pages/tree/main/Specification">Spec</a> ·
+      <a href="https://github.com/One-does-simply/ods-pages/tree/main/Frameworks">Frameworks</a>
     </p>
   </footer>
 

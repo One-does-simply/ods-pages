@@ -15,7 +15,7 @@ or propose changes.
 
 Each family is a single GitHub repo with this top-level layout:
 
-```
+```text
 <family>/
 ├── Specification/           # the JSON schema, examples, templates, themes
 ├── Frameworks/              # renderers — one subfolder per implementation
@@ -61,7 +61,7 @@ See [publish.sh](publish.sh) in `ods-pages`.
 
 A single `TODO.md` at the repo root, structured as:
 
-```
+```markdown
 ## Now — actively being worked on
 ## Next — next 1–2 sessions
 ## Docs — priority 3 (pre-public polish)
@@ -115,6 +115,27 @@ Other AI assistants can follow the same file.
 Every family's public repo carries at minimum: `LICENSE` (MIT),
 `SECURITY.md`, `README.md` with CI badges, non-empty repo description,
 relevant topics on the repo.
+
+### Naming + tagline
+
+Every family has two names and a tagline:
+
+- **Repo / code name**: lowercase kebab, matches the repo URL —
+  `ods-pages`, `ods-chat`, `ods-workflow`, `ods-game`. Used in code,
+  URLs, file paths.
+- **Display name**: proper-cased two-word brand — `ODS Pages`,
+  `ODS Chat`, etc. Used in titles, hero copy, marketing.
+- **Tagline**: follows the shape
+  *"Vibe Coding [domain phrase] with Guardrails"* — the umbrella
+  `One Does Simply` uses the unqualified *"Vibe Coding with
+  Guardrails"*, and each family specializes the middle:
+  - ODS Pages → *Vibe Coding data-driven apps with Guardrails*
+  - ODS Chat → *Vibe Coding conversational agents with Guardrails*
+  - ODS Workflow → *Vibe Coding automation with Guardrails*
+  - ODS Game → *Vibe Coding games with Guardrails*
+
+Keep the shape consistent across families; choose the domain phrase
+carefully (plural, concrete, ≤4 words).
 
 ## Deliberately per-family
 
