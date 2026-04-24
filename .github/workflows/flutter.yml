@@ -42,4 +42,4 @@ jobs:
       # widget-test unskip item in TODO.md lands.
       - name: Run tests
         working-directory: Frameworks/flutter-local
-        run: flutter test test/engine test/models test/parser test/integration --exclude-tags=slow
+        run: flutter test test/engine test/models test/parser test/integration test/conformance --exclude-tags=slow

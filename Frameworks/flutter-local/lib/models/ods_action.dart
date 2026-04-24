@@ -84,6 +84,10 @@ class OdsAction {
   /// For "showMessage": the text to display in a snackbar notification.
   final String? message;
 
+  /// For "showMessage": severity level — "info" (default), "success",
+  /// "warning", or "error". Drives snackbar color / icon in renderers.
+  final String? level;
+
   /// For "update": cascade changes to linked child data sources when a
   /// parent field is renamed.
   ///
@@ -118,6 +122,7 @@ class OdsAction {
     this.filter,
     this.onEnd,
     this.message,
+    this.level,
     this.cascade,
     this.preserveFields = const [],
   });
@@ -155,6 +160,7 @@ class OdsAction {
       filter: filterRaw?.map((k, v) => MapEntry(k, v is String ? v : v.toString())),
       onEnd: onEndRaw != null ? OdsAction.fromJson(onEndRaw) : null,
       message: json['message'] as String?,
+      level: json['level'] as String?,
       cascade: _parseCascade(cascadeRaw),
       preserveFields: (json['preserveFields'] as List<dynamic>?)
               ?.cast<String>() ??

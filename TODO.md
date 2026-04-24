@@ -8,19 +8,18 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 
 ## Now — actively being worked on
 
-- [ ] **Path B — FlutterDriver + remaining driver surface** — Phase A
-      MVP landed (ADR-0001 accepted; 11 passing scenarios in
-      [Frameworks/conformance/](Frameworks/conformance/); ReactDriver at
-      [Frameworks/react-web/tests/conformance/react-driver.ts](Frameworks/react-web/tests/conformance/react-driver.ts)).
-      **Sessions A + B landed 2026-04-24**: ReactDriver is now
-      feature-complete — `clickRowAction`, real `visibleWhen`
-      (field + data), real `setClock` + lazy `CURRENTDATE`/`NOW`
-      defaults, and full `login` / `registerUser` / `logout` via a
-      new [FakePocketBase](Frameworks/react-web/tests/helpers/fake-pocketbase.ts)
-      driving the real `AuthService`. 6 new scenarios (s06-s11).
-      Remaining work: (a) FlutterDriver in Dart mirroring the same
-      surface, (b) port more Batch 1–6 scenarios into conformance
-      format.
+- [ ] **Path B — FlutterDriver extensions + more scenarios** —
+      ReactDriver is feature-complete (11 scenarios, all capabilities).
+      **Session C landed 2026-04-24**: FlutterDriver MVP exists at
+      [Frameworks/flutter-local/test/conformance/](Frameworks/flutter-local/test/conformance/)
+      — mirrors the Dart contract, passes s01-s05 against the real
+      `AppEngine` + SQLite. Catches its first parity bug in the
+      process: Dart `OdsAction` was missing `level`; now added.
+      Remaining work: (a) bring FlutterDriver up to ReactDriver's
+      feature set (s06-s11 equivalents: clickRowAction, visibleWhen,
+      setClock, login/registerUser via a Dart fake), (b) port more
+      Batch 1–6 scenarios, (c) extract a shared scenario source so
+      we're not maintaining two copies long-term.
 
 ## Next — next 1–2 sessions
 
@@ -92,6 +91,28 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 ---
 
 ## Done — recent (trim quarterly)
+
+### 2026-04-24 — Path B Session C (FlutterDriver MVP + parity bug caught)
+
+- [x] New
+      [FlutterDriver](Frameworks/flutter-local/test/conformance/flutter_driver.dart)
+      mirroring the Dart contract
+      ([contract.dart](Frameworks/flutter-local/test/conformance/contract.dart)),
+      scenarios s01-s05 ported
+      ([scenarios.dart](Frameworks/flutter-local/test/conformance/scenarios.dart)),
+      runner at
+      [conformance_test.dart](Frameworks/flutter-local/test/conformance/conformance_test.dart).
+- [x] Passes against the real `AppEngine` + SQLite (temp-dir per
+      scenario). Flutter suite 789 → 794 tests.
+- [x] **First parity bugs caught and fixed:** (a) TS scenario specs
+      used `label` on list columns; both React and Flutter parsers
+      actually read `header` — TS silently accepted `undefined`,
+      Flutter parser threw. Fixed specs to use `header` on both
+      sides. (b) Dart `OdsAction` was missing the `level` field
+      (TS had it after s03); added to the Dart model + `fromJson`.
+- [x] Flutter CI + `publish.sh` gates now include
+      `test/conformance`. Parity drift between frameworks will
+      block merges.
 
 ### 2026-04-24 — Path B Session B (auth in the driver + 2 scenarios)
 

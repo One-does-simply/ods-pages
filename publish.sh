@@ -42,7 +42,7 @@ run_flutter_tests() {
   # Perf tests live in test/integration/batch9_performance_test.dart and
   # are tagged `slow` — excluded from the gate because their Windows I/O
   # timing budgets flake. Run them on demand with `flutter test --tags=slow`.
-  if ! "$FLUTTER" test test/engine test/models test/parser test/integration \
+  if ! "$FLUTTER" test test/engine test/models test/parser test/integration test/conformance \
       --exclude-tags=slow --reporter compact 2>&1 | tail -20; then
     echo -e "${RED}Flutter${NC} — tests failed"
     return 1

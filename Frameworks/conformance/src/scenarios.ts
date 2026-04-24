@@ -85,8 +85,8 @@ function miniTodoSpec(): OdsSpec {
             component: 'list',
             dataSource: 'tasks',
             columns: [
-              { field: 'title', label: 'Title' },
-              { field: 'done', label: 'Done' },
+              { field: 'title', header: 'Title' },
+              { field: 'done', header: 'Done' },
             ],
           },
         ],
@@ -224,7 +224,7 @@ function miniTodoWithDeleteSpec(): OdsSpec {
           {
             component: 'list',
             dataSource: 'tasks',
-            columns: [{ field: 'title', label: 'Title' }],
+            columns: [{ field: 'title', header: 'Title' }],
             rowActions: [
               {
                 label: 'Delete',
@@ -326,7 +326,7 @@ function visibleWhenDataSpec(): OdsSpec {
           {
             component: 'list',
             dataSource: 'items',
-            columns: [{ field: 'title', label: 'Title' }],
+            columns: [{ field: 'title', header: 'Title' }],
             visibleWhen: { source: 'items', countMin: 1 },
           },
         ],
