@@ -32,13 +32,7 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 
 ## Next — next 1–2 sessions
 
-- [ ] **React `tsc -b` gate in CI** — the root `react.yml` workflow
-      dropped the TypeScript build step because of pre-existing errors
-      in [ColorCustomizer.tsx:221](Frameworks/react-web/src/components/ColorCustomizer.tsx#L221),
-      [code-generator.ts:1072-1115](Frameworks/react-web/src/engine/code-generator.ts#L1072),
-      [pocketbase.ts:20](Frameworks/react-web/src/lib/pocketbase.ts#L20),
-      and [KanbanComponent.tsx:1029](Frameworks/react-web/src/renderer/components/KanbanComponent.tsx#L1029).
-      Fix the errors, then add `npx tsc -b` back to the `unit` job.
+<!-- empty; drop new items here as they come up -->
 
 ## Docs — priority 3 (pre-public polish)
 
@@ -103,6 +97,21 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 ---
 
 ## Done — recent (trim quarterly)
+
+### 2026-04-24 — TS strict gate restored
+
+- [x] Cleared pre-existing TS errors: `_token` rename in
+      [ColorCustomizer.tsx](Frameworks/react-web/src/components/ColorCustomizer.tsx);
+      `_app`/`_page` mis-prefix in
+      [code-generator.ts](Frameworks/react-web/src/engine/code-generator.ts)
+      (8 errors from one signature); `SendOptions` type on the
+      `pb.send` wrapper in
+      [pocketbase.ts](Frameworks/react-web/src/lib/pocketbase.ts);
+      removed dead `cardRotation` helper + unused `rotation` memo in
+      [KanbanComponent.tsx](Frameworks/react-web/src/renderer/components/KanbanComponent.tsx).
+- [x] Re-added `npx tsc -b` step to
+      [.github/workflows/react.yml](.github/workflows/react.yml) so
+      type regressions block CI.
 
 ### 2026-04-24 — Root-level CI workflows
 

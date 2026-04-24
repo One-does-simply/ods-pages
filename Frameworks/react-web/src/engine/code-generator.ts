@@ -1056,8 +1056,8 @@ function genListParts(
 
 function genButtonParts(
   comp: OdsButtonComponent,
-  _page: import('@/models/ods-page.ts').OdsPage,
-  _app: OdsApp,
+  page: import('@/models/ods-page.ts').OdsPage,
+  app: OdsApp,
   _stateLines: string[],
   handlerLines: string[],
   jsxParts: string[],

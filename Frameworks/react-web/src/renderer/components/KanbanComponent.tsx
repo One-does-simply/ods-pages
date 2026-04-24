@@ -52,15 +52,6 @@ interface PendingConfirm {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Deterministic "random" rotation for sticky-note feel, based on row id. */
-function cardRotation(id: string): string {
-  let hash = 0
-  for (let i = 0; i < id.length; i++) {
-    hash = ((hash << 5) - hash + id.charCodeAt(i)) | 0
-  }
-  const deg = ((hash % 5) - 2) * 0.6 // range roughly -1.2 to 1.2 degrees
-  return `rotate(${deg}deg)`
-}
 
 /** Sort rows in-memory. */
 function sortRows(
@@ -1026,8 +1017,6 @@ function KanbanCard({
   onClick,
   onRowAction,
 }: KanbanCardProps) {
-  const rotation = useMemo(() => cardRotation(rowId), [rowId])
-
   // Secondary fields: cardFields minus the title field.
   const secondaryFields = useMemo(
     () => cardFields.filter((f) => f !== titleField),

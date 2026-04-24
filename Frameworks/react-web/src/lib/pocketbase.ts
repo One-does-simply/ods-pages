@@ -1,4 +1,4 @@
-import PocketBase from 'pocketbase'
+import PocketBase, { type SendOptions } from 'pocketbase'
 import { logWarn, logError } from '@/engine/log-service.ts'
 
 /** PocketBase client singleton. URL configurable via VITE_POCKETBASE_URL env var. */
@@ -15,7 +15,7 @@ pb.afterSend = function (_response: Response, data: unknown) {
 
 // Intercept failed requests via the beforeSend hook to log request context
 const originalSend = pb.send.bind(pb)
-pb.send = async function (path: string, options?: Record<string, unknown>) {
+pb.send = async function (path: string, options: SendOptions = {}) {
   try {
     return await originalSend(path, options)
   } catch (e: unknown) {
