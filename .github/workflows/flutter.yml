@@ -32,7 +32,8 @@ jobs:
 
       - name: Analyze
         working-directory: Frameworks/flutter-local
-        run: flutter analyze --fatal-errors --no-fatal-warnings --no-fatal-infos
+        # errors are always fatal; we choose not to fail on warnings/infos.
+        run: flutter analyze --no-fatal-warnings --no-fatal-infos
 
       # Batch 9 perf tests are tagged `slow` (see dart_test.yaml) — excluded
       # from the gate because their I/O timing budgets flake on cold runners.

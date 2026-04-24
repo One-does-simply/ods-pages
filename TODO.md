@@ -18,17 +18,6 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
       corners (`clickRowAction`, `login`, `registerUser`, real
       `setClock`, proper `visibleWhen` evaluation in snapshots),
       (c) port more Batch 1–6 scenarios into conformance format.
-- [ ] **Consolidate to `ods-pages` monorepo** — current three repos
-      (`Specification`, `Frameworks`, `BuildHelpers`) + homeless
-      workspace docs collapse into a single new `ods-pages` monorepo
-      via `git subtree add` (preserves history). Name locks in the
-      family-centric structure for the future ODS ecosystem
-      (`ods-pages`, `ods-chat`, `ods-workflow`, `ods-game`). Umbrella
-      `ods` repo is deferred until a second family appears and there's
-      actual cross-family content to host. Transition plan captured in
-      the git-structure discussion; ~2-hour dedicated session when
-      ready. Blocks: (a) docs being backed up, (b) atomic
-      cross-framework commits (important for Path B conformance work).
 
 ## Next — next 1–2 sessions
 
@@ -97,6 +86,14 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 ---
 
 ## Done — recent (trim quarterly)
+
+### 2026-04-24 — Monorepo consolidation closed out
+
+- [x] Upstream repos (`Specification`, `Frameworks`, `BuildHelpers`)
+      archived on GitHub. Physical consolidation itself landed in
+      commit `d5c165e` (2026-04-20) as a single bulk-add rather than a
+      history-preserving `git subtree add` — original sub-tree
+      histories now live in the archived upstreams.
 
 ### 2026-04-24 — TS strict gate restored
 
