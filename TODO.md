@@ -9,17 +9,18 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 ## Now — actively being worked on
 
 - [ ] **Path B — FlutterDriver + remaining driver surface** — Phase A
-      MVP landed (ADR-0001 accepted; 9 passing scenarios in
+      MVP landed (ADR-0001 accepted; 11 passing scenarios in
       [Frameworks/conformance/](Frameworks/conformance/); ReactDriver at
       [Frameworks/react-web/tests/conformance/react-driver.ts](Frameworks/react-web/tests/conformance/react-driver.ts)).
-      **Session A landed 2026-04-24**: ReactDriver gained
-      `clickRowAction`, real `visibleWhen` evaluation (field + data
-      conditions), and real `setClock` (via vitest fake timers) +
-      lazy `CURRENTDATE`/`NOW` default resolution; 4 new scenarios
-      (s06-s09) pin the behavior. Remaining work: (a) FlutterDriver
-      in Dart mirroring the same surface, (b) `login` +
-      `registerUser` stubs (needs an auth harness design), (c) port
-      more Batch 1–6 scenarios into conformance format.
+      **Sessions A + B landed 2026-04-24**: ReactDriver is now
+      feature-complete — `clickRowAction`, real `visibleWhen`
+      (field + data), real `setClock` + lazy `CURRENTDATE`/`NOW`
+      defaults, and full `login` / `registerUser` / `logout` via a
+      new [FakePocketBase](Frameworks/react-web/tests/helpers/fake-pocketbase.ts)
+      driving the real `AuthService`. 6 new scenarios (s06-s11).
+      Remaining work: (a) FlutterDriver in Dart mirroring the same
+      surface, (b) port more Batch 1–6 scenarios into conformance
+      format.
 
 ## Next — next 1–2 sessions
 
@@ -91,6 +92,24 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 ---
 
 ## Done — recent (trim quarterly)
+
+### 2026-04-24 — Path B Session B (auth in the driver + 2 scenarios)
+
+- [x] New
+      [FakePocketBase](Frameworks/react-web/tests/helpers/fake-pocketbase.ts)
+      — in-memory stand-in implementing the subset of `pb` that
+      `AuthService` touches (authStore, `collection('users')` CRUD
+      + `authWithPassword`). Replaces the old `mockPb()` in
+      conformance so the real `AuthService` runs against it —
+      no parallel auth implementation.
+- [x] ReactDriver `login` + `registerUser` wired through
+      `AuthService` (was throwing). Role defaults to the spec's
+      `auth.defaultRole` when caller omits it.
+- [x] **s10** — register then login flow (no auto-login, correct
+      credentials succeed, roles populated, logout returns to guest).
+- [x] **s11** — login with wrong password returns `false`, session
+      untouched; subsequent correct password succeeds.
+- [x] Conformance total: 9 → 11 scenarios; React suite 1135 → 1137.
 
 ### 2026-04-24 — Path B Session A (ReactDriver stubs + 4 scenarios)
 

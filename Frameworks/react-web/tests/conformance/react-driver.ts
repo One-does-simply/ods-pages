@@ -17,6 +17,7 @@ import type {
 } from '../../src/models/ods-component.ts'
 import { tableName } from '../../src/models/ods-data-source.ts'
 import { FakeDataService } from '../helpers/fake-data-service.ts'
+import { FakePocketBase } from '../helpers/fake-pocketbase.ts'
 
 import type {
   Capability,
@@ -33,15 +34,6 @@ import type {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function mockPb(): unknown {
-  return {
-    authStore: { isValid: false, record: null },
-    collection: () => ({
-      listAuthMethods: async () => ({ oauth2: { providers: [] } }),
-    }),
-  }
-}
 
 /** Find the OdsApp page model the store is currently on. */
 function currentPageModel(app: OdsApp, pageId: string | null) {
@@ -102,6 +94,7 @@ export class ReactDriver implements OdsDriver {
   ])
 
   private dataService: FakeDataService | null = null
+  private pb: FakePocketBase | null = null
   private authService: AuthService | null = null
   /** Mirrors the most recent showMessage action's message + level from the spec. */
   private _lastMessage: Message | null = null
@@ -116,7 +109,8 @@ export class ReactDriver implements OdsDriver {
     ds.initialize(typeof appNameRaw === 'string' ? appNameRaw : 'conformance')
     this.dataService = ds
 
-    const auth = new AuthService(mockPb() as never)
+    this.pb = new FakePocketBase()
+    const auth = new AuthService(this.pb as never)
     this.authService = auth
 
     // Reset the Zustand singleton fully.
@@ -135,6 +129,7 @@ export class ReactDriver implements OdsDriver {
   async unmount(): Promise<void> {
     useAppStore.getState().reset()
     this.dataService = null
+    this.pb = null
     this.authService = null
     this._lastMessage = null
     if (this._fakeTimers) {
@@ -371,16 +366,31 @@ export class ReactDriver implements OdsDriver {
 
   // -- Auth ------------------------------------------------------------------
 
-  async login(_email: string, _password: string): Promise<boolean> {
-    throw new Error('login: not yet implemented (MVP driver)')
+  async login(email: string, password: string): Promise<boolean> {
+    if (!this.authService) throw new Error('login: driver not mounted')
+    return this.authService.login(email, password)
   }
 
   async logout(): Promise<void> {
     this.authService?.logout()
   }
 
-  async registerUser(): Promise<string | null> {
-    throw new Error('registerUser: not yet implemented (MVP driver)')
+  async registerUser(params: {
+    email: string
+    password: string
+    displayName?: string
+    role?: string
+  }): Promise<string | null> {
+    if (!this.authService) throw new Error('registerUser: driver not mounted')
+    const app = this.requireApp()
+    const defaultRole =
+      (params.role ?? app.auth?.defaultRole ?? 'user') as string
+    return this.authService.registerUser({
+      email: params.email,
+      password: params.password,
+      displayName: params.displayName,
+      role: defaultRole,
+    })
   }
 
   async currentUser(): Promise<UserSnapshot | null> {

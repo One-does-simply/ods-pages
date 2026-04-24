@@ -477,6 +477,91 @@ export const s09_current_date_default_honors_clock: Scenario = {
   },
 }
 
+function multiUserAppSpec(): OdsSpec {
+  return {
+    appName: 'Multi User',
+    startPage: 'home',
+    auth: {
+      multiUser: true,
+      selfRegistration: true,
+      defaultRole: 'user',
+      roles: [],
+    },
+    pages: {
+      home: {
+        component: 'page',
+        title: 'Home',
+        content: [
+          { component: 'text', content: 'You are logged in.' },
+        ],
+      },
+    },
+    dataSources: {},
+  }
+}
+
+export const s10_register_then_login_flow: Scenario = {
+  name: 'registerUser creates an account; subsequent login authenticates that user',
+  spec: multiUserAppSpec,
+  capabilities: ['core', 'auth:multiUser', 'auth:selfRegistration'],
+  run: async (d) => {
+    // No user, no session.
+    const beforeAny = await d.currentUser()
+    assertEqual(beforeAny, null, 'no user before registration')
+
+    // Register — AuthService.registerUser does NOT auto-login, so the
+    // session should still be empty immediately after.
+    const newId = await d.registerUser({
+      email: 'alice@example.com',
+      password: 'secret-password',
+      displayName: 'Alice',
+    })
+    assertTrue(newId != null, 'registerUser should return a non-null id')
+
+    const afterRegister = await d.currentUser()
+    assertEqual(afterRegister, null, 'registerUser does not auto-login')
+
+    // Login with the new credentials.
+    const ok = await d.login('alice@example.com', 'secret-password')
+    assertEqual(ok, true, 'login with correct credentials succeeds')
+
+    const loggedIn = await d.currentUser()
+    assertTrue(loggedIn != null, 'currentUser non-null after login')
+    assertEqual(loggedIn!.email, 'alice@example.com', 'currentUser email')
+    assertEqual(loggedIn!.displayName, 'Alice', 'currentUser displayName')
+    assertTrue(
+      loggedIn!.roles.includes('user'),
+      `currentUser roles include default "user" (got ${JSON.stringify(loggedIn!.roles)})`,
+    )
+
+    // Logout returns to guest state.
+    await d.logout()
+    const afterLogout = await d.currentUser()
+    assertEqual(afterLogout, null, 'currentUser null after logout')
+  },
+}
+
+export const s11_login_with_wrong_password_fails: Scenario = {
+  name: 'login with wrong password returns false and leaves session unchanged',
+  spec: multiUserAppSpec,
+  capabilities: ['core', 'auth:multiUser', 'auth:selfRegistration'],
+  run: async (d) => {
+    await d.registerUser({
+      email: 'bob@example.com',
+      password: 'correct-password',
+    })
+
+    const bad = await d.login('bob@example.com', 'wrong-password')
+    assertEqual(bad, false, 'login with wrong password should return false')
+
+    const user = await d.currentUser()
+    assertEqual(user, null, 'no session after failed login')
+
+    const good = await d.login('bob@example.com', 'correct-password')
+    assertEqual(good, true, 'subsequent login with correct password succeeds')
+  },
+}
+
 /** Full list of scenarios the runner should execute. */
 export const allScenarios: ReadonlyArray<Scenario> = [
   s01_spec_loads,
@@ -488,4 +573,6 @@ export const allScenarios: ReadonlyArray<Scenario> = [
   s07_visible_when_field_condition,
   s08_visible_when_data_count,
   s09_current_date_default_honors_clock,
+  s10_register_then_login_flow,
+  s11_login_with_wrong_password_fails,
 ]
