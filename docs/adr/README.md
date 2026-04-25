@@ -40,6 +40,7 @@ mark the amendment with a date and keep the original reasoning visible.
 | #    | Title                                                                           | Status   |
 |------|---------------------------------------------------------------------------------|----------|
 | 0001 | [Conformance Driver Contract](0001-conformance-driver-contract.md)              | accepted |
+| 0002 | [Theme + Customizations Redesign](0002-theme-customizations-redesign.md)        | accepted |
 
 ## Format inspiration
 

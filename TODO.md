@@ -18,7 +18,17 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 
 ## Next — next 1–2 sessions
 
-<!-- empty; drop new items here as they come up -->
+- [ ] **Theme + Customizations redesign** — collapse the `theme` /
+      `branding` split into one builder-facing concept, move app
+      identity (logo/favicon) to top-level `OdsApp`, fonts onto
+      theme, font picker becomes a curated dropdown, and admin
+      runtime customizations save back to the spec (regular users
+      stay on localStorage). Spec'd in
+      [docs/adr/0002-theme-customizations-redesign.md](docs/adr/0002-theme-customizations-redesign.md)
+      (**accepted**). Estimated ~3-4 sessions across both
+      frameworks. Lands as a single breaking spec change — no
+      parser shim; the 4 examples + 13 templates + ods-schema.json
+      get hand-rewritten to the new shape.
 
 ## Docs — priority 3 (pre-public polish)
 
