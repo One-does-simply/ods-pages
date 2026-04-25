@@ -11,6 +11,22 @@ import { logDebug, logInfo, logWarn, logError } from './log-service.ts'
 const VALID_FIELD_NAME = /^[a-zA-Z_][a-zA-Z0-9_]*$/
 const RESERVED_NAMES = new Set(['__proto__', 'constructor', 'prototype'])
 
+/**
+ * Returns the data source's declared fields with the ownership column
+ * appended when ownership is enabled (unless the builder already
+ * included it manually). Mirrors the Flutter `_fieldsWithOwnership`.
+ */
+function fieldsWithOwnership(ds: OdsDataSource): OdsFieldDefinition[] {
+  const declared = ds.fields ?? []
+  if (!ds.ownership.enabled) return declared
+  const ownerField = ds.ownership.ownerField
+  if (declared.some((f) => f.name === ownerField)) return declared
+  return [
+    ...declared,
+    { name: ownerField, type: 'text', label: '', required: false, currency: false, readOnly: false } as OdsFieldDefinition,
+  ]
+}
+
 /** Validates that a field/table name is safe. Throws on invalid input. */
 function validateFieldName(name: string): void {
   if (!VALID_FIELD_NAME.test(name)) {
@@ -166,6 +182,14 @@ export class DataService {
 
   /**
    * Sets up all local:// data sources: creates collections and seeds data.
+   *
+   * Auto-appends the ownership column (`ownerField`) to the declared
+   * fields when row-level security is enabled on a data source, so the
+   * backing collection has the column `ActionHandler.insert` will write
+   * to. Without this, a spec that declares `ownership.enabled` but
+   * doesn't manually include `_owner` in `fields` would fail at insert
+   * against a strict backend (SQLite on Flutter; PocketBase tends to
+   * reject unknown fields too).
    */
   async setupDataSources(dataSources: Record<string, OdsDataSource>): Promise<void> {
     for (const [, ds] of Object.entries(dataSources)) {
@@ -173,7 +197,13 @@ export class DataService {
       const table = tableName(ds)
 
       if (ds.fields && ds.fields.length > 0) {
-        await this.ensureCollection(table, ds.fields)
+        await this.ensureCollection(table, fieldsWithOwnership(ds))
+      } else if (ds.ownership.enabled) {
+        // No explicit fields but ownership is on — create a minimal
+        // collection carrying at least the owner column.
+        await this.ensureCollection(table, [
+          { name: ds.ownership.ownerField, type: 'text', label: '', required: false, currency: false, readOnly: false } as OdsFieldDefinition,
+        ])
       }
 
       // Seed data into empty collections (first-run only).

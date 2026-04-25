@@ -167,8 +167,19 @@ class DataStore {
       if (!ds.isLocal) continue;
 
       // Create table from explicit field definitions if provided.
+      // Auto-append the ownership column when row-level security is on,
+      // so the SQLite schema has room for the owner id that
+      // ActionHandler injects on insert. Idempotent: ensureTable's
+      // _addMissingColumns handles re-runs non-destructively.
       if (ds.fields != null && ds.fields!.isNotEmpty) {
-        await ensureTable(ds.tableName, ds.fields!);
+        final fields = _fieldsWithOwnership(ds);
+        await ensureTable(ds.tableName, fields);
+      } else if (ds.ownership.enabled) {
+        // No explicit fields but ownership is on — create a minimal table
+        // carrying at least the owner column so inserts work.
+        await ensureTable(ds.tableName, [
+          OdsFieldDefinition(name: ds.ownership.ownerField, type: 'text'),
+        ]);
       }
 
       // Insert seed data into empty tables (first-run only).
@@ -182,6 +193,20 @@ class DataStore {
         }
       }
     }
+  }
+
+  /// Returns the data source's declared fields with the ownership column
+  /// appended when ownership is enabled (unless the builder already
+  /// included it manually).
+  List<OdsFieldDefinition> _fieldsWithOwnership(OdsDataSource ds) {
+    final declared = ds.fields ?? const <OdsFieldDefinition>[];
+    if (!ds.ownership.enabled) return declared;
+    final ownerField = ds.ownership.ownerField;
+    if (declared.any((f) => f.name == ownerField)) return declared;
+    return [
+      ...declared,
+      OdsFieldDefinition(name: ownerField, type: 'text'),
+    ];
   }
 
   /// Inserts a single row, automatically adding a `_createdAt` timestamp

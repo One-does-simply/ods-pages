@@ -42,8 +42,7 @@
       "url": "local://tasks",
       "method": "POST",
       "fields": [
-        { "name": "title", "type": "text" },
-        { "name": "_owner", "type": "text" }
+        { "name": "title", "type": "text" }
       ],
       "ownership": {
         "enabled": true,

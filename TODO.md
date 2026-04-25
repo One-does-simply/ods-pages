@@ -18,24 +18,7 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 
 ## Next — next 1–2 sessions
 
-- [ ] **Flutter ownership column not auto-added to schema** —
-      discovered 2026-04-24 while writing s16 (auth:ownership).
-      Flutter's
-      [DataStore.setupDataSources](Frameworks/flutter-local/lib/engine/data_store.dart)
-      creates the table from the spec's `fields` only; it doesn't
-      add the `ownership.ownerField` column. Then the submit action
-      (`ActionHandler.insert`) injects `_owner` into row data and
-      SQLite rejects it with "no such column." Existing bundled
-      examples like
-      [team-tasks-app.json](Specification/Examples/team-tasks-app.json)
-      would hit this — either they've never been submitted to on
-      Flutter, or someone has manually added `_owner` to their
-      `fields`. Fix: in `setupDataSources`/`ensureTable`, when
-      `ds.ownership.enabled` is true, append an `OdsFieldDefinition`
-      for `ownerField` to the fields list (unless already present).
-      React parallels: FakeDataService is schema-flexible so it
-      didn't surface the bug; the real PocketBase-backed path might
-      or might not (PB auto-extends collections — needs a check).
+<!-- empty; drop new items here as they come up -->
 
 ## Docs — priority 3 (pre-public polish)
 
@@ -136,6 +119,27 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 ---
 
 ## Done — recent (trim quarterly)
+
+### 2026-04-24 — Ownership column auto-schema fix (both frameworks)
+
+- [x] Fixed Flutter `DataStore.setupDataSources` + React
+      `DataService.setupDataSources` to auto-append the ownership
+      column (`ds.ownership.ownerField`) to a data source's fields
+      when `ds.ownership.enabled` is true, unless the builder
+      already declared it manually. Each has a small
+      `_fieldsWithOwnership` / `fieldsWithOwnership` helper mirroring
+      the other. Idempotent on re-runs because `ensureTable` /
+      `ensureCollection` handle the "column already exists" case
+      non-destructively.
+- [x] Removed the `_owner`-in-fields workaround from
+      [ownershipPerUser.json](Frameworks/conformance/specs/ownershipPerUser.json) —
+      s16 now passes against the canonical spec shape (ownership
+      config + no explicit `_owner` field).
+- [x] Unblocks bundled examples like
+      [team-tasks-app.json](Specification/Examples/team-tasks-app.json)
+      which use the canonical shape and would otherwise fail on
+      both Flutter (SQLite "no such column") and React (PocketBase
+      rejects unknown create fields).
 
 ### 2026-04-24 — Path B Session L (cascade parity fix + s20)
 
