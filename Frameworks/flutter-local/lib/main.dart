@@ -344,14 +344,22 @@ class _OdsFrameworkAppState extends State<OdsFrameworkApp> {
       );
     }
 
-    // Derive theme from app branding with user overrides
-    final branding = engine.app?.branding;
+    // Derive theme from app.theme with user overrides.
+    // Per ADR-0002, font lives on theme.overrides.fontSans. The
+    // settings store still uses 'fontFamily' as its localStorage key
+    // (legacy) and reads 'theme' as the theme name — the
+    // localStorage-format migration is part of this redesign too.
+    final theme = engine.app?.theme;
     final userOverrides = engine.app != null
         ? settings.getBrandingOverrides(engine.app!.appName)
         : <String, String>{};
-    final themeName = userOverrides['theme'] ?? branding?.theme ?? 'indigo';
-    final fontFamily = userOverrides['fontFamily'] ?? branding?.fontFamily;
-    final headerStyle = userOverrides['headerStyle'] ?? branding?.headerStyle ?? 'light';
+    final themeName = userOverrides['base'] ?? theme?.base ?? 'indigo';
+    final fontFamily = userOverrides['fontSans']
+        ?? theme?.overrides['fontSans']
+        ?? userOverrides['fontFamily'];
+    final headerStyle = userOverrides['headerStyle']
+        ?? theme?.headerStyle
+        ?? 'light';
 
     // Resolve theme asynchronously (cached after first load)
     if (themeName != _resolvedThemeName) {
@@ -2740,7 +2748,7 @@ class _AppShellState extends State<AppShell> {
     final settings = context.watch<SettingsStore>();
     final app = engine.app!;
     final brandingOverrides = settings.getBrandingOverrides(app.appName);
-    final effectiveLogoUrl = brandingOverrides['logo'] ?? app.branding.logo;
+    final effectiveLogoUrl = brandingOverrides['logo'] ?? app.logo;
 
     // Auth gate: show admin setup or login screen when multi-user is enabled.
     if (engine.needsAdminSetup) {

@@ -1,10 +1,14 @@
-import type { OdsBranding } from '../models/ods-branding.ts'
+import type { OdsTheme } from '../models/ods-theme.ts'
 
 /**
- * Applies ODS branding to the document by loading a theme from the catalog
- * and mapping its design tokens to CSS custom properties.
+ * Applies the ODS theme to the document by loading a theme from the
+ * catalog and mapping its design tokens to CSS custom properties.
  *
- * ODS Ethos: The builder picks a theme name. This service does everything else.
+ * Per ADR-0002 the builder picks a base theme + customizations
+ * (`theme.overrides`); this service does the rest. App-identity
+ * concerns (logo, favicon) live on `OdsApp` top-level — the favicon
+ * applier here is a small helper, but the model split is in
+ * ods-app.ts / ods-theme.ts.
  */
 
 // Theme catalog URL — fetched from the ODS GitHub Pages site
@@ -64,10 +68,12 @@ function resolveMode(mode: string): 'light' | 'dark' {
 }
 
 /**
- * Apply branding from an ODS spec to the document.
- * Loads the theme, resolves the mode, maps tokens to CSS variables.
+ * Apply a theme to the document. Loads the named base theme, resolves
+ * the mode, maps tokens to CSS variables, and applies any overrides.
+ *
+ * Font resolution order: overrides.fontSans → theme.fonts.sans → none.
  */
-export async function applyBranding(branding: OdsBranding): Promise<void> {
+export async function applyTheme(theme: OdsTheme): Promise<void> {
   const root = document.documentElement
   const style = root.style
 
@@ -80,25 +86,26 @@ export async function applyBranding(branding: OdsBranding): Promise<void> {
         savedOriginals.set(prop, computed.getPropertyValue(prop))
       }
     }
-    savedOriginals.set('--radius', getComputedStyle(root).getPropertyValue('--radius'))
-    savedOriginals.set('--font-sans', getComputedStyle(root).getPropertyValue('--font-sans'))
+    savedOriginals.set('--radius', computed.getPropertyValue('--radius'))
+    savedOriginals.set('--font-sans', computed.getPropertyValue('--font-sans'))
   }
 
   // Load theme
-  const themeData = await loadTheme(branding.theme || 'indigo')
+  const themeData = await loadTheme(theme.base || 'indigo')
   if (!themeData) return
 
   // Resolve mode
-  const mode = resolveMode(branding.mode)
+  const mode = resolveMode(theme.mode)
   const variant = themeData[mode] as Record<string, unknown> | undefined
   if (!variant) return
 
   const colors = variant['colors'] as Record<string, string> | undefined
-  const design = themeData['design'] as Record<string, string> | undefined  // design is at theme level
+  const design = themeData['design'] as Record<string, string> | undefined
+  const fonts = themeData['fonts'] as Record<string, string> | undefined
   if (!colors) return
 
-  // Apply token overrides from spec
-  const mergedColors = { ...colors, ...(branding.overrides ?? {}) }
+  // Apply token overrides from theme.overrides
+  const mergedColors = { ...colors, ...(theme.overrides ?? {}) }
 
   // Map color tokens to CSS variables
   for (const [token, cssProps] of Object.entries(COLOR_MAP)) {
@@ -119,30 +126,31 @@ export async function applyBranding(branding: OdsBranding): Promise<void> {
 
   // Design tokens
   if (design) {
-    const radiusBox = branding.overrides?.radiusBox ?? design['radiusBox']
+    const radiusBox = theme.overrides?.radiusBox ?? design['radiusBox']
     if (radiusBox) style.setProperty('--radius', radiusBox)
   }
 
-  // Font family
-  if (branding.fontFamily) {
-    style.setProperty('--font-sans', `'${branding.fontFamily}', sans-serif`)
-    root.style.fontFamily = `'${branding.fontFamily}', system-ui, sans-serif`
-  }
-
-  // Favicon
-  if (branding.favicon) {
-    let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]')
-    if (!link) {
-      link = document.createElement('link')
-      link.rel = 'icon'
-      document.head.appendChild(link)
-    }
-    link.href = branding.favicon
+  // Font family — overrides.fontSans wins, otherwise theme.fonts.sans, else leave default.
+  const fontSans = theme.overrides?.fontSans ?? fonts?.['sans']
+  if (fontSans) {
+    style.setProperty('--font-sans', `'${fontSans}', sans-serif`)
+    root.style.fontFamily = `'${fontSans}', system-ui, sans-serif`
   }
 }
 
-/** Reset all branding overrides back to the original CSS values. */
-export function resetBranding(): void {
+/** Set the favicon. App-identity helper; not theme. */
+export function applyFavicon(url: string): void {
+  let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]')
+  if (!link) {
+    link = document.createElement('link')
+    link.rel = 'icon'
+    document.head.appendChild(link)
+  }
+  link.href = url
+}
+
+/** Reset all theme overrides back to the original CSS values. */
+export function resetTheme(): void {
   if (!savedOriginals) return
   const style = document.documentElement.style
   for (const [prop, value] of savedOriginals) {

@@ -1,12 +1,26 @@
 # ODS Theme Catalog
 
-ODS ships 35 named themes that any ODS app can use via `branding.theme` in the spec. Each theme defines a complete color palette, design tokens, and both light and dark mode variants.
+ODS ships 35 named themes that any ODS app can use via `theme.base` in the spec. Each theme defines a complete color palette, design tokens, optional typography, and both light and dark mode variants. See [ADR-0002](../../docs/adr/0002-theme-customizations-redesign.md) for the design rationale.
 
 ```json
 {
-  "branding": {
-    "theme": "nord",
+  "theme": {
+    "base": "nord",
     "mode": "system"
+  }
+}
+```
+
+To customize on top of a base theme, add `overrides`:
+
+```json
+{
+  "theme": {
+    "base": "abyss",
+    "overrides": {
+      "primary": "#5B21B6",
+      "fontSans": "Inter"
+    }
   }
 }
 ```
@@ -85,7 +99,7 @@ DaisyUI is a Tailwind CSS plugin. ODS is framework-agnostic — the same theme m
 
 ### 3. Dual-mode guarantee
 
-Every ODS theme ships with both a `light` and `dark` variant, regardless of its `nativeScheme`. DaisyUI themes only define one mode (whichever they were designed for). ODS auto-generates the missing mode by flipping base colors and adjusting primary lightness, then audits both modes for contrast compliance. This means `branding.mode: "system"` always works with every theme.
+Every ODS theme ships with both a `light` and `dark` variant, regardless of its `nativeScheme`. DaisyUI themes only define one mode (whichever they were designed for). ODS auto-generates the missing mode by flipping base colors and adjusting primary lightness, then audits both modes for contrast compliance. This means `theme.mode: "system"` always works with every theme.
 
 ## Theme Architecture
 
@@ -152,6 +166,22 @@ Themes/
   }
 }
 ```
+
+### Typography (optional)
+
+A theme may declare typography to ship with the palette:
+
+```json
+{
+  "fonts": {
+    "sans": "Inter",
+    "serif": "Source Serif 4",
+    "mono": "JetBrains Mono"
+  }
+}
+```
+
+Most themes leave this out (renderers fall back to the system default). A few signature themes ship matching typography — for example, `abyss` pairs an atmospheric serif with its dark ocean palette. Builders can override per-app via `theme.overrides.fontSans` (or `fontSerif`/`fontMono`). Resolution order at runtime is: theme.overrides → theme.fonts → system default.
 
 ### Color Tokens
 

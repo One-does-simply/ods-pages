@@ -31,29 +31,104 @@
       "type": "field-list",
       "required": true,
       "presets": [
-        { "label": "Title", "name": "title", "type": "text" },
-        { "label": "Assignee", "name": "assignee", "type": "user" },
-        { "label": "Priority", "name": "priority", "type": "select", "options": ["Low", "Medium", "High", "Urgent"] },
-        { "label": "Due Date", "name": "dueDate", "type": "date" },
-        { "label": "Description", "name": "description", "type": "multiline" }
+        {
+          "label": "Title",
+          "name": "title",
+          "type": "text"
+        },
+        {
+          "label": "Assignee",
+          "name": "assignee",
+          "type": "user"
+        },
+        {
+          "label": "Priority",
+          "name": "priority",
+          "type": "select",
+          "options": [
+            "Low",
+            "Medium",
+            "High",
+            "Urgent"
+          ]
+        },
+        {
+          "label": "Due Date",
+          "name": "dueDate",
+          "type": "date"
+        },
+        {
+          "label": "Description",
+          "name": "description",
+          "type": "multiline"
+        }
       ]
     },
     {
       "id": "theme",
       "label": "App theme",
       "type": "select",
-      "options": ["indigo", "slate", "ocean", "parchment", "peach", "terracotta", "walnut", "cupcake", "bumblebee", "emerald", "corporate", "synthwave", "retro", "cyberpunk", "valentine", "halloween", "garden", "forest", "aqua", "lofi", "pastel", "fantasy", "wireframe", "black", "luxury", "dracula", "cmyk", "autumn", "business", "acid", "lemonade", "night", "coffee", "winter", "dim", "nord", "sunset", "caramellatte", "abyss", "silk"],
+      "options": [
+        "indigo",
+        "slate",
+        "ocean",
+        "parchment",
+        "peach",
+        "terracotta",
+        "walnut",
+        "cupcake",
+        "bumblebee",
+        "emerald",
+        "corporate",
+        "synthwave",
+        "retro",
+        "cyberpunk",
+        "valentine",
+        "halloween",
+        "garden",
+        "forest",
+        "aqua",
+        "lofi",
+        "pastel",
+        "fantasy",
+        "wireframe",
+        "black",
+        "luxury",
+        "dracula",
+        "cmyk",
+        "autumn",
+        "business",
+        "acid",
+        "lemonade",
+        "night",
+        "coffee",
+        "winter",
+        "dim",
+        "nord",
+        "sunset",
+        "caramellatte",
+        "abyss",
+        "silk"
+      ],
       "default": "indigo"
     }
   ],
   "template": {
     "appName": "${appName}",
-    "branding": { "theme": "${theme}" },
     "startPage": "boardPage",
     "menu": [
-      { "label": "Board", "mapsTo": "boardPage" },
-      { "label": "Add ${itemName}", "mapsTo": "addPage" },
-      { "label": "All ${itemName}s", "mapsTo": "listPage" }
+      {
+        "label": "Board",
+        "mapsTo": "boardPage"
+      },
+      {
+        "label": "Add ${itemName}",
+        "mapsTo": "addPage"
+      },
+      {
+        "label": "All ${itemName}s",
+        "mapsTo": "listPage"
+      }
     ],
     "pages": {
       "boardPage": {
@@ -75,7 +150,9 @@
                 "$map": "fields",
                 "each(field)": "${field.name}"
               },
-              "else": ["title"]
+              "else": [
+                "title"
+              ]
             },
             "searchable": true,
             "rowActions": [
@@ -110,7 +187,9 @@
                         "label": "${field.label}",
                         "type": "select",
                         "required": true,
-                        "options": { "$eval": "field.options" }
+                        "options": {
+                          "$eval": "field.options"
+                        }
                       },
                       "else": {
                         "$if": "field.type == 'date'",
@@ -138,7 +217,9 @@
                     "type": "select",
                     "required": true,
                     "default": "${columns[0]}",
-                    "options": { "$eval": "columns" }
+                    "options": {
+                      "$eval": "columns"
+                    }
                   }
                 ]
               ]
@@ -148,11 +229,23 @@
             "component": "button",
             "label": "Add ${itemName}",
             "onClick": [
-              { "action": "submit", "dataSource": "itemsStore", "target": "addForm" },
-              { "action": "navigate", "target": "boardPage" },
-              { "action": "showMessage", "message": "${itemName} added!" }
+              {
+                "action": "submit",
+                "dataSource": "itemsStore",
+                "target": "addForm"
+              },
+              {
+                "action": "navigate",
+                "target": "boardPage"
+              },
+              {
+                "action": "showMessage",
+                "message": "${itemName} added!"
+              }
             ],
-            "styleHint": { "emphasis": "primary" }
+            "styleHint": {
+              "emphasis": "primary"
+            }
           }
         ]
       },
@@ -210,7 +303,10 @@
       }
     },
     "dataSources": {
-      "itemsStore": { "url": "local://items", "method": "POST" },
+      "itemsStore": {
+        "url": "local://items",
+        "method": "POST"
+      },
       "itemsReader": {
         "url": "local://items",
         "method": "GET",
@@ -225,7 +321,9 @@
                   "then": {
                     "name": "${field.name}",
                     "type": "select",
-                    "options": { "$eval": "field.options" }
+                    "options": {
+                      "$eval": "field.options"
+                    }
                   },
                   "else": {
                     "name": "${field.name}",
@@ -239,14 +337,22 @@
               {
                 "name": "status",
                 "type": "select",
-                "options": { "$eval": "columns" }
+                "options": {
+                  "$eval": "columns"
+                }
               }
             ]
           ]
         }
       },
-      "itemsUpdater": { "url": "local://items", "method": "PUT" },
-      "itemsDeleter": { "url": "local://items", "method": "DELETE" }
+      "itemsUpdater": {
+        "url": "local://items",
+        "method": "PUT"
+      },
+      "itemsDeleter": {
+        "url": "local://items",
+        "method": "DELETE"
+      }
     },
     "help": {
       "overview": "${appName} is a kanban board for tracking ${itemName}s. Drag cards between columns to update their status. Use the Add page to create new ${itemName}s, or view everything in a table on the All ${itemName}s page.",
@@ -257,10 +363,28 @@
       }
     },
     "tour": [
-      { "title": "Welcome to ${appName}!", "content": "Track your ${itemName}s on a visual kanban board.", "page": "boardPage" },
-      { "title": "Drag and Drop", "content": "Move cards between columns to update their status. It's that simple.", "page": "boardPage" },
-      { "title": "Add ${itemName}s", "content": "Use this form to add new ${itemName}s to the board.", "page": "addPage" },
-      { "title": "You're Ready!", "content": "Start managing your ${itemName}s now." }
-    ]
+      {
+        "title": "Welcome to ${appName}!",
+        "content": "Track your ${itemName}s on a visual kanban board.",
+        "page": "boardPage"
+      },
+      {
+        "title": "Drag and Drop",
+        "content": "Move cards between columns to update their status. It's that simple.",
+        "page": "boardPage"
+      },
+      {
+        "title": "Add ${itemName}s",
+        "content": "Use this form to add new ${itemName}s to the board.",
+        "page": "addPage"
+      },
+      {
+        "title": "You're Ready!",
+        "content": "Start managing your ${itemName}s now."
+      }
+    ],
+    "theme": {
+      "base": "${theme}"
+    }
   }
 }

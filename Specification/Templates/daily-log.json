@@ -1,6 +1,6 @@
 {
   "templateName": "Daily Log",
-  "description": "A simple journal for daily entries \u00e2\u20ac\u201d write, browse, and edit. Perfect for diaries, standups, gratitude logs, or any date-based notes.",
+  "description": "A simple journal for daily entries â€” write, browse, and edit. Perfect for diaries, standups, gratitude logs, or any date-based notes.",
   "icon": "edit_calendar",
   "questions": [
     {
@@ -72,15 +72,53 @@
       "id": "theme",
       "label": "App theme",
       "type": "select",
-      "options": ["indigo", "slate", "ocean", "parchment", "peach", "terracotta", "walnut", "cupcake", "bumblebee", "emerald", "corporate", "synthwave", "retro", "cyberpunk", "valentine", "halloween", "garden", "forest", "aqua", "lofi", "pastel", "fantasy", "wireframe", "black", "luxury", "dracula", "cmyk", "autumn", "business", "acid", "lemonade", "night", "coffee", "winter", "dim", "nord", "sunset", "caramellatte", "abyss", "silk"],
+      "options": [
+        "indigo",
+        "slate",
+        "ocean",
+        "parchment",
+        "peach",
+        "terracotta",
+        "walnut",
+        "cupcake",
+        "bumblebee",
+        "emerald",
+        "corporate",
+        "synthwave",
+        "retro",
+        "cyberpunk",
+        "valentine",
+        "halloween",
+        "garden",
+        "forest",
+        "aqua",
+        "lofi",
+        "pastel",
+        "fantasy",
+        "wireframe",
+        "black",
+        "luxury",
+        "dracula",
+        "cmyk",
+        "autumn",
+        "business",
+        "acid",
+        "lemonade",
+        "night",
+        "coffee",
+        "winter",
+        "dim",
+        "nord",
+        "sunset",
+        "caramellatte",
+        "abyss",
+        "silk"
+      ],
       "default": "indigo"
     }
   ],
   "template": {
     "appName": "${appName}",
-    "branding": {
-      "theme": "${theme}"
-    },
     "startPage": "browsePage",
     "menu": [
       {
@@ -358,6 +396,9 @@
     },
     "help": {
       "overview": "${appName} is your personal log. Write new entries, browse past ones, and edit or delete as needed. All data stays on your device."
+    },
+    "theme": {
+      "base": "${theme}"
     }
   }
 }

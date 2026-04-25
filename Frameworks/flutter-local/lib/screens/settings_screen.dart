@@ -15,7 +15,7 @@ import '../engine/theme_resolver.dart';
 import '../engine/settings_store.dart';
 import '../models/ods_app.dart';
 import '../models/ods_app_setting.dart';
-import '../models/ods_branding.dart';
+// ods_branding removed — see ADR-0002. Theme/identity refs now via app.theme + app.logo.
 import '../renderer/snackbar_helper.dart';
 import '../screens/app_tour_dialog.dart';
 import '../widgets/color_picker_widgets.dart';
@@ -627,15 +627,24 @@ class _BrandingSectionState extends State<_BrandingSection> {
   @override
   void initState() {
     super.initState();
+    // The settings store still uses 'theme'/'fontFamily' as legacy
+    // localStorage keys; we map them onto the new model fields here.
+    // A localStorage migration to {base, fontSans, ...} is a separate
+    // follow-up.
     final overrides = widget.settings.getBrandingOverrides(widget.app.appName);
-    _theme = overrides['theme'] ?? widget.app.branding.theme;
+    _theme = overrides['theme']
+        ?? overrides['base']
+        ?? widget.app.theme.base;
     _logoController = TextEditingController(
-      text: overrides['logo'] ?? widget.app.branding.logo ?? '',
+      text: overrides['logo'] ?? widget.app.logo ?? '',
     );
     _fontFamilyController = TextEditingController(
-      text: overrides['fontFamily'] ?? widget.app.branding.fontFamily ?? '',
+      text: overrides['fontFamily']
+          ?? overrides['fontSans']
+          ?? widget.app.theme.overrides['fontSans']
+          ?? '',
     );
-    _headerStyle = overrides['headerStyle'] ?? widget.app.branding.headerStyle;
+    _headerStyle = overrides['headerStyle'] ?? widget.app.theme.headerStyle;
   }
 
   @override
@@ -672,12 +681,13 @@ class _BrandingSectionState extends State<_BrandingSection> {
   Future<void> _reset() async {
     await widget.settings.setBrandingOverrides(widget.app.appName, {});
     setState(() {
-      _theme = widget.app.branding.theme;
+      _theme = widget.app.theme.base;
       _customizeOpen = false;
       _brandingOpen = false;
-      _logoController.text = widget.app.branding.logo ?? '';
-      _fontFamilyController.text = widget.app.branding.fontFamily ?? '';
-      _headerStyle = widget.app.branding.headerStyle;
+      _logoController.text = widget.app.logo ?? '';
+      _fontFamilyController.text =
+          widget.app.theme.overrides['fontSans'] ?? '';
+      _headerStyle = widget.app.theme.headerStyle;
     });
     widget.onChanged();
   }

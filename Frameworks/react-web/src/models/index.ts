@@ -42,3 +42,6 @@ export { parseMenuItem } from './ods-menu-item.ts'
 
 export type { OdsAppSetting } from './ods-app-setting.ts'
 export { parseAppSetting } from './ods-app-setting.ts'
+
+export type { OdsTheme } from './ods-theme.ts'
+export { parseTheme, DEFAULT_THEME } from './ods-theme.ts'

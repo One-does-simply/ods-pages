@@ -92,22 +92,63 @@
       "id": "theme",
       "label": "App theme",
       "type": "select",
-      "options": ["indigo", "slate", "ocean", "parchment", "peach", "terracotta", "walnut", "cupcake", "bumblebee", "emerald", "corporate", "synthwave", "retro", "cyberpunk", "valentine", "halloween", "garden", "forest", "aqua", "lofi", "pastel", "fantasy", "wireframe", "black", "luxury", "dracula", "cmyk", "autumn", "business", "acid", "lemonade", "night", "coffee", "winter", "dim", "nord", "sunset", "caramellatte", "abyss", "silk"],
+      "options": [
+        "indigo",
+        "slate",
+        "ocean",
+        "parchment",
+        "peach",
+        "terracotta",
+        "walnut",
+        "cupcake",
+        "bumblebee",
+        "emerald",
+        "corporate",
+        "synthwave",
+        "retro",
+        "cyberpunk",
+        "valentine",
+        "halloween",
+        "garden",
+        "forest",
+        "aqua",
+        "lofi",
+        "pastel",
+        "fantasy",
+        "wireframe",
+        "black",
+        "luxury",
+        "dracula",
+        "cmyk",
+        "autumn",
+        "business",
+        "acid",
+        "lemonade",
+        "night",
+        "coffee",
+        "winter",
+        "dim",
+        "nord",
+        "sunset",
+        "caramellatte",
+        "abyss",
+        "silk"
+      ],
       "default": "indigo"
     }
   ],
   "template": {
     "appName": "${appName}",
-    "branding": {
-      "theme": "${theme}"
-    },
     "startPage": "submitPage",
     "auth": {
       "$if": "wantMultiUser",
       "then": {
         "multiUser": true,
         "defaultRole": "user",
-        "selfRegistration": { "$if": "wantSelfRegistration", "then": true }
+        "selfRegistration": {
+          "$if": "wantSelfRegistration",
+          "then": true
+        }
       }
     },
     "menu": [
@@ -120,7 +161,9 @@
         "mapsTo": "resultsPage",
         "roles": {
           "$if": "wantMultiUser",
-          "then": ["admin"]
+          "then": [
+            "admin"
+          ]
         }
       }
     ],
@@ -131,7 +174,7 @@
         "content": [
           {
             "component": "text",
-            "content": "${surveyTopic} \u00e2\u20ac\u201d your responses are stored locally on this device.",
+            "content": "${surveyTopic} â€” your responses are stored locally on this device.",
             "styleHint": {
               "variant": "body"
             }
@@ -187,7 +230,7 @@
               },
               {
                 "action": "showMessage",
-                "message": "Response submitted \u00e2\u20ac\u201d thank you!"
+                "message": "Response submitted â€” thank you!"
               }
             ],
             "styleHint": {
@@ -333,6 +376,9 @@
     },
     "help": {
       "overview": "${appName} collects responses about ${surveyTopic}. Submit your response on the first page and view all collected results on the Results page. All data stays on your device."
+    },
+    "theme": {
+      "base": "${theme}"
     }
   }
 }

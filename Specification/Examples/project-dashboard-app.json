@@ -2,12 +2,10 @@
   "appName": "Project Dashboard",
   "auth": {
     "multiUser": true,
-    "roles": ["manager"],
+    "roles": [
+      "manager"
+    ],
     "defaultRole": "user"
-  },
-  "branding": {
-    "theme": "corporate",
-    "headerStyle": "solid"
   },
   "startPage": {
     "default": "addTaskPage",
@@ -125,7 +123,7 @@
       "content": [
         {
           "component": "text",
-          "content": "{COUNT(tasksReader)} total tasks \u00e2\u20ac\u201d {COUNT(tasksReader, status=Done)} done, {COUNT(tasksReader, status=In Progress)} in progress, {COUNT(tasksReader, status=To Do)} to do",
+          "content": "{COUNT(tasksReader)} total tasks â€” {COUNT(tasksReader, status=Done)} done, {COUNT(tasksReader, status=In Progress)} in progress, {COUNT(tasksReader, status=To Do)} to do",
           "styleHint": {
             "variant": "subheading"
           },
@@ -571,5 +569,9 @@
       "content": "Create tasks and assign them to a project. Set status, priority, and due date. Defaults help you move fast.",
       "page": "addTaskPage"
     }
-  ]
+  ],
+  "theme": {
+    "base": "corporate",
+    "headerStyle": "solid"
+  }
 }

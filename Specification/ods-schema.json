@@ -29,11 +29,25 @@
         }
       ]
     },
-    "branding": {
-      "description": "Optional. Customizes the app's visual identity using named themes from the ODS theme catalog (based on DaisyUI). When omitted, uses the 'indigo' theme. Each framework resolves the theme's design tokens into its native theming system.",
+    "logo": {
+      "description": "URL to the app logo displayed in sidebar and login screen. Recommended: horizontal aspect ratio (e.g., 200x50). Supports PNG, SVG, JPG.",
+      "type": "string",
+      "format": "uri"
+    },
+    "favicon": {
+      "description": "URL to a small icon for the browser tab (web) or app context (desktop). Recommended: 32x32 or 64x64 PNG.",
+      "type": "string",
+      "format": "uri"
+    },
+    "appIcon": {
+      "description": "Optional emoji or icon identifier shown alongside the app name (e.g., '📊'). Renderer-specific in how it's displayed.",
+      "type": "string"
+    },
+    "theme": {
+      "description": "Optional. Visual theme + customizations. A base theme picks colors/typography from the catalog; `overrides` adjusts any token (color, font, etc.) on top of it. When omitted, uses the 'indigo' theme. See ADR-0002 for the design rationale.",
       "type": "object",
       "properties": {
-        "theme": {
+        "base": {
           "description": "Name of a theme from the catalog (e.g., 'corporate', 'nord', 'dracula'). See Themes/catalog.json for all options. Defaults to 'indigo'.",
           "type": "string",
           "default": "indigo"
@@ -44,28 +58,14 @@
           "enum": ["light", "dark", "system"],
           "default": "system"
         },
-        "logo": {
-          "description": "URL to the app logo displayed in sidebar and login screen. Recommended: horizontal aspect ratio (e.g., 200x50). Supports PNG, SVG, JPG.",
-          "type": "string",
-          "format": "uri"
-        },
-        "favicon": {
-          "description": "URL to a small icon for the browser tab (web) or app context (desktop). Recommended: 32x32 or 64x64 PNG.",
-          "type": "string",
-          "format": "uri"
-        },
         "headerStyle": {
           "description": "Visual style of the top app bar. 'solid' fills with primary color, 'light' uses neutral background, 'transparent' removes the background.",
           "type": "string",
           "enum": ["solid", "light", "transparent"],
           "default": "light"
         },
-        "fontFamily": {
-          "description": "Preferred font family (e.g., 'Inter', 'Roboto', 'Georgia'). Falls back to the framework default if unavailable.",
-          "type": "string"
-        },
         "overrides": {
-          "description": "Per-token overrides on top of the selected theme. Keys are camelCase token names (e.g., 'primary', 'base100', 'radiusBox'). Values are oklch color strings or CSS length values. For custom themes, override as many tokens as needed.",
+          "description": "Per-token overrides on top of the base theme. Keys are camelCase token names (e.g., 'primary', 'base100', 'radiusBox', 'fontSans', 'fontSerif', 'fontMono'). Values are oklch color strings, CSS lengths, or font family names. Override as many tokens as needed.",
           "type": "object",
           "additionalProperties": {
             "type": "string"

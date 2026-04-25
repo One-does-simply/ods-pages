@@ -300,7 +300,11 @@ export function QuickBuildScreen() {
     // Inject theme into answers
     setAnswers((prev) => ({ ...prev, theme: selectedTheme }))
 
-    // Render the template then inject branding
+    // Render the template then inject the theme block + app identity.
+    // Per ADR-0002 the spec uses a top-level `theme` object (with
+    // base/mode/headerStyle/overrides) and pushes `logo`/`favicon` to
+    // top-level as app identity. Strip any legacy `branding` key the
+    // template emitted.
     setRendering(true)
     setRenderError(null)
     try {
@@ -311,18 +315,20 @@ export function QuickBuildScreen() {
       const templateBody = templateJson!['template']
       const rendered = render(templateBody, context) as Record<string, unknown>
 
-      // Inject branding
-      const branding = (rendered['branding'] as Record<string, unknown>) ?? {}
-      branding['theme'] = selectedTheme
-      branding['mode'] = 'system'
-      if (Object.keys(colorOverrides).length > 0) {
-        branding['overrides'] = { ...colorOverrides }
+      delete rendered['branding']
+
+      const overrides: Record<string, string> = { ...colorOverrides }
+      if (brandingFontFamily.trim()) overrides['fontSans'] = brandingFontFamily.trim()
+      const theme: Record<string, unknown> = {
+        base: selectedTheme,
+        mode: 'system',
+        headerStyle: brandingHeaderStyle,
       }
-      if (brandingLogo.trim()) branding['logo'] = brandingLogo.trim()
-      if (brandingFavicon.trim()) branding['favicon'] = brandingFavicon.trim()
-      branding['headerStyle'] = brandingHeaderStyle
-      if (brandingFontFamily.trim()) branding['fontFamily'] = brandingFontFamily.trim()
-      rendered['branding'] = branding
+      if (Object.keys(overrides).length > 0) theme['overrides'] = overrides
+      rendered['theme'] = theme
+
+      if (brandingLogo.trim()) rendered['logo'] = brandingLogo.trim()
+      if (brandingFavicon.trim()) rendered['favicon'] = brandingFavicon.trim()
 
       const texts = extractReviewableTexts(rendered)
       const initialValues: Record<string, string> = {}

@@ -10,7 +10,7 @@ import { executeAction, type ActionResult } from './action-handler.ts'
 import type { AuthService } from './auth-service.ts'
 import type { DataService } from './data-service.ts'
 import { runAutoBackup } from './backup-service.ts'
-import { applyBranding, resetBranding } from './branding-service.ts'
+import { applyTheme, applyFavicon, resetTheme } from './branding-service.ts'
 import { logWarn, logError } from './log-service.ts'
 
 // ---------------------------------------------------------------------------
@@ -245,16 +245,19 @@ export const useAppStore = create<AppState>()((set, get) => ({
         needsLogin: app.auth.multiUser && !pbSuperAdminAvailable && !authService.isLoggedIn,
       })
 
-      // Apply branding — merge spec defaults with any saved user overrides
-      const brandingKey = `ods_branding_${app.appName.replace(/[^\w]/g, '_').toLowerCase()}`
-      let effectiveBranding = app.branding
+      // Apply theme — merge spec defaults with any saved user overrides.
+      // localStorage key is per-app; only regular users (non-admins) save
+      // here. Admin theme saves go back to the spec (separate path).
+      const themeKey = `ods_theme_${app.appName.replace(/[^\w]/g, '_').toLowerCase()}`
+      let effectiveTheme = app.theme
       try {
-        const saved = JSON.parse(localStorage.getItem(brandingKey) ?? '{}')
-        if (saved.theme || saved.mode) {
-          effectiveBranding = { ...app.branding, ...saved }
+        const saved = JSON.parse(localStorage.getItem(themeKey) ?? '{}')
+        if (saved.base || saved.mode || saved.overrides) {
+          effectiveTheme = { ...app.theme, ...saved }
         }
       } catch { /* ignore */ }
-      applyBranding(effectiveBranding).catch(() => {})
+      applyTheme(effectiveTheme).catch(() => {})
+      if (app.favicon) applyFavicon(app.favicon)
 
       // Run auto-backup in background (best-effort, non-blocking)
       runAutoBackup(app, dataService).catch(() => {})
@@ -779,7 +782,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
   // -------------------------------------------------------------------------
 
   reset: () => {
-    resetBranding()
+    resetTheme()
     set({ ...initialState })
   },
 

@@ -332,15 +332,15 @@ describe('Batch 4: Edge-case integration tests', () => {
       expect(app.menu).toEqual([])
     })
 
-    it('spec with no `branding` → default branding', () => {
+    it('spec with no `theme` → default theme', () => {
       const app = parseApp({
-        appName: 'NoBranding',
+        appName: 'NoTheme',
         startPage: 'home',
         pages: { home: { title: 'Home', content: [] } },
       })
-      expect(app.branding).toBeDefined()
-      expect(app.branding.theme).toBe('indigo')
-      expect(app.branding.mode).toBe('system')
+      expect(app.theme).toBeDefined()
+      expect(app.theme.base).toBe('indigo')
+      expect(app.theme.mode).toBe('system')
     })
 
     it('spec with no `auth` → defaults to single-user', () => {

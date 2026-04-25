@@ -1,10 +1,10 @@
 import 'ods_app_setting.dart';
 import 'ods_auth.dart';
-import 'ods_branding.dart';
 import 'ods_data_source.dart';
 import 'ods_help.dart';
 import 'ods_menu_item.dart';
 import 'ods_page.dart';
+import 'ods_theme.dart';
 
 /// The top-level model representing a complete ODS application.
 ///
@@ -21,6 +21,15 @@ import 'ods_page.dart';
 /// ODS frameworks and by the planned code-generation off-ramp.
 class OdsApp {
   final String appName;
+
+  /// Optional emoji or icon identifier for the app (top-level identity).
+  final String? appIcon;
+
+  /// Logo URL shown in sidebar/drawer header.
+  final String? logo;
+
+  /// Favicon URL shown in browser tab (web only; ignored on Flutter desktop).
+  final String? favicon;
 
   /// The default start page ID (used when no role-specific page matches).
   final String startPage;
@@ -54,8 +63,8 @@ class OdsApp {
   /// When absent or `multiUser: false`, the app runs in single-user mode.
   final OdsAuth auth;
 
-  /// Visual branding and theming configuration.
-  final OdsBranding branding;
+  /// Visual theme + customizations.
+  final OdsTheme theme;
 
   /// Resolves the start page for the given roles. Returns the first
   /// role-specific match, or falls back to [startPage].
@@ -69,6 +78,9 @@ class OdsApp {
 
   const OdsApp({
     required this.appName,
+    this.appIcon,
+    this.logo,
+    this.favicon,
     required this.startPage,
     this.startPageByRole = const {},
     required this.menu,
@@ -78,7 +90,7 @@ class OdsApp {
     this.tour = const [],
     this.settings = const {},
     this.auth = const OdsAuth(),
-    this.branding = const OdsBranding(),
+    this.theme = const OdsTheme(),
   });
 
   factory OdsApp.fromJson(Map<String, dynamic> json) {
@@ -99,6 +111,9 @@ class OdsApp {
 
     return OdsApp(
       appName: json['appName'] as String,
+      appIcon: json['appIcon'] as String?,
+      logo: json['logo'] as String?,
+      favicon: json['favicon'] as String?,
       startPage: startPage,
       startPageByRole: startPageByRole,
       // Menu is optional — default to empty list if not provided.
@@ -128,7 +143,7 @@ class OdsApp {
           ) ??
           {},
       auth: OdsAuth.fromJson(json['auth'] as Map<String, dynamic>?),
-      branding: OdsBranding.fromJson(json['branding'] as Map<String, dynamic>?),
+      theme: OdsTheme.fromJson(json['theme'] as Map<String, dynamic>?),
     );
   }
 }

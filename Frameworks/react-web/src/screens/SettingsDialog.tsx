@@ -10,8 +10,8 @@ import {
   setBackupSettings,
   type BackupSettings,
 } from '@/engine/backup-service.ts'
-import { applyBranding, loadTheme } from '@/engine/branding-service.ts'
-import type { OdsBranding } from '@/models/ods-branding.ts'
+import { applyTheme, applyFavicon, loadTheme } from '@/engine/branding-service.ts'
+import type { OdsTheme } from '@/models/ods-theme.ts'
 import {
   Dialog,
   DialogContent,
@@ -53,30 +53,39 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const appSettings = useAppStore((s) => s.appSettings)
   const dataService = useAppStore((s) => s.dataService)
 
-  // Branding overrides (persisted per-app in localStorage)
-  const brandingKey = `ods_branding_${app.appName.replace(/[^\w]/g, '_').toLowerCase()}`
+  // Theme + identity overrides (persisted per-app in localStorage).
+  // Per ADR-0002, the in-memory shape mirrors the spec: theme contains
+  // base/mode/headerStyle/overrides; logo/favicon are at top-level.
+  // The localStorage payload nests `theme:{...}` to match.
+  const themeKey = `ods_theme_${app.appName.replace(/[^\w]/g, '_').toLowerCase()}`
   const savedOverrides = (() => {
-    try { return JSON.parse(localStorage.getItem(brandingKey) ?? '{}') } catch { return {} }
-  })() as Partial<OdsBranding>
-  const [selectedTheme, setSelectedTheme] = useState(savedOverrides.theme ?? app.branding.theme)
+    try { return JSON.parse(localStorage.getItem(themeKey) ?? '{}') } catch { return {} }
+  })() as { theme?: Partial<OdsTheme>; logo?: string; favicon?: string }
+  const [selectedTheme, setSelectedTheme] = useState(savedOverrides.theme?.base ?? app.theme.base)
   const [customizeOpen, setCustomizeOpen] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewMode, setPreviewMode] = useState<'light' | 'dark'>('light')
   const [_themeDefaults, _setThemeDefaults] = useState<Record<string, string>>({})
   const [tokenOverrides, setTokenOverrides] = useState<Record<string, string>>(
-    savedOverrides.overrides ?? app.branding.overrides ?? {}
+    savedOverrides.theme?.overrides ?? app.theme.overrides ?? {}
   )
 
-  // Branding fields (logo, favicon, headerStyle, fontFamily)
-  const [brandingLogo, setBrandingLogo] = useState(savedOverrides.logo ?? app.branding.logo ?? '')
-  const [brandingFavicon, setBrandingFavicon] = useState(savedOverrides.favicon ?? app.branding.favicon ?? '')
+  // App identity (logo, favicon) + theme.headerStyle + font (lives in
+  // theme.overrides.fontSans). Local state names retain `branding*` for
+  // minimal-diff during the model migration; UI rewrite comes next.
+  const [brandingLogo, setBrandingLogo] = useState(savedOverrides.logo ?? app.logo ?? '')
+  const [brandingFavicon, setBrandingFavicon] = useState(savedOverrides.favicon ?? app.favicon ?? '')
   const [brandingHeaderStyle, setBrandingHeaderStyle] = useState<'light' | 'solid' | 'transparent'>(
-    savedOverrides.headerStyle ?? app.branding.headerStyle ?? 'light'
+    savedOverrides.theme?.headerStyle ?? app.theme.headerStyle ?? 'light'
   )
-  const [brandingFontFamily, setBrandingFontFamily] = useState(savedOverrides.fontFamily ?? app.branding.fontFamily ?? '')
+  const [brandingFontFamily, setBrandingFontFamily] = useState(
+    (savedOverrides.theme?.overrides?.fontSans as string | undefined)
+      ?? (app.theme.overrides?.fontSans as string | undefined)
+      ?? ''
+  )
   const [brandingFieldsOpen, setBrandingFieldsOpen] = useState(false)
 
-  // Admin check — branding fields are admin-only
+  // Admin check — theme + identity fields are admin-only in multi-user mode
   const authService = useAppStore((s) => s.authService)
   const isMultiUser = useAppStore((s) => s.isMultiUser)
   const isAdmin = !isMultiUser || !authService || authService.isAdmin
@@ -93,7 +102,11 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     }).catch(() => {})
   }, [customizeOpen, previewOpen, selectedTheme])
 
-  /** Build the localStorage-persisted branding override object from current state. */
+  /**
+   * Build the localStorage-persisted overrides payload. Shape mirrors
+   * the spec: nested `theme: {base, mode, headerStyle, overrides}` plus
+   * top-level `logo`/`favicon`.
+   */
   function buildSavedOverrides(
     overrideTheme?: string,
     overrideTokens?: Record<string, string>,
@@ -102,25 +115,42 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     overrideHeaderStyle?: 'light' | 'solid' | 'transparent',
     overrideFontFamily?: string,
   ) {
-    const t = overrideTheme ?? selectedTheme
+    const base = overrideTheme ?? selectedTheme
     const tk = overrideTokens ?? tokenOverrides
     const lo = overrideLogo ?? brandingLogo
     const fa = overrideFavicon ?? brandingFavicon
     const hs = overrideHeaderStyle ?? brandingHeaderStyle
     const ff = overrideFontFamily ?? brandingFontFamily
-    const saved: Record<string, unknown> = { theme: t }
-    if (Object.keys(tk).length > 0) saved.overrides = tk
+    const themeBlock: Record<string, unknown> = { base }
+    const tkWithFont: Record<string, string> = { ...tk }
+    if (ff) tkWithFont['fontSans'] = ff
+    if (Object.keys(tkWithFont).length > 0) themeBlock.overrides = tkWithFont
+    if (hs !== 'light') themeBlock.headerStyle = hs
+    const saved: Record<string, unknown> = { theme: themeBlock }
     if (lo) saved.logo = lo
     if (fa) saved.favicon = fa
-    if (hs !== 'light') saved.headerStyle = hs
-    if (ff) saved.fontFamily = ff
     return saved
+  }
+
+  function effectiveTheme(overrideBase?: string, overrideTokens?: Record<string, string>, overrideHeader?: 'light' | 'solid' | 'transparent', overrideFont?: string): OdsTheme {
+    const base = overrideBase ?? selectedTheme
+    const tk = overrideTokens ?? tokenOverrides
+    const hs = overrideHeader ?? brandingHeaderStyle
+    const ff = overrideFont ?? brandingFontFamily
+    const tkWithFont: Record<string, string> = { ...tk }
+    if (ff) tkWithFont.fontSans = ff
+    return {
+      base,
+      mode: app.theme.mode,
+      headerStyle: hs,
+      overrides: Object.keys(tkWithFont).length > 0 ? tkWithFont : undefined,
+    }
   }
 
   function applyThemeOverride(themeName: string) {
     setSelectedTheme(themeName)
-    localStorage.setItem(brandingKey, JSON.stringify(buildSavedOverrides(themeName)))
-    applyBranding({ ...app.branding, theme: themeName, overrides: tokenOverrides, logo: brandingLogo || undefined, favicon: brandingFavicon || undefined, headerStyle: brandingHeaderStyle, fontFamily: brandingFontFamily || undefined }).catch(() => {})
+    localStorage.setItem(themeKey, JSON.stringify(buildSavedOverrides(themeName)))
+    applyTheme(effectiveTheme(themeName)).catch(() => {})
   }
 
   function applyTokenOverride(token: string, value: string) {
@@ -131,8 +161,8 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
       delete updated[token]
     }
     setTokenOverrides(updated)
-    localStorage.setItem(brandingKey, JSON.stringify(buildSavedOverrides(undefined, updated)))
-    applyBranding({ ...app.branding, theme: selectedTheme, overrides: updated, logo: brandingLogo || undefined, favicon: brandingFavicon || undefined, headerStyle: brandingHeaderStyle, fontFamily: brandingFontFamily || undefined }).catch(() => {})
+    localStorage.setItem(themeKey, JSON.stringify(buildSavedOverrides(undefined, updated)))
+    applyTheme(effectiveTheme(undefined, updated)).catch(() => {})
   }
 
   function applyBrandingField(
@@ -145,21 +175,23 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     const fa = favicon ?? brandingFavicon
     const hs = headerStyle ?? brandingHeaderStyle
     const ff = fontFamily ?? brandingFontFamily
-    localStorage.setItem(brandingKey, JSON.stringify(buildSavedOverrides(undefined, undefined, lo, fa, hs, ff)))
-    applyBranding({ ...app.branding, theme: selectedTheme, overrides: tokenOverrides, logo: lo || undefined, favicon: fa || undefined, headerStyle: hs, fontFamily: ff || undefined }).catch(() => {})
+    localStorage.setItem(themeKey, JSON.stringify(buildSavedOverrides(undefined, undefined, lo, fa, hs, ff)))
+    applyTheme(effectiveTheme(undefined, undefined, hs, ff)).catch(() => {})
+    if (fa) applyFavicon(fa)
   }
 
   function resetBrandingOverride() {
-    localStorage.removeItem(brandingKey)
-    setSelectedTheme(app.branding.theme)
+    localStorage.removeItem(themeKey)
+    setSelectedTheme(app.theme.base)
     setTokenOverrides({})
-    setBrandingLogo(app.branding.logo ?? '')
-    setBrandingFavicon(app.branding.favicon ?? '')
-    setBrandingHeaderStyle(app.branding.headerStyle ?? 'light')
-    setBrandingFontFamily(app.branding.fontFamily ?? '')
+    setBrandingLogo(app.logo ?? '')
+    setBrandingFavicon(app.favicon ?? '')
+    setBrandingHeaderStyle(app.theme.headerStyle ?? 'light')
+    setBrandingFontFamily((app.theme.overrides?.fontSans as string | undefined) ?? '')
     setCustomizeOpen(false)
     setBrandingFieldsOpen(false)
-    applyBranding(app.branding).catch(() => {})
+    applyTheme(app.theme).catch(() => {})
+    if (app.favicon) applyFavicon(app.favicon)
   }
 
   // Theme mode
@@ -474,8 +506,8 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
             </>
           )}
 
-          {/* Reset branding */}
-          {(savedOverrides.theme || Object.keys(tokenOverrides).length > 0 || savedOverrides.logo || savedOverrides.favicon || savedOverrides.headerStyle || savedOverrides.fontFamily) && (
+          {/* Reset theme + identity overrides */}
+          {(savedOverrides.theme || Object.keys(tokenOverrides).length > 0 || savedOverrides.logo || savedOverrides.favicon) && (
             <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={resetBrandingOverride}>
               Reset to spec defaults
             </Button>

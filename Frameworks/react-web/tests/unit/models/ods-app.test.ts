@@ -119,7 +119,7 @@ describe('parseApp', () => {
   // Full spec with all fields
   // -------------------------------------------------------------------------
 
-  it('parses full spec including menu, dataSources, settings, help, tour, auth, branding', () => {
+  it('parses full spec including menu, dataSources, settings, help, tour, auth, theme', () => {
     const result = parseApp({
       appName: 'Full App',
       startPage: 'dashboard',
@@ -145,8 +145,8 @@ describe('parseApp', () => {
         provider: 'oauth2',
         roles: ['admin', 'user'],
       },
-      branding: {
-        theme: 'nord',
+      theme: {
+        base: 'nord',
         mode: 'dark',
       },
     })
@@ -156,12 +156,12 @@ describe('parseApp', () => {
     expect(result.dataSources).toHaveProperty('tasks')
     expect(result.settings).toHaveProperty('theme')
     expect(result.tour).toHaveLength(1)
-    expect(result.branding.theme).toBe('nord')
-    expect(result.branding.mode).toBe('dark')
+    expect(result.theme.base).toBe('nord')
+    expect(result.theme.mode).toBe('dark')
   })
 
   // -------------------------------------------------------------------------
-  // Auth and branding defaults
+  // Auth and theme defaults
   // -------------------------------------------------------------------------
 
   it('provides default auth when not specified', () => {
@@ -169,11 +169,11 @@ describe('parseApp', () => {
     expect(result.auth).toBeDefined()
   })
 
-  it('provides default branding when not specified', () => {
+  it('provides default theme when not specified', () => {
     const result = parseApp({ appName: 'App', startPage: 'p', pages: {} })
-    expect(result.branding).toBeDefined()
-    expect(result.branding.theme).toBe('indigo')
-    expect(result.branding.mode).toBe('system')
+    expect(result.theme).toBeDefined()
+    expect(result.theme.base).toBe('indigo')
+    expect(result.theme.mode).toBe('system')
   })
 
   // -------------------------------------------------------------------------

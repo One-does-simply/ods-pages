@@ -1,5 +1,5 @@
 import { parseAuth, type OdsAuth } from './ods-auth.ts'
-import { parseBranding, type OdsBranding } from './ods-branding.ts'
+import { parseTheme, type OdsTheme } from './ods-theme.ts'
 import { parseAppSetting, type OdsAppSetting } from './ods-app-setting.ts'
 import { parseDataSource, type OdsDataSource } from './ods-data-source.ts'
 import { parseHelp, parseTourStep, type OdsHelp, type OdsTourStep } from './ods-help.ts'
@@ -9,6 +9,12 @@ import { parsePage, type OdsPage } from './ods-page.ts'
 /** The top-level model representing a complete ODS application. */
 export interface OdsApp {
   appName: string
+  /** Optional emoji or icon identifier for the app (top-level identity). */
+  appIcon?: string
+  /** Logo URL shown in sidebar/drawer header. */
+  logo?: string
+  /** Favicon URL shown in browser tab. */
+  favicon?: string
   startPage: string
   /** Role-based start pages (e.g. { admin: 'dashPage', manager: 'reportPage' }). */
   startPageByRole: Record<string, string>
@@ -19,7 +25,7 @@ export interface OdsApp {
   tour: OdsTourStep[]
   settings: Record<string, OdsAppSetting>
   auth: OdsAuth
-  branding: OdsBranding
+  theme: OdsTheme
 }
 
 /** Resolve startPage to a string. Accepts "pageName" or { default: "pageName", admin: "other" }. */
@@ -50,6 +56,9 @@ export function parseApp(json: unknown): OdsApp {
 
   return {
     appName: j['appName'] as string,
+    appIcon: j['appIcon'] as string | undefined,
+    logo: j['logo'] as string | undefined,
+    favicon: j['favicon'] as string | undefined,
     startPage: parseStartPage(j['startPage']),
     startPageByRole: parseStartPageByRole(j['startPage']),
     menu: Array.isArray(j['menu'])
@@ -75,6 +84,6 @@ export function parseApp(json: unknown): OdsApp {
         )
       : {},
     auth: parseAuth(j['auth']),
-    branding: parseBranding(j['branding']),
+    theme: parseTheme(j['theme']),
   }
 }

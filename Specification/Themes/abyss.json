@@ -13,6 +13,9 @@
     "depth": 1,
     "noise": 0
   },
+  "fonts": {
+    "sans": "Georgia"
+  },
   "light": {
     "colorScheme": "light",
     "colors": {

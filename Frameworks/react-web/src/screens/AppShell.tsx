@@ -184,9 +184,9 @@ export function AppShell() {
     <div className="flex min-h-screen flex-col bg-background">
       {/* Top bar — respects branding.headerStyle */}
       <header className={`sticky top-0 z-40 flex h-14 items-center gap-2 px-4 ${
-        app.branding.headerStyle === 'solid'
+        app.theme.headerStyle === 'solid'
           ? 'bg-primary text-primary-foreground border-b border-primary/20'
-          : app.branding.headerStyle === 'transparent'
+          : app.theme.headerStyle === 'transparent'
             ? ''
             : 'border-b bg-background/95 supports-backdrop-filter:backdrop-blur-sm'
       }`}>
@@ -281,8 +281,8 @@ export function AppShell() {
         <SheetContent side="left">
           {/* Drawer header — branded with primaryColor or gradient */}
           <div className="-mx-6 -mt-6 mb-2 rounded-b-xl bg-primary px-6 py-5">
-            {app.branding.logo ? (
-              <img src={app.branding.logo} alt={app.appName} className="mb-2 h-8 object-contain object-left" />
+            {app.logo ? (
+              <img src={app.logo} alt={app.appName} className="mb-2 h-8 object-contain object-left" />
             ) : null}
             <SheetTitle className="text-lg font-bold text-primary-foreground">{app.appName}</SheetTitle>
             {app.help && (

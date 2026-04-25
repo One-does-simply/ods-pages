@@ -380,16 +380,18 @@ void main() {
         expect(app.menu, isEmpty);
       });
 
-      test('spec with no branding uses defaults', () {
+      test('spec with no theme uses defaults', () {
         final app = OdsApp.fromJson({
-          'appName': 'NoBranding',
+          'appName': 'NoTheme',
           'startPage': 'home',
           'pages': {
             'home': {'component': 'page', 'title': 'Home', 'content': []},
           },
         });
-        // Branding model exists with default values; should not be null.
-        expect(app.branding, isNotNull);
+        // Theme model exists with default values; should not be null.
+        expect(app.theme, isNotNull);
+        expect(app.theme.base, 'indigo');
+        expect(app.theme.mode, 'system');
       });
 
       test('spec with no auth defaults to single-user (multiUser=false)', () {

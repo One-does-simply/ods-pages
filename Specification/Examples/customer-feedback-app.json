@@ -5,10 +5,6 @@
     "selfRegistration": true,
     "defaultRole": "user"
   },
-  "branding": {
-    "theme": "emerald",
-    "headerStyle": "solid"
-  },
   "startPage": {
     "default": "feedbackFormPage",
     "admin": "viewFeedbackPage"
@@ -138,7 +134,9 @@
         {
           "component": "button",
           "label": "View All Responses",
-          "roles": ["admin"],
+          "roles": [
+            "admin"
+          ],
           "onClick": [
             {
               "action": "navigate",
@@ -268,7 +266,9 @@
     "viewDetailPage": {
       "component": "page",
       "title": "Feedback Detail",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "content": [
         {
           "component": "detail",
@@ -431,5 +431,9 @@
       "content": "Browse feedback with color-coded ratings. Tap any row for full details. Filter by rating level. Only admins can access this page.",
       "page": "viewFeedbackPage"
     }
-  ]
+  ],
+  "theme": {
+    "base": "emerald",
+    "headerStyle": "solid"
+  }
 }

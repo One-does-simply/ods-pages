@@ -1,8 +1,7 @@
 {
   "appName": "Recipe Book",
-  "auth": { "multiUser": false },
-  "branding": {
-    "theme": "valentine"
+  "auth": {
+    "multiUser": false
   },
   "startPage": "browseRecipesPage",
   "menu": [
@@ -319,12 +318,17 @@
     "recipesStore": {
       "url": "local://recipes",
       "method": "POST",
-      "ownership": { "enabled": true }
+      "ownership": {
+        "enabled": true
+      }
     },
     "recipesReader": {
       "url": "local://recipes",
       "method": "GET",
-      "ownership": { "enabled": true, "adminOverride": true },
+      "ownership": {
+        "enabled": true,
+        "adminOverride": true
+      },
       "fields": [
         {
           "name": "recipeName",
@@ -431,5 +435,8 @@
       "content": "All recipes appear here. Tap any row to see the full recipe with ingredients and instructions. Filter by cuisine.",
       "page": "browseRecipesPage"
     }
-  ]
+  ],
+  "theme": {
+    "base": "valentine"
+  }
 }
