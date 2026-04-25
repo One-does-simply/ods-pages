@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import '../engine/app_engine.dart';
 import '../engine/auth_service.dart';
 import '../engine/framework_auth_service.dart';
+import '../engine/loaded_apps_store.dart';
 import '../engine/log_service.dart';
 import '../engine/color_helpers.dart';
 import '../engine/theme_resolver.dart';
@@ -298,6 +299,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _SectionHeader(label: 'BRANDING'),
                 _BrandingSection(
                   app: app,
+                  engine: engine,
                   settings: widget.settings,
                   onChanged: () => setState(() {}),
                 ),
@@ -598,9 +600,15 @@ class _AppSettingsSectionState extends State<_AppSettingsSection> {
 
 class _BrandingSection extends StatefulWidget {
   final OdsApp app;
+  final AppEngine engine;
   final SettingsStore settings;
   final VoidCallback onChanged;
-  const _BrandingSection({required this.app, required this.settings, required this.onChanged});
+  const _BrandingSection({
+    required this.app,
+    required this.engine,
+    required this.settings,
+    required this.onChanged,
+  });
 
   @override
   State<_BrandingSection> createState() => _BrandingSectionState();
@@ -654,6 +662,16 @@ class _BrandingSectionState extends State<_BrandingSection> {
     super.dispose();
   }
 
+  /// True when the current user is allowed to write back to the spec
+  /// itself rather than per-user overrides. Mirrors the React rule from
+  /// ADR-0002: single-user mode treats everyone as admin; multi-user
+  /// mode requires the per-app admin flag.
+  bool get _isAdmin {
+    final engine = widget.engine;
+    if (!engine.isMultiUser) return true;
+    return engine.authService.isAdmin;
+  }
+
   Future<void> _save() async {
     final overrides = Map<String, String>.from(
       widget.settings.getBrandingOverrides(widget.app.appName),
@@ -674,8 +692,92 @@ class _BrandingSectionState extends State<_BrandingSection> {
     } else {
       overrides.remove('headerStyle');
     }
-    await widget.settings.setBrandingOverrides(widget.app.appName, overrides);
+
+    if (_isAdmin && widget.engine.loadedAppId != null && widget.engine.rawSpecJson != null) {
+      // Admin path: persist back to the loaded app entry's spec JSON so
+      // the change becomes the new default for everyone, not just this
+      // user. Mirrors the React Phase-3 admin save (ADR-0002).
+      await _saveToSpec();
+    } else {
+      // Non-admin path: per-user overrides only.
+      await widget.settings.setBrandingOverrides(widget.app.appName, overrides);
+    }
     widget.onChanged();
+  }
+
+  /// Surgical update of `theme`/`logo`/`favicon` on the raw spec JSON
+  /// followed by a [LoadedAppsStore.updateApp]. Preserves any unknown
+  /// fields and the spec's original formatting choices outside the
+  /// blocks we touch.
+  Future<void> _saveToSpec() async {
+    final rawJson = widget.engine.rawSpecJson;
+    final appId = widget.engine.loadedAppId;
+    if (rawJson == null || appId == null) return;
+
+    Map<String, dynamic> spec;
+    try {
+      spec = jsonDecode(rawJson) as Map<String, dynamic>;
+    } catch (e) {
+      logError('SettingsScreen', 'Failed to parse rawSpecJson for admin save', e);
+      return;
+    }
+
+    final logo = _logoController.text.trim();
+    final font = _fontFamilyController.text.trim();
+    final tokenOverrides = <String, String>{};
+    final existing = spec['theme'] as Map<String, dynamic>?;
+    final existingOverrides = existing?['overrides'] as Map<String, dynamic>?;
+    if (existingOverrides != null) {
+      for (final entry in existingOverrides.entries) {
+        if (entry.key == 'fontSans') continue;
+        tokenOverrides[entry.key] = entry.value.toString();
+      }
+    }
+    // Per-user token overrides from settings store carry through too.
+    final userOverrides = widget.settings.getBrandingOverrides(widget.app.appName);
+    for (final entry in userOverrides.entries) {
+      if (const {'theme', 'base', 'logo', 'fontFamily', 'fontSans', 'headerStyle'}
+          .contains(entry.key)) {
+        continue;
+      }
+      tokenOverrides[entry.key] = entry.value;
+    }
+    if (font.isNotEmpty) tokenOverrides['fontSans'] = font;
+
+    final themeBlock = <String, dynamic>{'base': _theme};
+    if (existing?['mode'] != null) themeBlock['mode'] = existing!['mode'];
+    if (_headerStyle != 'light') themeBlock['headerStyle'] = _headerStyle;
+    if (tokenOverrides.isNotEmpty) themeBlock['overrides'] = tokenOverrides;
+    spec['theme'] = themeBlock;
+
+    if (logo.isNotEmpty) {
+      spec['logo'] = logo;
+    } else {
+      spec.remove('logo');
+    }
+
+    final newJson = const JsonEncoder.withIndent('  ').convert(spec);
+    final store = LoadedAppsStore();
+    store.storageFolder = widget.settings.storageFolder;
+    await store.initialize(syncCatalog: false);
+    final entry = store.findById(appId);
+    if (entry == null) {
+      logError('SettingsScreen', 'admin save: app id $appId not in LoadedAppsStore');
+      return;
+    }
+    await store.updateApp(
+      id: appId,
+      name: entry.name,
+      description: entry.description,
+      specJson: newJson,
+    );
+    // Clear any per-user overrides for this app so the new spec defaults
+    // are what the user sees (admin saves are global, not personal).
+    await widget.settings.setBrandingOverrides(widget.app.appName, const {});
+    // Also keep the engine's rawSpecJson + parsed model in sync so the
+    // live UI reflects the new theme/identity immediately and subsequent
+    // saves build on the latest state.
+    await widget.engine.hotReplaceSpec(newJson);
   }
 
   Future<void> _reset() async {

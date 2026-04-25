@@ -63,6 +63,16 @@ class AppEngine extends ChangeNotifier {
   late final ActionHandler _actionHandler;
   ValidationResult? _validation;
 
+  /// LoadedAppsStore record id for the currently loaded app, if any. Set
+  /// by [loadSpec] when callers thread it through; read by admin-side
+  /// theme save flows that write back to the spec record (ADR-0002).
+  String? _loadedAppId;
+
+  /// Raw spec JSON the loaded app was constructed from. Kept verbatim so
+  /// admin save-to-spec writes can update only the relevant blocks
+  /// (theme/logo/favicon) without round-tripping through the parser.
+  String? _rawSpecJson;
+
   /// Record cursors for forms with `recordSource`. Keyed by form ID.
   final Map<String, RecordCursor> _recordCursors = {};
 
@@ -127,6 +137,14 @@ class AppEngine extends ChangeNotifier {
 
   /// Whether a spec is currently being loaded (shows progress indicator).
   bool get isLoading => _isLoading;
+
+  /// LoadedAppsStore record id for the currently loaded app. Null when
+  /// the spec was loaded outside the My-Apps flow (e.g., file load).
+  String? get loadedAppId => _loadedAppId;
+
+  /// Raw spec JSON for the currently loaded app, kept verbatim for
+  /// admin-side save-to-spec flows.
+  String? get rawSpecJson => _rawSpecJson;
 
   /// Direct access to the data store for the debug panel's data explorer.
   DataStore get dataStore => _dataStore;
@@ -195,9 +213,25 @@ class AppEngine extends ChangeNotifier {
   ///
   /// Returns true on success, false on failure (check [loadError] for details).
   /// On success, initializes the local database and navigates to [startPage].
-  Future<bool> loadSpec(String jsonString) async {
+  /// Re-parse and replace the in-memory model without resetting data,
+  /// navigation, or form state. Used by admin save-to-spec writes
+  /// (ADR-0002) where only theme/identity blocks changed and a full
+  /// reload would discard the user's working context.
+  Future<bool> hotReplaceSpec(String jsonString) async {
+    final parser = SpecParser();
+    final result = parser.parse(jsonString);
+    if (result.parseError != null || !result.isOk) return false;
+    _app = result.app!;
+    _rawSpecJson = jsonString;
+    notifyListeners();
+    return true;
+  }
+
+  Future<bool> loadSpec(String jsonString, {String? loadedAppId}) async {
     _isLoading = true;
     _loadError = null;
+    _loadedAppId = loadedAppId;
+    _rawSpecJson = jsonString;
     notifyListeners();
 
     // Parse the JSON into an OdsApp model with validation.
@@ -1154,6 +1188,8 @@ class AppEngine extends ChangeNotifier {
     _appSettings.clear();
     _validation = null;
     _loadError = null;
+    _loadedAppId = null;
+    _rawSpecJson = null;
     skipAppAuth = false;
     frameworkRoles = const [];
     frameworkUsername = '';

@@ -104,6 +104,14 @@ class LoadedAppsStore {
   List<LoadedAppEntry> get archivedApps =>
       List.unmodifiable(_apps.where((a) => a.isArchived));
 
+  /// Looks up an entry by id; returns null if not found.
+  LoadedAppEntry? findById(String id) {
+    for (final app in _apps) {
+      if (app.id == id) return app;
+    }
+    return null;
+  }
+
   bool get isInitialized => _initialized;
 
   /// True when no saved app index exists — the user has never used the app.

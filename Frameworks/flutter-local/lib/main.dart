@@ -475,7 +475,7 @@ class _RegularUserHomeState extends State<_RegularUserHome> {
     engine.frameworkEmail = fwAuth.currentEmail;
     engine.frameworkDisplayName = fwAuth.currentDisplayName;
 
-    final ok = await engine.loadSpec(target.specJson);
+    final ok = await engine.loadSpec(target.specJson, loadedAppId: target.id);
     if (!ok && mounted) {
       setState(() { _loading = false; _error = engine.loadError ?? 'Failed to load app'; });
     }
@@ -585,7 +585,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     if (mounted) setState(() => _storeReady = true);
   }
 
-  Future<void> _runSpec(String jsonString) async {
+  Future<void> _runSpec(String jsonString, {String? loadedAppId}) async {
     setState(() {
       _isLoading = true;
       _error = null;
@@ -605,7 +605,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       }
     }
 
-    final success = await engine.loadSpec(jsonString);
+    final success = await engine.loadSpec(jsonString, loadedAppId: loadedAppId);
 
     if (success) {
       // Run auto-backup in the background if enabled.
@@ -1241,7 +1241,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       app: app,
                       isLoading: _isLoading,
                       isDefault: settings.defaultAppId == app.id,
-                      onRun: () => _runSpec(app.specJson),
+                      onRun: () => _runSpec(app.specJson, loadedAppId: app.id),
                       onEditSpec: () => _editApp(app),
                       onEditWithAi: () => _editWithAi(app),
                       onArchive: () => _archiveApp(app),
