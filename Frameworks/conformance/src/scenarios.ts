@@ -77,6 +77,7 @@ const themeConfigSpec = (): OdsSpec => loadSpec('themeConfig')
 const detailFieldsRoundTripSpec = (): OdsSpec => loadSpec('detailFieldsRoundTrip')
 const recordNavigationSpec = (): OdsSpec => loadSpec('recordNavigation')
 const currentUserDefaultsSpec = (): OdsSpec => loadSpec('currentUserDefaults')
+const listDefaultSortSpec = (): OdsSpec => loadSpec('listDefaultSort')
 
 // ---------------------------------------------------------------------------
 // Scenarios
@@ -817,6 +818,51 @@ export const s25_current_user_magic_defaults_resolve_after_login: Scenario = {
   },
 }
 
+export const s26_list_default_sort_orders_displayed_rows: Scenario = {
+  name: 'list defaultSort propagates to displayed row order (asc + desc + numeric)',
+  spec: listDefaultSortSpec,
+  capabilities: ['core'],
+  run: async (d) => {
+    const content = await d.pageContent()
+    const lists = content.filter((c) => c.kind === 'list') as Array<{
+      dataSource: string
+      sortField: string | null
+      sortDir: 'asc' | 'desc' | null
+      displayedRowIds: string[]
+      rowCount: number
+    }>
+    assertEqual(lists.length, 2, 'two lists are present on the page')
+
+    // Pull the underlying rows once so we can map _id → name/age for assertions.
+    const rows = await d.dataRows('people')
+    assertEqual(rows.length, 3, 'three seed rows present')
+    const byId = Object.fromEntries(rows.map((r) => [String(r._id), r]))
+
+    // First list: defaultSort by name asc → Alice, Bob, Charlie.
+    const ascList = lists[0]
+    assertEqual(ascList.sortField, 'name', 'asc list sortField from spec defaultSort')
+    assertEqual(ascList.sortDir, 'asc', 'asc list sortDir from spec defaultSort')
+    assertEqual(ascList.displayedRowIds.length, 3, 'asc list shows all three rows')
+    const ascNames = ascList.displayedRowIds.map((id) => byId[id]?.name)
+    assertEqual(
+      JSON.stringify(ascNames),
+      JSON.stringify(['Alice', 'Bob', 'Charlie']),
+      'asc list rows are alphabetical by name',
+    )
+
+    // Second list: defaultSort by age desc → 44, 33, 22 → Bob, Charlie, Alice.
+    const descList = lists[1]
+    assertEqual(descList.sortField, 'age', 'desc list sortField from spec defaultSort')
+    assertEqual(descList.sortDir, 'desc', 'desc list sortDir from spec defaultSort')
+    const descAges = descList.displayedRowIds.map((id) => Number(byId[id]?.age))
+    assertEqual(
+      JSON.stringify(descAges),
+      JSON.stringify([44, 33, 22]),
+      'desc list rows are numeric-descending by age',
+    )
+  },
+}
+
 /** Full list of scenarios the runner should execute. */
 export const allScenarios: ReadonlyArray<Scenario> = [
   s01_spec_loads,
@@ -844,4 +890,5 @@ export const allScenarios: ReadonlyArray<Scenario> = [
   s23_record_navigation_steps_through_seed_data,
   s24_click_menu_item_navigates_between_pages,
   s25_current_user_magic_defaults_resolve_after_login,
+  s26_list_default_sort_orders_displayed_rows,
 ]

@@ -90,6 +90,13 @@ export interface ListSnapshot extends BaseSnapshot {
   rowCount: number
   sortField: string | null
   sortDir: 'asc' | 'desc' | null
+  /**
+   * Row `_id`s in the order the user sees them on screen, after the
+   * driver applies `defaultSort` (and any future runtime sort/filter
+   * state). Distinct from the unsorted authoritative view returned by
+   * `dataRows`. Empty array when the list has no rows.
+   */
+  displayedRowIds: string[]
 }
 
 export interface KanbanSnapshot extends BaseSnapshot {

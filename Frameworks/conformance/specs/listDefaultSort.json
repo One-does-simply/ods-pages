@@ -1,0 +1,47 @@
+{
+  "appName": "List Default Sort",
+  "startPage": "home",
+  "pages": {
+    "home": {
+      "component": "page",
+      "title": "Home",
+      "content": [
+        {
+          "component": "list",
+          "id": "ascList",
+          "dataSource": "people",
+          "columns": [
+            { "field": "name", "header": "Name", "sortable": true },
+            { "field": "age", "header": "Age" }
+          ],
+          "defaultSort": { "field": "name", "direction": "asc" }
+        },
+        {
+          "component": "list",
+          "id": "descList",
+          "dataSource": "people",
+          "columns": [
+            { "field": "name", "header": "Name", "sortable": true },
+            { "field": "age", "header": "Age" }
+          ],
+          "defaultSort": { "field": "age", "direction": "desc" }
+        }
+      ]
+    }
+  },
+  "dataSources": {
+    "people": {
+      "url": "local://people",
+      "method": "GET",
+      "fields": [
+        { "name": "name", "type": "text" },
+        { "name": "age", "type": "number" }
+      ],
+      "seedData": [
+        { "name": "Charlie", "age": 33 },
+        { "name": "Alice", "age": 22 },
+        { "name": "Bob", "age": 44 }
+      ]
+    }
+  }
+}

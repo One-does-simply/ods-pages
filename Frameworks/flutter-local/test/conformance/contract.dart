@@ -135,6 +135,7 @@ class ListSnapshot extends ComponentSnapshot {
     required this.rowCount,
     required this.sortField,
     required this.sortDir,
+    required this.displayedRowIds,
   });
   final String dataSource;
   final List<String> columnFields;
@@ -143,6 +144,10 @@ class ListSnapshot extends ComponentSnapshot {
 
   /// 'asc' | 'desc' | null.
   final String? sortDir;
+
+  /// Row `_id`s in displayed order after the driver applies defaultSort.
+  /// See contract.ts for the cross-language contract.
+  final List<String> displayedRowIds;
   @override
   String get kind => 'list';
 }

@@ -38,6 +38,35 @@ import type {
 // Helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Ordering helper that mirrors ListComponent.sortRows: numeric compare
+ * when both values parse as numbers, else lexicographic. Stable on
+ * tie-break by relying on Array.sort's stable guarantee.
+ */
+function sortRowsForSnapshot(
+  rows: Array<Record<string, unknown>>,
+  sortField: string | null,
+  sortDir: 'asc' | 'desc' | null,
+): Array<Record<string, unknown>> {
+  if (!sortField) return rows
+  const ascending = sortDir !== 'desc'
+  const sorted = [...rows]
+  sorted.sort((a, b) => {
+    const aVal = String(a[sortField] ?? '')
+    const bVal = String(b[sortField] ?? '')
+    const aNum = Number(aVal)
+    const bNum = Number(bVal)
+    let cmp: number
+    if (!Number.isNaN(aNum) && !Number.isNaN(bNum) && aVal !== '' && bVal !== '') {
+      cmp = aNum - bNum
+    } else {
+      cmp = aVal.localeCompare(bVal)
+    }
+    return ascending ? cmp : -cmp
+  })
+  return sorted
+}
+
 /** Find the OdsApp page model the store is currently on. */
 function currentPageModel(app: OdsApp, pageId: string | null) {
   if (!pageId) return null
@@ -606,15 +635,21 @@ export class ReactDriver implements OdsDriver {
         // Route through the store so ownership (and future row-level
         // filters) apply — matches what the user actually sees.
         const rows = await useAppStore.getState().queryDataSource(l.dataSource)
+        const sortField = l.defaultSort?.field ?? null
+        const sortDir =
+          (l.defaultSort?.direction as 'asc' | 'desc' | undefined) ?? null
+        const displayedRowIds = sortRowsForSnapshot(rows, sortField, sortDir).map(
+          (r) => String(r._id ?? ''),
+        )
         return {
           kind: 'list',
           visible,
           dataSource: l.dataSource,
           columnFields: l.columns.map((col) => col.field),
           rowCount: rows.length,
-          sortField: l.defaultSort?.field ?? null,
-          sortDir:
-            (l.defaultSort?.direction as 'asc' | 'desc' | undefined) ?? null,
+          sortField,
+          sortDir,
+          displayedRowIds,
         }
       }
       case 'kanban': {

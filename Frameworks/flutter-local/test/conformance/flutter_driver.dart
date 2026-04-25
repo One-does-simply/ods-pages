@@ -557,6 +557,32 @@ class FlutterDriver implements OdsDriver {
     return page;
   }
 
+  /// Mirrors React's sortRowsForSnapshot: numeric compare when both
+  /// values parse as numbers, else lexicographic. Stable sort.
+  List<Map<String, dynamic>> _sortRowsForSnapshot(
+    List<Map<String, dynamic>> rows,
+    String? sortField,
+    String? sortDir,
+  ) {
+    if (sortField == null) return rows;
+    final ascending = sortDir != 'desc';
+    final sorted = List<Map<String, dynamic>>.from(rows);
+    sorted.sort((a, b) {
+      final aRaw = (a[sortField] ?? '').toString();
+      final bRaw = (b[sortField] ?? '').toString();
+      final aNum = num.tryParse(aRaw);
+      final bNum = num.tryParse(bRaw);
+      int cmp;
+      if (aNum != null && bNum != null && aRaw.isNotEmpty && bRaw.isNotEmpty) {
+        cmp = aNum.compareTo(bNum);
+      } else {
+        cmp = aRaw.compareTo(bRaw);
+      }
+      return ascending ? cmp : -cmp;
+    });
+    return sorted;
+  }
+
   OdsFormComponent? _findSoleForm(List<OdsComponent> content) {
     final forms = content.whereType<OdsFormComponent>().toList();
     if (forms.isEmpty) return null;
@@ -629,13 +655,19 @@ class FlutterDriver implements OdsDriver {
       // Route through the engine so ownership (and future row-level
       // filters) apply — matches what the user actually sees.
       final rows = await engine.queryDataSource(c.dataSource);
+      final sortField = c.defaultSort?.field;
+      final sortDir = c.defaultSort?.direction;
+      final ordered = _sortRowsForSnapshot(rows, sortField, sortDir);
       return ListSnapshot(
         visible: visible,
         dataSource: c.dataSource,
         columnFields: c.columns.map((col) => col.field).toList(),
         rowCount: rows.length,
-        sortField: c.defaultSort?.field,
-        sortDir: c.defaultSort?.direction,
+        sortField: sortField,
+        sortDir: sortDir,
+        displayedRowIds: [
+          for (final r in ordered) (r['_id'] ?? '').toString(),
+        ],
       );
     }
     if (c is OdsButtonComponent) {

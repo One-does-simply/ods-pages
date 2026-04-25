@@ -80,6 +80,7 @@ OdsSpec themeConfigSpec() => loadSpec('themeConfig');
 OdsSpec detailFieldsRoundTripSpec() => loadSpec('detailFieldsRoundTrip');
 OdsSpec recordNavigationSpec() => loadSpec('recordNavigation');
 OdsSpec currentUserDefaultsSpec() => loadSpec('currentUserDefaults');
+OdsSpec listDefaultSortSpec() => loadSpec('listDefaultSort');
 
 // ---------------------------------------------------------------------------
 // Scenarios (mirrors of the TS versions; keep ids + names aligned)
@@ -780,6 +781,49 @@ final s25CurrentUserMagicDefaultsResolveAfterLogin = Scenario(
   },
 );
 
+final s26ListDefaultSortOrdersDisplayedRows = Scenario(
+  name: 'list defaultSort propagates to displayed row order (asc + desc + numeric)',
+  spec: listDefaultSortSpec,
+  capabilities: const ['core'],
+  run: (d) async {
+    final content = await d.pageContent();
+    final lists = content.whereType<ListSnapshot>().toList();
+    assertEqual(lists.length, 2, 'two lists are present on the page');
+
+    final rows = await d.dataRows('people');
+    assertEqual(rows.length, 3, 'three seed rows present');
+    final byId = {for (final r in rows) r['_id'].toString(): r};
+
+    final ascList = lists[0];
+    assertEqual(ascList.sortField, 'name', 'asc list sortField from spec defaultSort');
+    assertEqual(ascList.sortDir, 'asc', 'asc list sortDir from spec defaultSort');
+    assertEqual(
+      ascList.displayedRowIds.length,
+      3,
+      'asc list shows all three rows',
+    );
+    final ascNames =
+        ascList.displayedRowIds.map((id) => byId[id]?['name']).toList();
+    assertEqual(
+      ascNames.toString(),
+      ['Alice', 'Bob', 'Charlie'].toString(),
+      'asc list rows are alphabetical by name',
+    );
+
+    final descList = lists[1];
+    assertEqual(descList.sortField, 'age', 'desc list sortField from spec defaultSort');
+    assertEqual(descList.sortDir, 'desc', 'desc list sortDir from spec defaultSort');
+    final descAges = descList.displayedRowIds
+        .map((id) => int.tryParse(byId[id]?['age'].toString() ?? ''))
+        .toList();
+    assertEqual(
+      descAges.toString(),
+      [44, 33, 22].toString(),
+      'desc list rows are numeric-descending by age',
+    );
+  },
+);
+
 /// Full list of scenarios the runner executes.
 final List<Scenario> allScenarios = [
   s01SpecLoads,
@@ -807,4 +851,5 @@ final List<Scenario> allScenarios = [
   s23RecordNavigationStepsThroughSeedData,
   s24ClickMenuItemNavigatesBetweenPages,
   s25CurrentUserMagicDefaultsResolveAfterLogin,
+  s26ListDefaultSortOrdersDisplayedRows,
 ];
