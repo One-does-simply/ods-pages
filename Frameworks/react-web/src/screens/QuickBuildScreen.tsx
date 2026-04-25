@@ -44,6 +44,7 @@ import {
 } from 'lucide-react'
 import { loadThemeCatalog } from '@/engine/branding-service.ts'
 import { ColorRow } from '@/components/ColorCustomizer.tsx'
+import { FontPicker } from '@/components/FontPicker.tsx'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -1175,15 +1176,10 @@ function ThemePhase({
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <Label className="text-xs">Font Family</Label>
-                <Input
-                  value={brandingFontFamily}
-                  onChange={(e) => onBrandingFontFamilyChange(e.target.value)}
-                  placeholder="e.g., Inter, Georgia"
-                  className="h-8 text-xs"
-                />
-              </div>
+              <FontPicker
+                value={brandingFontFamily}
+                onChange={onBrandingFontFamilyChange}
+              />
             </div>
           )}
 

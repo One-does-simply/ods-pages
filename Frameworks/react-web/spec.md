@@ -8,11 +8,13 @@ This document defines the JSON specification format consumed by the ODS React We
 {
   "appName": "My App",
   "startPage": "homePage",
+  "logo": "https://...",
+  "favicon": "https://...",
   "auth": { ... },
   "menu": [ ... ],
   "pages": { ... },
   "dataSources": { ... },
-  "branding": { ... },
+  "theme": { ... },
   "settings": { ... },
   "help": { ... },
   "tour": [ ... ]
@@ -34,7 +36,10 @@ This document defines the JSON specification format consumed by the ODS React We
 | `auth` | object | `{ multiUser: false }` | Authentication configuration |
 | `menu` | array | `[]` | Navigation menu items |
 | `dataSources` | object | `{}` | Data source definitions |
-| `branding` | object | defaults | Theme and visual customization |
+| `theme` | object | defaults (`indigo`/system) | Visual theme + customizations (see ADR-0002) |
+| `logo` | string | none | URL to the app logo shown in sidebar/drawer |
+| `favicon` | string | none | URL to the browser-tab icon |
+| `appIcon` | string | none | Optional emoji or icon identifier alongside the app name |
 | `settings` | object | `{}` | User-configurable app settings |
 | `help` | object | null | In-app help content |
 | `tour` | array | `[]` | Guided tour steps |
@@ -389,25 +394,28 @@ The framework automatically manages these fields on every record. Specs should n
 ]
 ```
 
-## Branding
+## Theme
+
+Visual theme + customizations. A base theme picks colors and typography from the catalog; `overrides` adjusts any token (color, font, header style, etc.) on top of it. App identity (`logo`, `favicon`, `appIcon`) lives at the top-level of the spec, not here. See [ADR-0002](../../docs/adr/0002-theme-customizations-redesign.md).
 
 ```json
-"branding": {
-  "theme": "nord",
+"theme": {
+  "base": "nord",
   "mode": "dark",
-  "logo": "https://example.com/logo.png",
-  "favicon": "https://example.com/favicon.ico",
   "headerStyle": "solid",
-  "fontFamily": "Inter",
-  "overrides": { "primary": "oklch(50% 0.2 260)" }
+  "overrides": {
+    "primary": "oklch(50% 0.2 260)",
+    "fontSans": "Inter"
+  }
 }
 ```
 
 | Field | Default | Values |
 |-------|---------|--------|
-| `theme` | `"indigo"` | Any of 35+ built-in themes |
+| `base` | `"indigo"` | Any of 35+ built-in themes |
 | `mode` | `"system"` | `"light"`, `"dark"`, `"system"` |
 | `headerStyle` | `"light"` | `"light"`, `"solid"`, `"transparent"` |
+| `overrides` | `{}` | Per-token overrides — colors, fonts (`fontSans`/`fontSerif`/`fontMono`), radius, etc. |
 
 ## Style Hints
 

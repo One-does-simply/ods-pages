@@ -36,6 +36,7 @@ import {
 } from '@/components/ui/select'
 import { ThemePicker } from '@/components/ThemePicker.tsx'
 import { ColorRow } from '@/components/ColorCustomizer.tsx'
+import { FontPicker } from '@/components/FontPicker.tsx'
 
 // ---------------------------------------------------------------------------
 // SettingsDialog — framework settings + app-level settings from the spec
@@ -423,7 +424,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
             </div>
           )}
 
-          {/* App Branding fields (admin only) */}
+          {/* App identity + theme tweaks (admin only) */}
           {isAdmin && (
             <>
               <button
@@ -431,13 +432,13 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                 className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 {brandingFieldsOpen ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
-                App Branding
+                App identity &amp; typography
               </button>
 
               {brandingFieldsOpen && (
                 <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
                   <p className="text-[11px] text-muted-foreground">
-                    Optional branding overrides. Leave blank to use spec defaults.
+                    Optional overrides on top of the theme. Leave blank to use spec defaults.
                   </p>
 
                   <div className="space-y-1">
@@ -489,18 +490,13 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                     </div>
                   </div>
 
-                  <div className="space-y-1">
-                    <Label className="text-xs">Font Family</Label>
-                    <Input
-                      value={brandingFontFamily}
-                      onChange={(e) => {
-                        setBrandingFontFamily(e.target.value)
-                        applyBrandingField(undefined, undefined, undefined, e.target.value)
-                      }}
-                      placeholder="e.g., Inter, Georgia"
-                      className="h-7 text-xs"
-                    />
-                  </div>
+                  <FontPicker
+                    value={brandingFontFamily}
+                    onChange={(next) => {
+                      setBrandingFontFamily(next)
+                      applyBrandingField(undefined, undefined, undefined, next)
+                    }}
+                  />
                 </div>
               )}
             </>
