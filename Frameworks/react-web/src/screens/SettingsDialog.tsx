@@ -12,6 +12,7 @@ import {
 } from '@/engine/backup-service.ts'
 import { applyTheme, applyFavicon, loadTheme } from '@/engine/branding-service.ts'
 import { AppRegistry } from '@/engine/app-registry.ts'
+import { buildUpdatedSpecJson } from '@/engine/theme-spec-writer.ts'
 import pb from '@/lib/pocketbase.ts'
 import { logWarn } from '@/engine/log-service.ts'
 import type { OdsTheme } from '@/models/ods-theme.ts'
@@ -172,33 +173,19 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     overrideFontFamily?: string,
   ): Promise<void> {
     if (!currentAppId || !rawSpecJson) return
-    let spec: Record<string, unknown>
-    try {
-      spec = JSON.parse(rawSpecJson)
-    } catch (e) {
-      logWarn('SettingsDialog', 'Failed to parse rawSpecJson for admin save', e)
+    const params = {
+      base: overrideBase ?? selectedTheme,
+      tokenOverrides: overrideTokens ?? tokenOverrides,
+      logo: overrideLogo ?? brandingLogo,
+      favicon: overrideFavicon ?? brandingFavicon,
+      headerStyle: overrideHeaderStyle ?? brandingHeaderStyle,
+      fontFamily: overrideFontFamily ?? brandingFontFamily,
+    }
+    const newJson = buildUpdatedSpecJson(rawSpecJson, params)
+    if (newJson == null) {
+      logWarn('SettingsDialog', 'Failed to parse rawSpecJson for admin save')
       return
     }
-    const base = overrideBase ?? selectedTheme
-    const tk = overrideTokens ?? tokenOverrides
-    const lo = overrideLogo ?? brandingLogo
-    const fa = overrideFavicon ?? brandingFavicon
-    const hs = overrideHeaderStyle ?? brandingHeaderStyle
-    const ff = overrideFontFamily ?? brandingFontFamily
-
-    const themeBlock: Record<string, unknown> = { base }
-    const existing = (spec['theme'] as Record<string, unknown> | undefined) ?? {}
-    if (existing['mode']) themeBlock['mode'] = existing['mode']
-    if (hs !== 'light') themeBlock['headerStyle'] = hs
-    const tkWithFont: Record<string, string> = { ...tk }
-    if (ff) tkWithFont['fontSans'] = ff
-    if (Object.keys(tkWithFont).length > 0) themeBlock['overrides'] = tkWithFont
-    spec['theme'] = themeBlock
-
-    if (lo) spec['logo'] = lo; else delete spec['logo']
-    if (fa) spec['favicon'] = fa; else delete spec['favicon']
-
-    const newJson = JSON.stringify(spec, null, 2)
     const registry = new AppRegistry(pb)
     const ok = await registry.updateApp(currentAppId, newJson)
     if (!ok) {
@@ -207,18 +194,20 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     }
     // Keep the in-memory app + rawSpecJson in sync so subsequent edits
     // build on the latest state and downstream consumers see the change.
+    const tkWithFont: Record<string, string> = { ...params.tokenOverrides }
+    if (params.fontFamily) tkWithFont['fontSans'] = params.fontFamily
     useAppStore.setState((state) => {
       if (!state.app) return {}
       const newApp = {
         ...state.app,
         theme: {
           ...state.app.theme,
-          base,
-          headerStyle: hs,
+          base: params.base,
+          headerStyle: params.headerStyle,
           overrides: Object.keys(tkWithFont).length > 0 ? tkWithFont : undefined,
         },
-        logo: lo || undefined,
-        favicon: fa || undefined,
+        logo: params.logo || undefined,
+        favicon: params.favicon || undefined,
       }
       return { app: newApp, rawSpecJson: newJson }
     })

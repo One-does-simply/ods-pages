@@ -13,6 +13,7 @@ import '../engine/loaded_apps_store.dart';
 import '../engine/log_service.dart';
 import '../engine/color_helpers.dart';
 import '../engine/theme_resolver.dart';
+import '../engine/theme_spec_writer.dart';
 import '../engine/settings_store.dart';
 import '../models/ods_app.dart';
 import '../models/ods_app_setting.dart';
@@ -706,57 +707,45 @@ class _BrandingSectionState extends State<_BrandingSection> {
   }
 
   /// Surgical update of `theme`/`logo`/`favicon` on the raw spec JSON
-  /// followed by a [LoadedAppsStore.updateApp]. Preserves any unknown
-  /// fields and the spec's original formatting choices outside the
-  /// blocks we touch.
+  /// followed by a [LoadedAppsStore.updateApp]. The pure rewrite lives
+  /// in [buildUpdatedSpecJson]; this method just gathers the inputs,
+  /// invokes the helper, and persists.
   Future<void> _saveToSpec() async {
     final rawJson = widget.engine.rawSpecJson;
     final appId = widget.engine.loadedAppId;
     if (rawJson == null || appId == null) return;
 
-    Map<String, dynamic> spec;
-    try {
-      spec = jsonDecode(rawJson) as Map<String, dynamic>;
-    } catch (e) {
-      logError('SettingsScreen', 'Failed to parse rawSpecJson for admin save', e);
-      return;
-    }
-
     final logo = _logoController.text.trim();
     final font = _fontFamilyController.text.trim();
+
+    // Carry through any user-level token overrides that aren't theme
+    // metadata. The pure helper folds in fontSans for us.
     final tokenOverrides = <String, String>{};
-    final existing = spec['theme'] as Map<String, dynamic>?;
-    final existingOverrides = existing?['overrides'] as Map<String, dynamic>?;
-    if (existingOverrides != null) {
-      for (final entry in existingOverrides.entries) {
-        if (entry.key == 'fontSans') continue;
-        tokenOverrides[entry.key] = entry.value.toString();
-      }
-    }
-    // Per-user token overrides from settings store carry through too.
     final userOverrides = widget.settings.getBrandingOverrides(widget.app.appName);
     for (final entry in userOverrides.entries) {
-      if (const {'theme', 'base', 'logo', 'fontFamily', 'fontSans', 'headerStyle'}
+      if (const {'theme', 'base', 'logo', 'favicon', 'fontFamily', 'fontSans', 'headerStyle'}
           .contains(entry.key)) {
         continue;
       }
       tokenOverrides[entry.key] = entry.value;
     }
-    if (font.isNotEmpty) tokenOverrides['fontSans'] = font;
 
-    final themeBlock = <String, dynamic>{'base': _theme};
-    if (existing?['mode'] != null) themeBlock['mode'] = existing!['mode'];
-    if (_headerStyle != 'light') themeBlock['headerStyle'] = _headerStyle;
-    if (tokenOverrides.isNotEmpty) themeBlock['overrides'] = tokenOverrides;
-    spec['theme'] = themeBlock;
-
-    if (logo.isNotEmpty) {
-      spec['logo'] = logo;
-    } else {
-      spec.remove('logo');
+    final newJson = buildUpdatedSpecJson(
+      rawJson,
+      SpecWriterParams(
+        base: _theme,
+        tokenOverrides: tokenOverrides,
+        logo: logo,
+        favicon: '',
+        headerStyle: _headerStyle,
+        fontFamily: font,
+      ),
+    );
+    if (newJson == null) {
+      logError('SettingsScreen', 'Failed to parse rawSpecJson for admin save');
+      return;
     }
 
-    final newJson = const JsonEncoder.withIndent('  ').convert(spec);
     final store = LoadedAppsStore();
     store.storageFolder = widget.settings.storageFolder;
     await store.initialize(syncCatalog: false);
