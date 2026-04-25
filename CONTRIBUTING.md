@@ -108,6 +108,28 @@ unit/component/integration tests. If you can't decide, ask "would two
 renderers of the same spec disagree on this?" — if yes, it belongs in
 conformance.
 
+## Bug fixes are test-first too
+
+Every bug fix lands with a test that would have failed before the fix.
+The rule:
+
+1. **Reproduce as a test first.** Write a failing unit, integration, or
+   conformance test that captures the bug's observable symptom — a
+   wrong value, a missing component, a divergent behavior between
+   renderers. Run it and confirm it fails.
+2. **Fix the underlying cause.** Make the test go green.
+3. **Don't delete the test after.** It stays as the regression guard.
+
+This is the same red→green flow as new features, applied retroactively.
+A bug-fix PR without a failing test that becomes a passing test is
+incomplete review-wise; reviewers should ask for the test before
+approving.
+
+If the bug crossed framework boundaries (a parity divergence), the
+regression test belongs in the conformance suite — see the
+[recordSource order parity](TODO.md) note for an example of a parity
+bug filed during a contract-first session.
+
 ## Tests beyond conformance
 
 - **Unit tests** — small, fast, per-module. React: `tests/unit/`.
