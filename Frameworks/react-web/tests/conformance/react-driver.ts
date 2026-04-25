@@ -661,11 +661,33 @@ export class ReactDriver implements OdsDriver {
       }
       case 'detail': {
         const d = c as OdsDetailComponent
+        // The latest row in the data source is what the renderer projects
+        // onto the detail component (the framework's "show me this record"
+        // semantic for forms-without-fromForm). Sort by _createdAt desc so
+        // the test sees the most-recently-submitted row regardless of
+        // backend ordering.
+        const app = this.requireApp()
+        const ds = app.dataSources[d.dataSource]
+        let row: Record<string, unknown> | undefined
+        if (ds) {
+          const rows = (await this.dataService!.query(tableName(ds))) as Array<Record<string, unknown>>
+          if (rows.length > 0) {
+            const sorted = [...rows].sort((a, b) =>
+              String(b._createdAt ?? '').localeCompare(String(a._createdAt ?? '')),
+            )
+            row = sorted[0]
+          }
+        }
+        const fieldNames = d.fields ?? (row ? Object.keys(row).filter((k) => !k.startsWith('_')) : [])
         return {
           kind: 'detail',
           visible,
           dataSource: d.dataSource,
-          fields: [],
+          fields: fieldNames.map((name) => ({
+            name,
+            label: d.labels?.[name] ?? name,
+            value: row?.[name] ?? null,
+          })),
         }
       }
       case 'unknown':

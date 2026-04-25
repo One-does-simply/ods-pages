@@ -62,11 +62,17 @@ passes in one but not the other is a parity bug.
   `Frameworks/react-web/tests/conformance/react-driver.ts`
   and `Frameworks/flutter-local/test/conformance/flutter_driver.dart`
 
-20 scenarios as of 2026-04-24, pinning ~12 capabilities. The contract
+22 scenarios as of 2026-04-25, pinning ~13 capabilities. The contract
 itself is documented in
 [docs/adr/0001-conformance-driver-contract.md](adr/0001-conformance-driver-contract.md).
-**This is where you add a test when you want to pin behavior across
-both renderers.**
+
+**This is the contract — write the test first.** When you change
+cross-framework behavior, the scenario goes in before the
+implementation. Both drivers should be red, then both should be green.
+A merged feature without a failing-then-passing scenario was not built
+test-first. See
+[CONTRIBUTING.md → Conformance scenarios](../CONTRIBUTING.md#conformance-scenarios--contract-first)
+for the full workflow.
 
 ### 5. E2E tests (React only)
 
@@ -142,7 +148,7 @@ Living counts (kept rough):
 | --------------------- | ----- |
 | Flutter (excluding widget + slow) | ~810 |
 | React (unit + component + conformance) | ~1145 |
-| Conformance scenarios | 20 (× 2 drivers = 40 parity tests) |
+| Conformance scenarios | 22 (× 2 drivers = 44 parity tests) |
 | React E2E (Playwright) | ~50 |
 
 For exact current numbers and the bugs each batch found, see

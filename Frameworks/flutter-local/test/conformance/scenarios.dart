@@ -77,6 +77,7 @@ OdsSpec chartConfigSpec() => loadSpec('chartConfig');
 OdsSpec kanbanDragSpec() => loadSpec('kanbanDrag');
 OdsSpec cascadeRenameSpec() => loadSpec('cascadeRename');
 OdsSpec themeConfigSpec() => loadSpec('themeConfig');
+OdsSpec detailFieldsRoundTripSpec() => loadSpec('detailFieldsRoundTrip');
 
 // ---------------------------------------------------------------------------
 // Scenarios (mirrors of the TS versions; keep ids + names aligned)
@@ -614,6 +615,39 @@ final s21ThemeConfigRoundTrips = Scenario(
   },
 );
 
+final s22DetailFieldsRoundTrip = Scenario(
+  name: 'detail component snapshot exposes name/label/value for each field',
+  spec: detailFieldsRoundTripSpec,
+  capabilities: const ['core', 'detail', 'action:submit'],
+  run: (d) async {
+    await d.fillField('name', 'Widget');
+    await d.fillField('qty', 7);
+    await d.clickButton('Save');
+
+    final content = await d.pageContent();
+    final detail = content.whereType<DetailSnapshot>().firstOrNull;
+    assertTrue(detail != null, 'detail component present on the page');
+
+    final fields = detail!.fields;
+    assertEqual(fields.length, 2, 'detail emits one entry per declared field');
+
+    final byName = {for (final f in fields) f.name: f};
+    assertEqual(byName['name']?.label, 'Name', 'name field label round-trips');
+    assertEqual(
+      byName['name']?.value,
+      'Widget',
+      'name field value matches the submitted row',
+    );
+    assertEqual(byName['qty']?.label, 'Quantity', 'qty field label round-trips');
+    // String form so the assertion holds on both drivers (see TS scenario).
+    assertEqual(
+      byName['qty']?.value?.toString(),
+      '7',
+      'qty field value matches the submitted row',
+    );
+  },
+);
+
 /// Full list of scenarios the runner executes.
 final List<Scenario> allScenarios = [
   s01SpecLoads,
@@ -637,4 +671,5 @@ final List<Scenario> allScenarios = [
   s19KanbanDragUpdatesStatus,
   s20CascadeRenamePropagatesToChildren,
   s21ThemeConfigRoundTrips,
+  s22DetailFieldsRoundTrip,
 ];

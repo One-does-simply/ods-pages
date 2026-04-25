@@ -74,6 +74,7 @@ const chartConfigSpec = (): OdsSpec => loadSpec('chartConfig')
 const kanbanDragSpec = (): OdsSpec => loadSpec('kanbanDrag')
 const cascadeRenameSpec = (): OdsSpec => loadSpec('cascadeRename')
 const themeConfigSpec = (): OdsSpec => loadSpec('themeConfig')
+const detailFieldsRoundTripSpec = (): OdsSpec => loadSpec('detailFieldsRoundTrip')
 
 // ---------------------------------------------------------------------------
 // Scenarios
@@ -650,6 +651,35 @@ export const s21_theme_config_round_trips: Scenario = {
   },
 }
 
+export const s22_detail_fields_round_trip: Scenario = {
+  name: 'detail component snapshot exposes name/label/value for each field',
+  spec: detailFieldsRoundTripSpec,
+  capabilities: ['core', 'detail', 'action:submit'],
+  run: async (d) => {
+    // Submit a row so the detail has something to project.
+    await d.fillField('name', 'Widget')
+    await d.fillField('qty', 7)
+    await d.clickButton('Save')
+
+    const content = await d.pageContent()
+    const detail = content.find((c) => c.kind === 'detail')
+    assertTrue(detail != null, 'detail component present on the page')
+
+    const fields = (detail as { fields: Array<{ name: string; label: string; value: unknown }> }).fields
+    assertEqual(fields.length, 2, 'detail emits one entry per declared field')
+
+    const byName = Object.fromEntries(fields.map((f) => [f.name, f]))
+    assertEqual(byName['name']?.label, 'Name', 'name field label round-trips')
+    assertEqual(byName['name']?.value, 'Widget', 'name field value matches the submitted row')
+    assertEqual(byName['qty']?.label, 'Quantity', 'qty field label round-trips')
+    // Both frameworks normalize numeric fields to a string for the snapshot
+    // value (forms hand a number to fillField; the data layer round-trips it
+    // through SQLite/PB which yields strings on read). Assert on string form
+    // so both drivers produce the same shape.
+    assertEqual(String(byName['qty']?.value), '7', 'qty field value matches the submitted row')
+  },
+}
+
 /** Full list of scenarios the runner should execute. */
 export const allScenarios: ReadonlyArray<Scenario> = [
   s01_spec_loads,
@@ -673,4 +703,5 @@ export const allScenarios: ReadonlyArray<Scenario> = [
   s19_kanban_drag_updates_status,
   s20_cascade_rename_propagates_to_children,
   s21_theme_config_round_trips,
+  s22_detail_fields_round_trip,
 ]

@@ -61,25 +61,52 @@ CI mirrors the same gate (see [.github/workflows/](.github/workflows/)).
 If a test passes locally but fails in CI (or vice versa), that
 divergence is a bug.
 
-## Conformance scenarios
+## Conformance scenarios — contract-first
 
 The cross-framework parity contract lives in
-[Frameworks/conformance/](Frameworks/conformance/). When you change
-behavior that should be observably the same across both renderers,
-**add a conformance scenario**. The pattern:
+[Frameworks/conformance/](Frameworks/conformance/). It is **the**
+contract for any behavior that should be observably the same across
+both renderers — not coverage applied after the fact.
 
-1. Drop the spec into [Frameworks/conformance/specs/](Frameworks/conformance/specs/)
-   as JSON. Both runners load from this single source.
-2. Add a `Scenario` to
+**The rule:** when you change cross-framework behavior, write the
+scenario *before* the implementation. Red on both drivers, then green
+on both drivers, in that order. A merged feature without a failing-then-
+passing scenario was not built test-first.
+
+The workflow:
+
+1. **Write the spec.** Drop a JSON file into
+   [Frameworks/conformance/specs/](Frameworks/conformance/specs/). Both
+   runners load from the same bytes — that's how spec divergence is
+   prevented.
+2. **Write the assertions twice — TS first, Dart mirror.** Add a
+   `Scenario` to
    [Frameworks/conformance/src/scenarios.ts](Frameworks/conformance/src/scenarios.ts)
-   with the assertions the React side runs.
-3. Add a mirroring `Scenario` to
-   [Frameworks/flutter-local/test/conformance/scenarios.dart](Frameworks/flutter-local/test/conformance/scenarios.dart)
-   with the same assertions in Dart.
-4. Verify both run green.
+   and the equivalent in
+   [Frameworks/flutter-local/test/conformance/scenarios.dart](Frameworks/flutter-local/test/conformance/scenarios.dart).
+   If the contract needs a new driver method, add it to both
+   `contract.ts` and `contract.dart` *before* implementing.
+3. **Run both suites and confirm red.** A scenario that passes
+   immediately on an empty implementation is testing the wrong thing.
+   `cd Frameworks/react-web && npx vitest run tests/conformance` and
+   `cd Frameworks/flutter-local && flutter test test/conformance`.
+4. **Implement on each framework until both go green.** Pick the order
+   that fits, but don't ship until both drivers pass the same scenario.
+5. **Refactor with the contract as a safety net.** The scenario stays;
+   internals are free to move.
 
-Conformance has caught real cross-framework bugs already — every new
-scenario adds future regression coverage and exposes drift early.
+Concrete recent example: ADR-0002 added theme + customizations. The
+`themeConfig()` driver method, `ThemeConfig` type, and
+`s21_theme_config_round_trips` scenario landed alongside the parser
+changes — both frameworks were verified against the same assertions
+before the migration was considered done.
+
+**When NOT to use conformance:** purely framework-specific concerns
+(React's PocketBase wiring, Flutter's SQLite paths, UI rendering
+details that have no spec equivalent). Those go in framework-local
+unit/component/integration tests. If you can't decide, ask "would two
+renderers of the same spec disagree on this?" — if yes, it belongs in
+conformance.
 
 ## Tests beyond conformance
 

@@ -222,8 +222,28 @@ class KanbanSnapshot extends ComponentSnapshot {
   String get kind => 'kanban';
 }
 
-// The detail snapshot variant is defined here when a scenario demands
-// it. If you add one, mirror it in contract.ts.
+class DetailFieldEntry {
+  const DetailFieldEntry({
+    required this.name,
+    required this.label,
+    required this.value,
+  });
+  final String name;
+  final String label;
+  final Object? value;
+}
+
+class DetailSnapshot extends ComponentSnapshot {
+  const DetailSnapshot({
+    required super.visible,
+    required this.dataSource,
+    required this.fields,
+  });
+  final String dataSource;
+  final List<DetailFieldEntry> fields;
+  @override
+  String get kind => 'detail';
+}
 
 // ---------------------------------------------------------------------------
 // The OdsDriver interface every renderer implements

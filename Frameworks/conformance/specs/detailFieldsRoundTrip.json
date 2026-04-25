@@ -1,0 +1,44 @@
+{
+  "appName": "Detail Fields Round-trip",
+  "startPage": "home",
+  "pages": {
+    "home": {
+      "component": "page",
+      "title": "Home",
+      "content": [
+        {
+          "component": "form",
+          "id": "addForm",
+          "dataSource": "items",
+          "fields": [
+            { "name": "name", "type": "text", "label": "Name", "required": true },
+            { "name": "qty", "type": "number", "label": "Quantity" }
+          ]
+        },
+        {
+          "component": "button",
+          "label": "Save",
+          "onClick": [
+            { "action": "submit", "dataSource": "items", "target": "addForm" }
+          ]
+        },
+        {
+          "component": "detail",
+          "dataSource": "items",
+          "fields": ["name", "qty"],
+          "labels": { "name": "Name", "qty": "Quantity" }
+        }
+      ]
+    }
+  },
+  "dataSources": {
+    "items": {
+      "url": "local://items",
+      "method": "POST",
+      "fields": [
+        { "name": "name", "type": "text" },
+        { "name": "qty", "type": "number" }
+      ]
+    }
+  }
+}

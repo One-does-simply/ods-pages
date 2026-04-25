@@ -39,6 +39,7 @@ class FlutterDriver implements OdsDriver {
     'tabs',
     'chart',
     'kanban',
+    'detail',
     'cascadeRename',
     'theme',
     'auth:multiUser',
@@ -669,6 +670,38 @@ class FlutterDriver implements OdsDriver {
         });
       }
       return SummarySnapshot(visible: visible, label: c.label, value: value);
+    }
+    if (c is OdsDetailComponent) {
+      // Project the latest row from the configured data source. Sort by
+      // _createdAt desc so the snapshot reflects the most-recently-written
+      // record regardless of backend ordering. Mirrors the React driver.
+      final ds = app.dataSources[c.dataSource];
+      Map<String, dynamic>? row;
+      if (ds != null) {
+        final rows = await engine.dataStore.query(ds.tableName);
+        if (rows.isNotEmpty) {
+          rows.sort((a, b) {
+            final av = (a['_createdAt'] ?? '').toString();
+            final bv = (b['_createdAt'] ?? '').toString();
+            return bv.compareTo(av);
+          });
+          row = rows.first;
+        }
+      }
+      final fieldNames = c.fields ??
+          (row?.keys.where((k) => !k.startsWith('_')).toList() ?? const <String>[]);
+      return DetailSnapshot(
+        visible: visible,
+        dataSource: c.dataSource,
+        fields: [
+          for (final name in fieldNames)
+            DetailFieldEntry(
+              name: name,
+              label: c.labels?[name] ?? name,
+              value: row?[name],
+            ),
+        ],
+      );
     }
     // Other component kinds not yet rendered in the MVP driver.
     return null;
