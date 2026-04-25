@@ -78,6 +78,7 @@ OdsSpec kanbanDragSpec() => loadSpec('kanbanDrag');
 OdsSpec cascadeRenameSpec() => loadSpec('cascadeRename');
 OdsSpec themeConfigSpec() => loadSpec('themeConfig');
 OdsSpec detailFieldsRoundTripSpec() => loadSpec('detailFieldsRoundTrip');
+OdsSpec recordNavigationSpec() => loadSpec('recordNavigation');
 
 // ---------------------------------------------------------------------------
 // Scenarios (mirrors of the TS versions; keep ids + names aligned)
@@ -648,6 +649,72 @@ final s22DetailFieldsRoundTrip = Scenario(
   },
 );
 
+final s23RecordNavigationStepsThroughSeedData = Scenario(
+  name: 'firstRecord/nextRecord/previousRecord/lastRecord step through a recordSource',
+  spec: recordNavigationSpec,
+  capabilities: const ['core', 'action:recordNav', 'action:showMessage'],
+  run: (d) async {
+    // See TS scenario comment: assertions are order-agnostic because
+    // backend defaults differ (PocketBase=created-desc, SQLite=insertion).
+    // What we pin is the structural contract.
+    final before = await d.formValues('questionForm');
+    assertEqual(
+      (before['ord'] ?? '').toString(),
+      '',
+      'form is empty before firstRecord',
+    );
+
+    await d.clickButton('First');
+    final r0 = (await d.formValues('questionForm'))['ord']!.toString();
+    await d.clickButton('Next');
+    final r1 = (await d.formValues('questionForm'))['ord']!.toString();
+    await d.clickButton('Next');
+    final r2 = (await d.formValues('questionForm'))['ord']!.toString();
+
+    final seen = {r0, r1, r2};
+    assertEqual(seen.length, 3, 'First→Next→Next visits three distinct rows');
+    assertTrue(
+      seen.contains('1') && seen.contains('2') && seen.contains('3'),
+      'cursor visits all three seeded ords (1,2,3) regardless of order',
+    );
+
+    await d.clickButton('Next');
+    final msg = await d.lastMessage();
+    assertTrue(
+      msg != null,
+      'onEnd showMessage fires when nextRecord runs off the end',
+    );
+    assertEqual(msg!.text, 'End of records', 'onEnd message text from spec');
+    assertEqual(msg.level, 'info', 'onEnd message level from spec');
+    assertEqual(
+      (await d.formValues('questionForm'))['ord']!.toString(),
+      r2,
+      'cursor stays on the last row after end-of-records',
+    );
+
+    await d.clickButton('Last');
+    assertEqual(
+      (await d.formValues('questionForm'))['ord']!.toString(),
+      r2,
+      'lastRecord matches the row reached by walking Next to the end',
+    );
+
+    await d.clickButton('Previous');
+    assertEqual(
+      (await d.formValues('questionForm'))['ord']!.toString(),
+      r1,
+      'previousRecord moves backward one position',
+    );
+
+    await d.clickButton('First');
+    assertEqual(
+      (await d.formValues('questionForm'))['ord']!.toString(),
+      r0,
+      'firstRecord returns to the start of the cursor',
+    );
+  },
+);
+
 /// Full list of scenarios the runner executes.
 final List<Scenario> allScenarios = [
   s01SpecLoads,
@@ -672,4 +739,5 @@ final List<Scenario> allScenarios = [
   s20CascadeRenamePropagatesToChildren,
   s21ThemeConfigRoundTrips,
   s22DetailFieldsRoundTrip,
+  s23RecordNavigationStepsThroughSeedData,
 ];

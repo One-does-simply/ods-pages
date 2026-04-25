@@ -1,0 +1,72 @@
+{
+  "appName": "Record Navigation",
+  "startPage": "home",
+  "pages": {
+    "home": {
+      "component": "page",
+      "title": "Home",
+      "content": [
+        {
+          "component": "form",
+          "id": "questionForm",
+          "recordSource": "questions",
+          "fields": [
+            { "name": "ord", "type": "number", "label": "Order" },
+            { "name": "text", "type": "text", "label": "Question" }
+          ]
+        },
+        {
+          "component": "button",
+          "label": "First",
+          "onClick": [
+            { "action": "firstRecord", "target": "questionForm" }
+          ]
+        },
+        {
+          "component": "button",
+          "label": "Next",
+          "onClick": [
+            {
+              "action": "nextRecord",
+              "target": "questionForm",
+              "onEnd": {
+                "action": "showMessage",
+                "message": "End of records",
+                "level": "info"
+              }
+            }
+          ]
+        },
+        {
+          "component": "button",
+          "label": "Previous",
+          "onClick": [
+            { "action": "previousRecord", "target": "questionForm" }
+          ]
+        },
+        {
+          "component": "button",
+          "label": "Last",
+          "onClick": [
+            { "action": "lastRecord", "target": "questionForm" }
+          ]
+        }
+      ]
+    }
+  },
+  "dataSources": {
+    "questions": {
+      "url": "local://questions",
+      "method": "GET",
+      "fields": [
+        { "name": "ord", "type": "number" },
+        { "name": "text", "type": "text" }
+      ],
+      "seedData": [
+        { "ord": 1, "text": "What is two plus two?" },
+        { "ord": 2, "text": "What color is the sky?" },
+        { "ord": 3, "text": "Who wrote Hamlet?" }
+      ]
+    }
+  }
+}

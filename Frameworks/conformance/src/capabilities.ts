@@ -36,3 +36,4 @@ export type Capability =
   | 'action:delete'
   | 'action:navigate'
   | 'action:showMessage'
+  | 'action:recordNav'

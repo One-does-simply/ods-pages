@@ -75,6 +75,7 @@ const kanbanDragSpec = (): OdsSpec => loadSpec('kanbanDrag')
 const cascadeRenameSpec = (): OdsSpec => loadSpec('cascadeRename')
 const themeConfigSpec = (): OdsSpec => loadSpec('themeConfig')
 const detailFieldsRoundTripSpec = (): OdsSpec => loadSpec('detailFieldsRoundTrip')
+const recordNavigationSpec = (): OdsSpec => loadSpec('recordNavigation')
 
 // ---------------------------------------------------------------------------
 // Scenarios
@@ -680,6 +681,72 @@ export const s22_detail_fields_round_trip: Scenario = {
   },
 }
 
+export const s23_record_navigation_steps_through_seed_data: Scenario = {
+  name: 'firstRecord/nextRecord/previousRecord/lastRecord step through a recordSource',
+  spec: recordNavigationSpec,
+  capabilities: ['core', 'action:recordNav', 'action:showMessage'],
+  run: async (d) => {
+    // Cursor not yet established — form is empty before First. The
+    // assertions below intentionally avoid pinning *which* row first
+    // returns: PocketBase defaults to created-desc and SQLite defaults
+    // to insertion order, so a deterministic absolute order would need
+    // an explicit `sort` directive on the action (TODO). What we *can*
+    // pin is the structural contract: First/Next/Next visits three
+    // distinct rows, onEnd fires past the end, Previous backs up,
+    // Last lands where the third Next did, First returns to the start.
+    const before = await d.formValues('questionForm')
+    assertEqual(String(before.ord ?? ''), '', 'form is empty before firstRecord')
+
+    await d.clickButton('First')
+    const r0 = String((await d.formValues('questionForm')).ord)
+    await d.clickButton('Next')
+    const r1 = String((await d.formValues('questionForm')).ord)
+    await d.clickButton('Next')
+    const r2 = String((await d.formValues('questionForm')).ord)
+
+    const seen = new Set([r0, r1, r2])
+    assertEqual(seen.size, 3, 'First→Next→Next visits three distinct rows')
+    assertTrue(
+      seen.has('1') && seen.has('2') && seen.has('3'),
+      'cursor visits all three seeded ords (1,2,3) regardless of order',
+    )
+
+    // Past end — onEnd should fire and the cursor stays put.
+    await d.clickButton('Next')
+    const msg = await d.lastMessage()
+    assertTrue(msg != null, 'onEnd showMessage fires when nextRecord runs off the end')
+    assertEqual(msg!.text, 'End of records', 'onEnd message text from spec')
+    assertEqual(msg.level, 'info', 'onEnd message level from spec')
+    assertEqual(
+      String((await d.formValues('questionForm')).ord),
+      r2,
+      'cursor stays on the last row after end-of-records',
+    )
+
+    // Last and Previous are bookends/inverses of Next.
+    await d.clickButton('Last')
+    assertEqual(
+      String((await d.formValues('questionForm')).ord),
+      r2,
+      'lastRecord matches the row reached by walking Next to the end',
+    )
+
+    await d.clickButton('Previous')
+    assertEqual(
+      String((await d.formValues('questionForm')).ord),
+      r1,
+      'previousRecord moves backward one position',
+    )
+
+    await d.clickButton('First')
+    assertEqual(
+      String((await d.formValues('questionForm')).ord),
+      r0,
+      'firstRecord returns to the start of the cursor',
+    )
+  },
+}
+
 /** Full list of scenarios the runner should execute. */
 export const allScenarios: ReadonlyArray<Scenario> = [
   s01_spec_loads,
@@ -704,4 +771,5 @@ export const allScenarios: ReadonlyArray<Scenario> = [
   s20_cascade_rename_propagates_to_children,
   s21_theme_config_round_trips,
   s22_detail_fields_round_trip,
+  s23_record_navigation_steps_through_seed_data,
 ]

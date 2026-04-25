@@ -37,20 +37,15 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 
 ## Later — important, not urgent
 
-- [ ] **Conformance: `detail` scenario** — the only ODS component kind
-      still not pinned cross-framework.
-      [OdsDetailComponent](Frameworks/react-web/src/models/ods-component.ts)
-      renders fields from a specific row, typically populated via
-      `populateForm` on a rowAction that navigates. To test, the
-      driver needs a scenario flow: spec with (a) list + rowAction
-      that navigates to a detail page and populates the form from
-      the row, (b) detail component reading from that form/row, (c)
-      assertions that the detail fields match the source row. Likely
-      requires a new driver primitive (`clickRowActionWithPopulate`
-      or similar) OR surfacing the record cursor state through an
-      existing snapshot. Medium-high complexity; low-urgency because
-      detail views tend to be thin read-only adapters over form/list
-      primitives we already test.
+- [ ] **`recordSource` default-order parity** — surfaced by s23
+      (record navigation). PocketBase defaults to `created` desc, so
+      FakeDataService.query reverses results to mimic that; SQLite's
+      default scan returns insertion order. Same spec → different
+      "first record" across frameworks. The s23 scenario currently
+      sidesteps this with order-agnostic assertions. Real fix: add an
+      optional `sort` directive to the `firstRecord` action (and/or
+      pick a single canonical default) so `firstRecord` is
+      deterministic for a given spec on every renderer.
 - [ ] **Conformance: deepen existing narrow scenarios** — a few
       scenarios pin only initial state or config, not behavior:
       - **s17 tabs**: only asserts initial active state; add a

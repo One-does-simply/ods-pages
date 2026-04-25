@@ -95,6 +95,7 @@ export class ReactDriver implements OdsDriver {
     'action:delete',
     'action:navigate',
     'action:showMessage',
+    'action:recordNav',
   ])
 
   private dataService: FakeDataService | null = null

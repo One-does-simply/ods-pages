@@ -33,6 +33,7 @@ class FlutterDriver implements OdsDriver {
     'action:navigate',
     'action:delete',
     'action:update',
+    'action:recordNav',
     'rowActions',
     'formulas',
     'summary',
