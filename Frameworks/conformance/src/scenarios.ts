@@ -76,6 +76,7 @@ const cascadeRenameSpec = (): OdsSpec => loadSpec('cascadeRename')
 const themeConfigSpec = (): OdsSpec => loadSpec('themeConfig')
 const detailFieldsRoundTripSpec = (): OdsSpec => loadSpec('detailFieldsRoundTrip')
 const recordNavigationSpec = (): OdsSpec => loadSpec('recordNavigation')
+const currentUserDefaultsSpec = (): OdsSpec => loadSpec('currentUserDefaults')
 
 // ---------------------------------------------------------------------------
 // Scenarios
@@ -747,6 +748,75 @@ export const s23_record_navigation_steps_through_seed_data: Scenario = {
   },
 }
 
+export const s24_click_menu_item_navigates_between_pages: Scenario = {
+  name: 'clickMenuItem dispatches navigation by menu label, both directions',
+  spec: twoPageSpec,
+  capabilities: ['core', 'action:navigate'],
+  run: async (d) => {
+    const start = await d.currentPage()
+    assertEqual(start.id, 'home', 'starts on home page')
+
+    await d.clickMenuItem('Second')
+    const after = await d.currentPage()
+    assertEqual(after.id, 'second', 'menu item "Second" navigates to second page')
+    assertEqual(after.title, 'Second', 'page title reflects the new page')
+
+    await d.clickMenuItem('Home')
+    const back = await d.currentPage()
+    assertEqual(back.id, 'home', 'menu item "Home" navigates back')
+    assertEqual(back.title, 'Home', 'page title reflects the home page')
+  },
+}
+
+export const s25_current_user_magic_defaults_resolve_after_login: Scenario = {
+  name: 'CURRENT_USER.EMAIL / .NAME default values resolve to the logged-in user',
+  spec: currentUserDefaultsSpec,
+  capabilities: ['core', 'auth:multiUser', 'auth:selfRegistration'],
+  run: async (d) => {
+    // Pre-login: CURRENT_USER.* should resolve to '' (empty), not leak the
+    // raw magic string. Renderers also clear the field rather than show
+    // "CURRENT_USER.EMAIL" to the end user.
+    const beforeLogin = await d.formValues('noteForm')
+    assertEqual(
+      beforeLogin.author ?? '',
+      '',
+      'CURRENT_USER.EMAIL resolves to empty string when no user is logged in',
+    )
+    assertEqual(
+      beforeLogin.name ?? '',
+      '',
+      'CURRENT_USER.NAME resolves to empty string when no user is logged in',
+    )
+
+    // Register and log in. selfRegistration is enabled in the spec.
+    await d.registerUser({
+      email: 'alice@example.com',
+      password: 'secret-password',
+      displayName: 'Alice',
+    })
+    const loggedIn = await d.login('alice@example.com', 'secret-password')
+    assertEqual(loggedIn, true, 'login should succeed for the freshly-registered user')
+
+    const afterLogin = await d.formValues('noteForm')
+    assertEqual(
+      afterLogin.author,
+      'alice@example.com',
+      'CURRENT_USER.EMAIL resolves to the logged-in user email',
+    )
+    assertEqual(
+      afterLogin.name,
+      'Alice',
+      'CURRENT_USER.NAME resolves to the logged-in user displayName',
+    )
+    // Body has no default — should remain empty.
+    assertEqual(
+      afterLogin.body ?? '',
+      '',
+      'fields without a default are not affected by CURRENT_USER resolution',
+    )
+  },
+}
+
 /** Full list of scenarios the runner should execute. */
 export const allScenarios: ReadonlyArray<Scenario> = [
   s01_spec_loads,
@@ -772,4 +842,6 @@ export const allScenarios: ReadonlyArray<Scenario> = [
   s21_theme_config_round_trips,
   s22_detail_fields_round_trip,
   s23_record_navigation_steps_through_seed_data,
+  s24_click_menu_item_navigates_between_pages,
+  s25_current_user_magic_defaults_resolve_after_login,
 ]

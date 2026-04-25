@@ -79,6 +79,7 @@ OdsSpec cascadeRenameSpec() => loadSpec('cascadeRename');
 OdsSpec themeConfigSpec() => loadSpec('themeConfig');
 OdsSpec detailFieldsRoundTripSpec() => loadSpec('detailFieldsRoundTrip');
 OdsSpec recordNavigationSpec() => loadSpec('recordNavigation');
+OdsSpec currentUserDefaultsSpec() => loadSpec('currentUserDefaults');
 
 // ---------------------------------------------------------------------------
 // Scenarios (mirrors of the TS versions; keep ids + names aligned)
@@ -715,6 +716,70 @@ final s23RecordNavigationStepsThroughSeedData = Scenario(
   },
 );
 
+final s24ClickMenuItemNavigatesBetweenPages = Scenario(
+  name: 'clickMenuItem dispatches navigation by menu label, both directions',
+  spec: twoPageSpec,
+  capabilities: const ['core', 'action:navigate'],
+  run: (d) async {
+    final start = await d.currentPage();
+    assertEqual(start.id, 'home', 'starts on home page');
+
+    await d.clickMenuItem('Second');
+    final after = await d.currentPage();
+    assertEqual(after.id, 'second', 'menu item "Second" navigates to second page');
+    assertEqual(after.title, 'Second', 'page title reflects the new page');
+
+    await d.clickMenuItem('Home');
+    final back = await d.currentPage();
+    assertEqual(back.id, 'home', 'menu item "Home" navigates back');
+    assertEqual(back.title, 'Home', 'page title reflects the home page');
+  },
+);
+
+final s25CurrentUserMagicDefaultsResolveAfterLogin = Scenario(
+  name: 'CURRENT_USER.EMAIL / .NAME default values resolve to the logged-in user',
+  spec: currentUserDefaultsSpec,
+  capabilities: const ['core', 'auth:multiUser', 'auth:selfRegistration'],
+  run: (d) async {
+    final beforeLogin = await d.formValues('noteForm');
+    assertEqual(
+      beforeLogin['author'] ?? '',
+      '',
+      'CURRENT_USER.EMAIL resolves to empty string when no user is logged in',
+    );
+    assertEqual(
+      beforeLogin['name'] ?? '',
+      '',
+      'CURRENT_USER.NAME resolves to empty string when no user is logged in',
+    );
+
+    await d.registerUser(
+      email: 'alice@example.com',
+      password: 'secret-password',
+      displayName: 'Alice',
+    );
+    final loggedIn = await d.login('alice@example.com', 'secret-password');
+    assertEqual(loggedIn, true, 'login should succeed for the freshly-registered user');
+
+    final afterLogin = await d.formValues('noteForm');
+    assertEqual(
+      afterLogin['author'],
+      'alice@example.com',
+      'CURRENT_USER.EMAIL resolves to the logged-in user email',
+    );
+    assertEqual(
+      afterLogin['name'],
+      'Alice',
+      'CURRENT_USER.NAME resolves to the logged-in user displayName',
+    );
+    assertEqual(
+      afterLogin['body'] ?? '',
+      '',
+      'fields without a default are not affected by CURRENT_USER resolution',
+    );
+  },
+);
+
 /// Full list of scenarios the runner executes.
 final List<Scenario> allScenarios = [
   s01SpecLoads,
@@ -740,4 +805,6 @@ final List<Scenario> allScenarios = [
   s21ThemeConfigRoundTrips,
   s22DetailFieldsRoundTrip,
   s23RecordNavigationStepsThroughSeedData,
+  s24ClickMenuItemNavigatesBetweenPages,
+  s25CurrentUserMagicDefaultsResolveAfterLogin,
 ];

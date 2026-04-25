@@ -419,9 +419,11 @@ export class ReactDriver implements OdsDriver {
   }
 
   /**
-   * Subset of FormComponent.resolveMagicDefault — just CURRENTDATE/NOW for
-   * date + datetime fields. Other magic values (CURRENT_USER.*, +7d, etc.)
-   * are out of scope for MVP conformance scenarios.
+   * Subset of FormComponent.resolveMagicDefault — covers the magic
+   * values the conformance suite asserts on (CURRENTDATE/NOW for date
+   * + datetime fields; CURRENT_USER.* for any field). Relative-date
+   * offsets (+7d, etc.) are still out of scope until a scenario needs
+   * them.
    */
   private resolveMagicDefault(
     defaultValue: string,
@@ -433,6 +435,18 @@ export class ReactDriver implements OdsDriver {
       return fieldType === 'datetime'
         ? now.toISOString().slice(0, 16)
         : now.toISOString().slice(0, 10)
+    }
+    if (upper === 'CURRENT_USER' || upper.startsWith('CURRENT_USER.')) {
+      const auth = this.authService
+      if (!auth || !auth.isLoggedIn) return ''
+      if (upper === 'CURRENT_USER') return auth.currentDisplayName
+      const prop = upper.slice('CURRENT_USER.'.length)
+      switch (prop) {
+        case 'NAME': return auth.currentDisplayName
+        case 'EMAIL': return auth.currentEmail
+        case 'USERNAME': return auth.currentUsername
+        default: return ''
+      }
     }
     return undefined
   }

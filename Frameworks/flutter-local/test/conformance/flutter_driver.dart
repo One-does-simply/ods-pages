@@ -385,9 +385,11 @@ class FlutterDriver implements OdsDriver {
     return null;
   }
 
-  /// Subset mirror of FormComponent's resolveMagicDefault: just CURRENTDATE
-  /// / NOW on date + datetime fields. Other magic values (CURRENT_USER.*,
-  /// +7d, etc.) are out of scope for MVP conformance.
+  /// Subset mirror of FormComponent's resolveMagicDefault: covers the
+  /// magic values the conformance suite asserts on (CURRENTDATE / NOW
+  /// on date + datetime fields; CURRENT_USER.* on any field). Relative
+  /// date offsets (+7d, etc.) remain out of scope until a scenario
+  /// needs them.
   String? _resolveMagicDefault(String defaultValue, String fieldType) {
     final upper = defaultValue.toUpperCase();
     if (upper == 'NOW' || upper == 'CURRENTDATE') {
@@ -399,6 +401,22 @@ class FlutterDriver implements OdsDriver {
       }
       // YYYY-MM-DD
       return utc.toIso8601String().substring(0, 10);
+    }
+    if (upper == 'CURRENT_USER' || upper.startsWith('CURRENT_USER.')) {
+      final engine = _engine;
+      if (engine == null || !engine.authService.isLoggedIn) return '';
+      if (upper == 'CURRENT_USER') return engine.authService.currentDisplayName;
+      final prop = upper.substring('CURRENT_USER.'.length);
+      switch (prop) {
+        case 'NAME':
+          return engine.authService.currentDisplayName;
+        case 'EMAIL':
+          return engine.authService.currentEmail;
+        case 'USERNAME':
+          return engine.authService.currentUsername;
+        default:
+          return '';
+      }
     }
     return null;
   }

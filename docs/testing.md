@@ -62,7 +62,7 @@ passes in one but not the other is a parity bug.
   `Frameworks/react-web/tests/conformance/react-driver.ts`
   and `Frameworks/flutter-local/test/conformance/flutter_driver.dart`
 
-23 scenarios as of 2026-04-25, pinning ~14 capabilities. The contract
+25 scenarios as of 2026-04-25, pinning ~14 capabilities. The contract
 itself is documented in
 [docs/adr/0001-conformance-driver-contract.md](adr/0001-conformance-driver-contract.md).
 
@@ -148,7 +148,7 @@ Living counts (kept rough):
 | --------------------- | ----- |
 | Flutter (excluding widget + slow) | ~810 |
 | React (unit + component + conformance) | ~1145 |
-| Conformance scenarios | 23 (× 2 drivers = 46 parity tests) |
+| Conformance scenarios | 25 (× 2 drivers = 50 parity tests) |
 | React E2E (Playwright) | ~50 |
 
 For exact current numbers and the bugs each batch found, see
