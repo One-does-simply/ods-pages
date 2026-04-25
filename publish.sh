@@ -36,8 +36,16 @@ show_status() {
 }
 
 run_flutter_tests() {
-  echo -e "${YELLOW}Flutter${NC} — running non-widget tests..."
+  echo -e "${YELLOW}Flutter${NC} — analyzing..."
   cd "$ODS_ROOT/Frameworks/flutter-local"
+  # Mirrors flutter.yml's analyze step. Errors are fatal; warnings/infos
+  # are not (large existing baseline of style nits).
+  if ! "$FLUTTER" analyze --no-fatal-warnings --no-fatal-infos 2>&1 | tail -10; then
+    echo -e "${RED}Flutter${NC} — analyze failed"
+    return 1
+  fi
+
+  echo -e "${YELLOW}Flutter${NC} — running non-widget tests..."
   # Widget tests are skipped on Windows (flutter_tools temp-dir race).
   # Perf tests live in test/integration/batch9_performance_test.dart and
   # are tagged `slow` — excluded from the gate because their Windows I/O
@@ -47,17 +55,25 @@ run_flutter_tests() {
     echo -e "${RED}Flutter${NC} — tests failed"
     return 1
   fi
-  echo -e "${GREEN}Flutter${NC} — tests passed"
+  echo -e "${GREEN}Flutter${NC} — analyze + tests passed"
 }
 
 run_react_tests() {
-  echo -e "${YELLOW}React${NC} — running unit + component tests..."
+  echo -e "${YELLOW}React${NC} — typechecking..."
   cd "$ODS_ROOT/Frameworks/react-web"
+  # Mirrors react.yml's TypeScript check step. tsc -b respects project
+  # references (tsconfig.app.json + tsconfig.node.json).
+  if ! npx tsc -b 2>&1 | tail -10; then
+    echo -e "${RED}React${NC} — typecheck failed"
+    return 1
+  fi
+
+  echo -e "${YELLOW}React${NC} — running unit + component tests..."
   if ! npm test 2>&1 | tail -5; then
     echo -e "${RED}React${NC} — tests failed"
     return 1
   fi
-  echo -e "${GREEN}React${NC} — tests passed"
+  echo -e "${GREEN}React${NC} — typecheck + tests passed"
 }
 
 # ── main ─────────────────────────────────────────────────────────────────────

@@ -5,12 +5,14 @@ on:
     branches: [main]
     paths:
       - 'Frameworks/react-web/**'
+      - 'Frameworks/conformance/**'
       - 'Specification/**'
       - '.github/workflows/react.yml'
   pull_request:
     branches: [main]
     paths:
       - 'Frameworks/react-web/**'
+      - 'Frameworks/conformance/**'
       - 'Specification/**'
       - '.github/workflows/react.yml'
 

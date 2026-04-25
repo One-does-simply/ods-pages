@@ -5,12 +5,14 @@ on:
     branches: [main]
     paths:
       - 'Frameworks/flutter-local/**'
+      - 'Frameworks/conformance/**'
       - 'Specification/**'
       - '.github/workflows/flutter.yml'
   pull_request:
     branches: [main]
     paths:
       - 'Frameworks/flutter-local/**'
+      - 'Frameworks/conformance/**'
       - 'Specification/**'
       - '.github/workflows/flutter.yml'
 
