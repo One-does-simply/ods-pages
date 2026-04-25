@@ -67,6 +67,14 @@ export interface AppState {
 
   // Multi-app routing
   currentSlug: string | null
+  /** AppRegistry record id for the currently loaded app (null in
+   * single-spec / wizard / file-load modes where there's no registry
+   * record). Used by admin "save to spec" writes. */
+  currentAppId: string | null
+  /** The raw spec JSON passed to loadSpec, kept alongside the parsed
+   * `app`. Admin save-to-spec uses this as the source of truth to
+   * preserve fields the parser may have stripped. */
+  rawSpecJson: string | null
 
   // Computed getters
   isMultiUser: boolean
@@ -75,7 +83,7 @@ export interface AppState {
   isMultiUserOnly: boolean
 
   // Actions
-  loadSpec: (jsonString: string, dataService: DataService, authService: AuthService, slug?: string) => Promise<boolean>
+  loadSpec: (jsonString: string, dataService: DataService, authService: AuthService, slug?: string, appId?: string) => Promise<boolean>
   navigateTo: (pageId: string) => void
   goBack: () => void
   canGoBack: () => boolean
@@ -142,6 +150,8 @@ const initialState = {
   dataService: null,
   authService: null,
   currentSlug: null as string | null,
+  currentAppId: null as string | null,
+  rawSpecJson: null as string | null,
   isMultiUser: false,
   needsAdminSetup: false,
   needsLogin: false,
@@ -172,7 +182,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
   // Spec loading
   // -------------------------------------------------------------------------
 
-  loadSpec: async (jsonString: string, dataService: DataService, authService: AuthService, slug?: string): Promise<boolean> => {
+  loadSpec: async (jsonString: string, dataService: DataService, authService: AuthService, slug?: string, appId?: string): Promise<boolean> => {
     set({ isLoading: true, loadError: null })
 
     // Parse and validate.
@@ -239,6 +249,8 @@ export const useAppStore = create<AppState>()((set, get) => ({
         recordCursors: {},
         isLoading: false,
         currentSlug: slug ?? null,
+        currentAppId: appId ?? null,
+        rawSpecJson: jsonString,
         isMultiUser: app.auth.multiUser,
         isMultiUserOnly: app.auth.multiUserOnly ?? false,
         needsAdminSetup: app.auth.multiUser && !pbSuperAdminAvailable && !authService.isAdminSetUp,

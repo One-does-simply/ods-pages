@@ -11,6 +11,9 @@ import {
   type BackupSettings,
 } from '@/engine/backup-service.ts'
 import { applyTheme, applyFavicon, loadTheme } from '@/engine/branding-service.ts'
+import { AppRegistry } from '@/engine/app-registry.ts'
+import pb from '@/lib/pocketbase.ts'
+import { logWarn } from '@/engine/log-service.ts'
 import type { OdsTheme } from '@/models/ods-theme.ts'
 import {
   Dialog,
@@ -91,6 +94,12 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const isMultiUser = useAppStore((s) => s.isMultiUser)
   const isAdmin = !isMultiUser || !authService || authService.isAdmin
 
+  // Phase 3: admins write theme/identity changes back to the spec via
+  // PocketBase. Non-admins fall through to the existing localStorage path.
+  const currentAppId = useAppStore((s) => s.currentAppId)
+  const rawSpecJson = useAppStore((s) => s.rawSpecJson)
+  const adminSavesToSpec = isAdmin && !!currentAppId && !!rawSpecJson
+
   // Load theme default colors for color pickers and preview
   useEffect(() => {
     if (!customizeOpen && !previewOpen) return
@@ -148,9 +157,80 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     }
   }
 
+  /**
+   * Admin path: rewrite the spec JSON's `theme`/`logo`/`favicon` fields
+   * from the current local state and persist via PocketBase. Surgical
+   * mutation on the parsed JSON preserves any unknown fields and the
+   * builder's original formatting choices in the rest of the spec.
+   */
+  async function saveToSpec(
+    overrideBase?: string,
+    overrideTokens?: Record<string, string>,
+    overrideLogo?: string,
+    overrideFavicon?: string,
+    overrideHeaderStyle?: 'light' | 'solid' | 'transparent',
+    overrideFontFamily?: string,
+  ): Promise<void> {
+    if (!currentAppId || !rawSpecJson) return
+    let spec: Record<string, unknown>
+    try {
+      spec = JSON.parse(rawSpecJson)
+    } catch (e) {
+      logWarn('SettingsDialog', 'Failed to parse rawSpecJson for admin save', e)
+      return
+    }
+    const base = overrideBase ?? selectedTheme
+    const tk = overrideTokens ?? tokenOverrides
+    const lo = overrideLogo ?? brandingLogo
+    const fa = overrideFavicon ?? brandingFavicon
+    const hs = overrideHeaderStyle ?? brandingHeaderStyle
+    const ff = overrideFontFamily ?? brandingFontFamily
+
+    const themeBlock: Record<string, unknown> = { base }
+    const existing = (spec['theme'] as Record<string, unknown> | undefined) ?? {}
+    if (existing['mode']) themeBlock['mode'] = existing['mode']
+    if (hs !== 'light') themeBlock['headerStyle'] = hs
+    const tkWithFont: Record<string, string> = { ...tk }
+    if (ff) tkWithFont['fontSans'] = ff
+    if (Object.keys(tkWithFont).length > 0) themeBlock['overrides'] = tkWithFont
+    spec['theme'] = themeBlock
+
+    if (lo) spec['logo'] = lo; else delete spec['logo']
+    if (fa) spec['favicon'] = fa; else delete spec['favicon']
+
+    const newJson = JSON.stringify(spec, null, 2)
+    const registry = new AppRegistry(pb)
+    const ok = await registry.updateApp(currentAppId, newJson)
+    if (!ok) {
+      logWarn('SettingsDialog', 'updateApp returned false')
+      return
+    }
+    // Keep the in-memory app + rawSpecJson in sync so subsequent edits
+    // build on the latest state and downstream consumers see the change.
+    useAppStore.setState((state) => {
+      if (!state.app) return {}
+      const newApp = {
+        ...state.app,
+        theme: {
+          ...state.app.theme,
+          base,
+          headerStyle: hs,
+          overrides: Object.keys(tkWithFont).length > 0 ? tkWithFont : undefined,
+        },
+        logo: lo || undefined,
+        favicon: fa || undefined,
+      }
+      return { app: newApp, rawSpecJson: newJson }
+    })
+  }
+
   function applyThemeOverride(themeName: string) {
     setSelectedTheme(themeName)
-    localStorage.setItem(themeKey, JSON.stringify(buildSavedOverrides(themeName)))
+    if (adminSavesToSpec) {
+      saveToSpec(themeName).catch(() => {})
+    } else {
+      localStorage.setItem(themeKey, JSON.stringify(buildSavedOverrides(themeName)))
+    }
     applyTheme(effectiveTheme(themeName)).catch(() => {})
   }
 
@@ -162,7 +242,11 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
       delete updated[token]
     }
     setTokenOverrides(updated)
-    localStorage.setItem(themeKey, JSON.stringify(buildSavedOverrides(undefined, updated)))
+    if (adminSavesToSpec) {
+      saveToSpec(undefined, updated).catch(() => {})
+    } else {
+      localStorage.setItem(themeKey, JSON.stringify(buildSavedOverrides(undefined, updated)))
+    }
     applyTheme(effectiveTheme(undefined, updated)).catch(() => {})
   }
 
@@ -176,7 +260,11 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     const fa = favicon ?? brandingFavicon
     const hs = headerStyle ?? brandingHeaderStyle
     const ff = fontFamily ?? brandingFontFamily
-    localStorage.setItem(themeKey, JSON.stringify(buildSavedOverrides(undefined, undefined, lo, fa, hs, ff)))
+    if (adminSavesToSpec) {
+      saveToSpec(undefined, undefined, lo, fa, hs, ff).catch(() => {})
+    } else {
+      localStorage.setItem(themeKey, JSON.stringify(buildSavedOverrides(undefined, undefined, lo, fa, hs, ff)))
+    }
     applyTheme(effectiveTheme(undefined, undefined, hs, ff)).catch(() => {})
     if (fa) applyFavicon(fa)
   }

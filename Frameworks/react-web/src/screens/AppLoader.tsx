@@ -80,7 +80,7 @@ export function AppLoader() {
       reset()
 
       const authService = new AuthService(pb)
-      const success = await loadSpec(record.specJson, ds, authService, slug!)
+      const success = await loadSpec(record.specJson, ds, authService, slug!, record.id)
 
       if (success) {
         setStatus('ready')
