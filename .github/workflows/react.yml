@@ -37,9 +37,13 @@ jobs:
         working-directory: Frameworks/react-web
         run: npx tsc -b
 
-      - name: Run tests
+      - name: Run tests with coverage thresholds
         working-directory: Frameworks/react-web
-        run: npm test
+        # `test:coverage` runs vitest with --coverage; vitest enforces the
+        # per-folder thresholds in vitest.config.ts and exits non-zero if
+        # coverage drops below baseline (currently models 90%, parser 90%,
+        # engine 50%). Bump these in lockstep with new tests landing.
+        run: npm run test:coverage
 
   e2e:
     name: E2E Tests (Playwright + PocketBase)

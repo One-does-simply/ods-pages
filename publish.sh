@@ -15,6 +15,7 @@ set -euo pipefail
 
 ODS_ROOT="c:/Apps/One-does-simply"
 FLUTTER="c:/Users/<user>/develop/flutter/bin/flutter.bat"
+DART="c:/Users/<user>/develop/flutter/bin/dart.bat"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -45,17 +46,23 @@ run_flutter_tests() {
     return 1
   fi
 
-  echo -e "${YELLOW}Flutter${NC} — running non-widget tests..."
+  echo -e "${YELLOW}Flutter${NC} — running non-widget tests with coverage..."
   # Widget tests are skipped on Windows (flutter_tools temp-dir race).
   # Perf tests live in test/integration/batch9_performance_test.dart and
   # are tagged `slow` — excluded from the gate because their Windows I/O
   # timing budgets flake. Run them on demand with `flutter test --tags=slow`.
   if ! "$FLUTTER" test test/engine test/models test/parser test/integration test/conformance \
-      --exclude-tags=slow --reporter compact 2>&1 | tail -20; then
+      --exclude-tags=slow --coverage --reporter compact 2>&1 | tail -20; then
     echo -e "${RED}Flutter${NC} — tests failed"
     return 1
   fi
-  echo -e "${GREEN}Flutter${NC} — analyze + tests passed"
+
+  echo -e "${YELLOW}Flutter${NC} — enforcing coverage thresholds..."
+  if ! "$DART" run tool/coverage_check.dart 2>&1; then
+    echo -e "${RED}Flutter${NC} — coverage thresholds failed"
+    return 1
+  fi
+  echo -e "${GREEN}Flutter${NC} — analyze + tests + coverage passed"
 }
 
 run_react_tests() {
@@ -68,12 +75,14 @@ run_react_tests() {
     return 1
   fi
 
-  echo -e "${YELLOW}React${NC} — running unit + component tests..."
-  if ! npm test 2>&1 | tail -5; then
-    echo -e "${RED}React${NC} — tests failed"
+  echo -e "${YELLOW}React${NC} — running unit + component tests with coverage..."
+  # `test:coverage` runs vitest with --coverage. Per-folder thresholds
+  # in vitest.config.ts gate the run (models 90%, parser 90%, engine 50%).
+  if ! npm run test:coverage 2>&1 | tail -8; then
+    echo -e "${RED}React${NC} — tests or coverage thresholds failed"
     return 1
   fi
-  echo -e "${GREEN}React${NC} — typecheck + tests passed"
+  echo -e "${GREEN}React${NC} — typecheck + tests + coverage passed"
 }
 
 # ── main ─────────────────────────────────────────────────────────────────────

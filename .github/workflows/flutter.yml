@@ -42,6 +42,14 @@ jobs:
       # CI for the same reason they're skipped locally — the flutter_tools
       # harness hangs on this project's widget suite. Revisit when the
       # widget-test unskip item in TODO.md lands.
-      - name: Run tests
+      - name: Run tests with coverage
         working-directory: Frameworks/flutter-local
-        run: flutter test test/engine test/models test/parser test/integration test/conformance --exclude-tags=slow
+        run: flutter test test/engine test/models test/parser test/integration test/conformance --exclude-tags=slow --coverage
+
+      # Per-directory line-coverage thresholds (lib/engine, lib/models,
+      # lib/parser). Mirrors React's vitest threshold gate. Tool definition
+      # lives in tool/coverage_check.dart. Bump thresholds in lockstep
+      # with new tests landing — they should only ratchet up.
+      - name: Enforce coverage thresholds
+        working-directory: Frameworks/flutter-local
+        run: dart run tool/coverage_check.dart
