@@ -77,15 +77,18 @@ For current test counts, batches, and known skips see
 
 ## Documentation map
 
-| If you want to...                          | Read                                                                    |
-| ------------------------------------------ | ----------------------------------------------------------------------- |
-| Understand how ODS is structured           | [ARCHITECTURE.md](ARCHITECTURE.md)                                      |
-| Write an ODS spec for your own app         | [Specification/README.MD](Specification/README.MD)                      |
-| Contribute a renderer or framework change  | [ARCHITECTURE.md](ARCHITECTURE.md) + per-framework `ARCHITECTURE.md`    |
-| Diagnose a strange error                   | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)                      |
-| See what's planned next                    | [TODO.md](TODO.md)                                                      |
-| Review design decisions                    | [docs/adr/](docs/adr/)                                                  |
-| See the test history + bugs found          | [REGRESSION_LOG.md](REGRESSION_LOG.md)                                  |
+| If you want to...                          | Read                                                                       |
+| ------------------------------------------ | -------------------------------------------------------------------------- |
+| Understand how ODS is structured           | [ARCHITECTURE.md](ARCHITECTURE.md)                                         |
+| Write an ODS spec for your own app         | [Specification/README.MD](Specification/README.MD)                         |
+| Contribute a renderer or framework change  | [CONTRIBUTING.md](CONTRIBUTING.md) + per-framework `ARCHITECTURE.md`       |
+| Look up an ODS term                        | [GLOSSARY.md](GLOSSARY.md)                                                 |
+| Add or run tests                           | [docs/testing.md](docs/testing.md)                                         |
+| Diagnose a strange error                   | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)                         |
+| See cross-family conventions               | [CONVENTIONS.md](CONVENTIONS.md)                                           |
+| See what's planned next                    | [TODO.md](TODO.md)                                                         |
+| Review design decisions                    | [docs/adr/](docs/adr/)                                                     |
+| See the test history + bugs found          | [REGRESSION_LOG.md](REGRESSION_LOG.md)                                     |
 
 ## Working on this monorepo
 

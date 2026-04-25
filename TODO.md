@@ -22,22 +22,8 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 
 ## Docs — priority 3 (pre-public polish)
 
-- [ ] **Root `CONTRIBUTING.md`** — LICENSE + SECURITY landed
-      2026-04-24; CONTRIBUTING still open. Should explain the
-      "one monorepo per ODS family" model, the `publish.sh` flow,
-      and how to propose spec vs framework changes.
 - [ ] **`CHANGELOG.md`** — low value until releases start; relevant
       once the conformance suite pins spec versions.
-
-## Docs — nice-to-haves
-
-- [ ] **`GLOSSARY.md`** — one page defining "spec," "framework,"
-      "builder," "data source," "ownership," "cascade rename," "slug"
-      in ODS vocabulary. Could also live at the top of ARCHITECTURE.md.
-- [ ] **Testing guide per framework** — React E2E has five folders
-      (smoke/critical/regression/accessibility/workflows) with no doc
-      explaining when to use which. Could fold into a future
-      `docs/testing.md`.
 
 ## Later — important, not urgent
 
@@ -119,6 +105,32 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 ---
 
 ## Done — recent (trim quarterly)
+
+### 2026-04-24 — Docs pass
+
+- [x] [CONTRIBUTING.md](CONTRIBUTING.md) at root — explains the
+      monorepo layout (where changes go by blast radius), local
+      setup, the `publish.sh` test gate, when to add a conformance
+      scenario, the test layers, and PR expectations. Refers to
+      ARCHITECTURE / CONVENTIONS / TROUBLESHOOTING rather than
+      duplicating.
+- [x] [GLOSSARY.md](GLOSSARY.md) at root — one-page reference for
+      ODS vocabulary (spec, framework, builder, data source,
+      ownership, cascade rename, formula, magic default, off-ramp,
+      slug, visibleWhen, conformance scenario, etc.). Each entry
+      points to where the concept lives in the spec or code.
+- [x] [docs/testing.md](docs/testing.md) — covers all five test
+      layers (unit, component, integration, conformance, E2E),
+      explains the React E2E folder convention
+      (smoke/critical/regression/workflows/accessibility) and what
+      goes where, includes the "where does my test go?" decision
+      tree.
+- [x] Cleaned up pre-monorepo leftovers: moved
+      `Specification/CODE_OF_CONDUCT.md` to root; removed the stale
+      `Specification/CONTRIBUTING.md`.
+- [x] Updated [README.md](README.md) docs map to surface
+      CONTRIBUTING / GLOSSARY / docs/testing.md / CONVENTIONS to
+      visitors.
 
 ### 2026-04-24 — Ownership column auto-schema fix (both frameworks)
 
