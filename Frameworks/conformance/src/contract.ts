@@ -36,6 +36,22 @@ export interface UserSnapshot {
   roles: ReadonlyArray<string>
 }
 
+/**
+ * Effective theme as a framework should expose it after parsing the
+ * spec. Used by the theme conformance scenario to verify both
+ * frameworks produce the same shape (per ADR-0002).
+ */
+export interface ThemeConfig {
+  base: string
+  mode: 'light' | 'dark' | 'system'
+  headerStyle: 'solid' | 'light' | 'transparent'
+  /** Token overrides; empty object when none are present. */
+  overrides: Record<string, string>
+  /** Top-level identity fields (lifted out of the old `branding`). */
+  logo: string | null
+  favicon: string | null
+}
+
 // ---------------------------------------------------------------------------
 // ComponentSnapshot — framework-neutral view of what's on a page
 // ---------------------------------------------------------------------------
@@ -240,6 +256,16 @@ export interface OdsDriver {
 
   /** Current authenticated user, or null for a guest session. */
   currentUser(): Promise<UserSnapshot | null>
+
+  // -- Theme -----------------------------------------------------------------
+
+  /**
+   * The effective theme + identity fields after parsing the spec. Used
+   * by the theme conformance scenario to verify both frameworks produce
+   * the same parse shape per ADR-0002. Drivers without the `theme`
+   * capability may throw.
+   */
+  themeConfig(): Promise<ThemeConfig>
 
   // -- Determinism -----------------------------------------------------------
 

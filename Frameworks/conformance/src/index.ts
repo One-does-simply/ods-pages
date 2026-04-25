@@ -17,6 +17,7 @@ export type {
   SummarySnapshot,
   TabsSnapshot,
   TextSnapshot,
+  ThemeConfig,
   UserSnapshot,
 } from './contract.ts'
 export { allScenarios } from './scenarios.ts'

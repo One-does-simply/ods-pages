@@ -76,6 +76,7 @@ OdsSpec tabsInitialStateSpec() => loadSpec('tabsInitialState');
 OdsSpec chartConfigSpec() => loadSpec('chartConfig');
 OdsSpec kanbanDragSpec() => loadSpec('kanbanDrag');
 OdsSpec cascadeRenameSpec() => loadSpec('cascadeRename');
+OdsSpec themeConfigSpec() => loadSpec('themeConfig');
 
 // ---------------------------------------------------------------------------
 // Scenarios (mirrors of the TS versions; keep ids + names aligned)
@@ -581,6 +582,38 @@ final s20CascadeRenamePropagatesToChildren = Scenario(
   },
 );
 
+final s21ThemeConfigRoundTrips = Scenario(
+  name: 'theme config round-trips through the framework parser (ADR-0002)',
+  spec: themeConfigSpec,
+  capabilities: const ['core', 'theme'],
+  run: (d) async {
+    final t = await d.themeConfig();
+    assertEqual(t.base, 'nord', 'theme.base from spec');
+    assertEqual(t.mode, 'dark', 'theme.mode from spec');
+    assertEqual(t.headerStyle, 'solid', 'theme.headerStyle from spec');
+    assertEqual(
+      t.overrides['primary'],
+      'oklch(50% 0.2 260)',
+      'theme.overrides.primary from spec',
+    );
+    assertEqual(
+      t.overrides['fontSans'],
+      'Inter',
+      'theme.overrides.fontSans from spec',
+    );
+    assertEqual(
+      t.logo,
+      'https://example.com/logo.png',
+      'top-level logo lifted out of branding',
+    );
+    assertEqual(
+      t.favicon,
+      'https://example.com/favicon.ico',
+      'top-level favicon lifted out of branding',
+    );
+  },
+);
+
 /// Full list of scenarios the runner executes.
 final List<Scenario> allScenarios = [
   s01SpecLoads,
@@ -603,4 +636,5 @@ final List<Scenario> allScenarios = [
   s18ChartSnapshotPreservesConfig,
   s19KanbanDragUpdatesStatus,
   s20CascadeRenamePropagatesToChildren,
+  s21ThemeConfigRoundTrips,
 ];

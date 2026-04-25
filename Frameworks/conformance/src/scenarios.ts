@@ -73,6 +73,7 @@ const tabsInitialStateSpec = (): OdsSpec => loadSpec('tabsInitialState')
 const chartConfigSpec = (): OdsSpec => loadSpec('chartConfig')
 const kanbanDragSpec = (): OdsSpec => loadSpec('kanbanDrag')
 const cascadeRenameSpec = (): OdsSpec => loadSpec('cascadeRename')
+const themeConfigSpec = (): OdsSpec => loadSpec('themeConfig')
 
 // ---------------------------------------------------------------------------
 // Scenarios
@@ -617,6 +618,38 @@ export const s20_cascade_rename_propagates_to_children: Scenario = {
   },
 }
 
+export const s21_theme_config_round_trips: Scenario = {
+  name: 'theme config round-trips through the framework parser (ADR-0002)',
+  spec: themeConfigSpec,
+  capabilities: ['core', 'theme'],
+  run: async (d) => {
+    const t = await d.themeConfig()
+    assertEqual(t.base, 'nord', 'theme.base from spec')
+    assertEqual(t.mode, 'dark', 'theme.mode from spec')
+    assertEqual(t.headerStyle, 'solid', 'theme.headerStyle from spec')
+    assertEqual(
+      t.overrides['primary'],
+      'oklch(50% 0.2 260)',
+      'theme.overrides.primary from spec',
+    )
+    assertEqual(
+      t.overrides['fontSans'],
+      'Inter',
+      'theme.overrides.fontSans from spec',
+    )
+    assertEqual(
+      t.logo,
+      'https://example.com/logo.png',
+      'top-level logo lifted out of branding',
+    )
+    assertEqual(
+      t.favicon,
+      'https://example.com/favicon.ico',
+      'top-level favicon lifted out of branding',
+    )
+  },
+}
+
 /** Full list of scenarios the runner should execute. */
 export const allScenarios: ReadonlyArray<Scenario> = [
   s01_spec_loads,
@@ -639,4 +672,5 @@ export const allScenarios: ReadonlyArray<Scenario> = [
   s18_chart_snapshot_preserves_config,
   s19_kanban_drag_updates_status,
   s20_cascade_rename_propagates_to_children,
+  s21_theme_config_round_trips,
 ]

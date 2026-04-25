@@ -55,6 +55,32 @@ class UserSnapshot {
   final List<String> roles;
 }
 
+/// Effective theme as a framework should expose it after parsing the
+/// spec. Used by the theme conformance scenario to verify both
+/// frameworks produce the same shape (per ADR-0002).
+class ThemeConfig {
+  const ThemeConfig({
+    required this.base,
+    required this.mode,
+    required this.headerStyle,
+    required this.overrides,
+    required this.logo,
+    required this.favicon,
+  });
+  final String base;
+
+  /// 'light' | 'dark' | 'system'.
+  final String mode;
+
+  /// 'solid' | 'light' | 'transparent'.
+  final String headerStyle;
+
+  /// Token overrides; empty map when none are present.
+  final Map<String, String> overrides;
+  final String? logo;
+  final String? favicon;
+}
+
 // ---------------------------------------------------------------------------
 // ComponentSnapshot — framework-neutral view of what's on a page
 // ---------------------------------------------------------------------------
@@ -285,6 +311,14 @@ abstract class OdsDriver {
 
   /// Current authenticated user, or null for a guest session.
   Future<UserSnapshot?> currentUser();
+
+  // -- Theme -----------------------------------------------------------------
+
+  /// The effective theme + identity fields after parsing the spec. Used
+  /// by the theme conformance scenario to verify both frameworks produce
+  /// the same parse shape per ADR-0002. Drivers without the `theme`
+  /// capability may throw.
+  Future<ThemeConfig> themeConfig();
 
   // -- Determinism -----------------------------------------------------------
 

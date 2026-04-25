@@ -40,6 +40,7 @@ class FlutterDriver implements OdsDriver {
     'chart',
     'kanban',
     'cascadeRename',
+    'theme',
     'auth:multiUser',
     'auth:selfRegistration',
     'auth:ownership',
@@ -498,6 +499,23 @@ class FlutterDriver implements OdsDriver {
   @override
   Future<void> setSeed(int seed) async {
     // No RNG surface exposed in the MVP scenarios.
+  }
+
+  // -- Theme -----------------------------------------------------------------
+
+  @override
+  Future<ThemeConfig> themeConfig() async {
+    final engine = _requireEngine();
+    final app = engine.app;
+    if (app == null) throw StateError('themeConfig: no app loaded');
+    return ThemeConfig(
+      base: app.theme.base,
+      mode: app.theme.mode,
+      headerStyle: app.theme.headerStyle,
+      overrides: Map<String, String>.from(app.theme.overrides),
+      logo: app.logo,
+      favicon: app.favicon,
+    );
   }
 
   // -- Internals -------------------------------------------------------------

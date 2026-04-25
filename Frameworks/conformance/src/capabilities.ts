@@ -22,6 +22,7 @@ export type Capability =
   | 'formulas'
   | 'rowActions'
   | 'cascadeRename'
+  | 'theme'
 
   // Auth.
   | 'auth:multiUser'

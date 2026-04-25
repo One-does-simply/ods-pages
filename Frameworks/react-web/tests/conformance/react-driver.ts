@@ -30,6 +30,7 @@ import type {
   OdsDriver,
   OdsSpec,
   Row,
+  ThemeConfig,
   UserSnapshot,
 } from '../../../conformance/src/index.ts'
 
@@ -85,6 +86,7 @@ export class ReactDriver implements OdsDriver {
     'formulas',
     'rowActions',
     'cascadeRename',
+    'theme',
     'auth:multiUser',
     'auth:selfRegistration',
     'auth:ownership',
@@ -497,6 +499,20 @@ export class ReactDriver implements OdsDriver {
 
   async setSeed(_seed: number): Promise<void> {
     // FakeDataService uses a counter; deterministic by construction.
+  }
+
+  // -- Theme -----------------------------------------------------------------
+
+  async themeConfig(): Promise<ThemeConfig> {
+    const app = this.requireApp()
+    return {
+      base: app.theme.base,
+      mode: app.theme.mode,
+      headerStyle: app.theme.headerStyle,
+      overrides: app.theme.overrides ?? {},
+      logo: app.logo ?? null,
+      favicon: app.favicon ?? null,
+    }
   }
 
   // -- Internals -------------------------------------------------------------

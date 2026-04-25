@@ -1,0 +1,25 @@
+{
+  "appName": "Theme Config Probe",
+  "startPage": "home",
+  "logo": "https://example.com/logo.png",
+  "favicon": "https://example.com/favicon.ico",
+  "theme": {
+    "base": "nord",
+    "mode": "dark",
+    "headerStyle": "solid",
+    "overrides": {
+      "primary": "oklch(50% 0.2 260)",
+      "fontSans": "Inter"
+    }
+  },
+  "pages": {
+    "home": {
+      "component": "page",
+      "title": "Home",
+      "content": [
+        { "component": "text", "content": "Theme probe" }
+      ]
+    }
+  },
+  "dataSources": {}
+}
