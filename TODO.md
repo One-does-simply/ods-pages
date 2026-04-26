@@ -73,15 +73,23 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 
 ## Wishlist — ideas; not scheduled
 
-- [ ] **Mutation testing** — Stryker (React) / `test_mutation` (Dart).
-      Catches "tests exist but don't assert enough." High value eventually;
-      premature before the Now/Next items land.
+- [ ] **Mutation testing — Dart side** — Stryker for React landed
+      (2026-04-26: `Frameworks/react-web/stryker.config.json`, weekly
+      [.github/workflows/mutation.yml](.github/workflows/mutation.yml),
+      `npm run mutation`). Mirror with `mutation_test` package on the
+      Flutter side once the React baseline stabilises and we know
+      whether it's catching real gaps.
 - [ ] **Visual regression tests** for theme rendering. Playwright snapshots
       or Percy. CLAUDE.md flags theming as a historical pain point; worth
       it once the API churn settles.
-- [ ] **Property-based tests** — `fast-check` (JS) / `glados` (Dart) for
-      the spec parser and formula evaluator. Natural fit for generated
-      input spaces; complements Batch 4/6.
+- [ ] **Property-based tests — formula evaluator + further parser
+      coverage** — first slice landed 2026-04-26: spec-parser totality /
+      soundness / minimal-valid in
+      [tests/unit/parser/spec-parser-properties.test.ts](Frameworks/react-web/tests/unit/parser/spec-parser-properties.test.ts)
+      (fast-check) and the Dart mirror in
+      [test/parser/spec_parser_properties_test.dart](Frameworks/flutter-local/test/parser/spec_parser_properties_test.dart)
+      (seeded RNG). Next: round-trip properties for the formula
+      evaluator and aggregate evaluator.
 - [ ] **Accessibility tests** — `@axe-core/playwright` is already a
       devDep, [tests/e2e/accessibility/](Frameworks/react-web/tests/e2e/accessibility/)
       is empty. A pass on key flows (login, dashboard, app home) would

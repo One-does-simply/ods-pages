@@ -108,6 +108,26 @@ When you add an E2E test, ask:
 - Does it walk through a multi-screen user journey? → `workflows/`
 - Is it an axe scan? → `accessibility/`
 
+### 6. Mutation testing (React, weekly)
+
+Stryker rewrites code with small mutations (e.g., `>` → `<`, `true` →
+`false`, `+` → `-`) and re-runs the test suite. A "surviving mutant"
+means the code was broken but the tests still passed — i.e., the tests
+aren't sensitive enough.
+
+- **Config**: `Frameworks/react-web/stryker.config.json`
+- **Run**: `cd Frameworks/react-web && npm run mutation`
+- **Schedule**: weekly via `.github/workflows/mutation.yml` plus
+  on-demand `workflow_dispatch`. NOT in `publish.sh` or the per-PR
+  gate — a mutation run takes minutes per file.
+- **Scope**: parser + models + a few hand-tested engine helpers. Expand
+  as new modules earn full unit coverage.
+
+Mutation thresholds in the config (`high: 80`, `low: 60`) are
+informational for now — `break: 0` means the run never fails the
+build. Switch to a real break threshold after 2-3 weekly runs settle
+and we know the realistic baseline.
+
 ## Where does my test go?
 
 Decision tree for new tests:

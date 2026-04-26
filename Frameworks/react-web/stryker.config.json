@@ -1,0 +1,30 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "_comment": "Mutation testing for the React parser + engine. Stryker rewrites code with small mutations (e.g. flip > to <), then reruns the test suite. A surviving mutant means the tests pass when the code is broken — the tests aren't sensitive enough. NOT in the publish.sh / CI gate because it's slow (each mutant reruns vitest); meant for periodic local runs (npm run mutation) and a future scheduled CI job.",
+  "packageManager": "npm",
+  "reporters": ["html", "clear-text", "progress"],
+  "testRunner": "vitest",
+  "vitest": {
+    "configFile": "vitest.config.ts"
+  },
+  "mutate": [
+    "src/parser/**/*.ts",
+    "src/models/**/*.ts",
+    "src/engine/spec-parser.ts",
+    "src/engine/theme-spec-writer.ts",
+    "src/engine/formula-evaluator.ts",
+    "src/engine/aggregate-evaluator.ts",
+    "!src/**/*.test.ts",
+    "!src/**/*.spec.ts"
+  ],
+  "concurrency": 4,
+  "thresholds": {
+    "high": 80,
+    "low": 60,
+    "break": 0
+  },
+  "incremental": true,
+  "incrementalFile": ".stryker-tmp/incremental.json",
+  "tempDirName": ".stryker-tmp",
+  "cleanTempDir": false
+}

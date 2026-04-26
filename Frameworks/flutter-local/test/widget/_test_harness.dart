@@ -72,6 +72,33 @@ Future<void> disposeAllFor(WidgetTester tester, _BootedEngine booted) async {
   await tester.runAsync(() => booted.disposeAll());
 }
 
+/// Pumps until [finder] matches at least one widget, or [timeout]
+/// elapses. Use this when a test asserts on rendered content that
+/// depends on a SQLite-bound FutureBuilder — fixed-round
+/// [pumpAndSettle] flakes when the underlying query is occasionally
+/// slower than the rounds allow (this happens to
+/// Kanban / list components when the runner has hundreds of prior
+/// SQLite operations behind it). Throws on timeout so failures are
+/// loud, not silent (the assertion that follows would have failed
+/// anyway, but with a much less informative message).
+Future<void> pumpUntilFound(
+  WidgetTester tester,
+  Finder finder, {
+  Duration timeout = const Duration(seconds: 5),
+  Duration pollInterval = const Duration(milliseconds: 50),
+}) async {
+  final deadline = DateTime.now().add(timeout);
+  while (DateTime.now().isBefore(deadline)) {
+    await tester.runAsync(() => Future<void>.delayed(pollInterval));
+    await tester.pump();
+    if (finder.evaluate().isNotEmpty) return;
+  }
+  throw StateError(
+    'pumpUntilFound: ${finder.description} not found within '
+    '${timeout.inMilliseconds}ms',
+  );
+}
+
 /// Pumps [widget] into [tester]. Cannot use [WidgetTester.pumpAndSettle]:
 /// it waits for FakeAsync to drain, but sqflite_ffi keeps native-bridge
 /// timers alive that FakeAsync never fires, so pumpAndSettle would always
@@ -79,15 +106,18 @@ Future<void> disposeAllFor(WidgetTester tester, _BootedEngine booted) async {
 ///
 /// Instead we alternate `tester.runAsync(delay)` (which lets the real
 /// event loop run so SQLite-bound FutureBuilders resolve) with `pump()`
-/// (which flushes the rebuild). For widgets with chained futures we may
-/// need several rounds before the tree stabilises; [maxRounds] caps the
-/// loop. Empirically 4 rounds × 50ms covers every component in this
-/// codebase including FormComponent's recordSource cursor.
+/// (which flushes the rebuild). Worst-case real time:
+/// `maxRounds × roundDuration` ≈ 1.6s per pumpAndSettle call. The
+/// defaults are deliberately generous because sqflite_ffi cold-starts
+/// noticeably slower on Windows when the runner already has 800+ tests'
+/// worth of SQLite traffic behind it; tighter timings produced
+/// intermittent flakes in Kanban / list FutureBuilders during full-gate
+/// runs. If a specific test needs less, pass smaller values explicitly.
 Future<void> pumpAndSettle(
   WidgetTester tester,
   Widget widget, {
-  Duration roundDuration = const Duration(milliseconds: 50),
-  int maxRounds = 4,
+  Duration roundDuration = const Duration(milliseconds: 100),
+  int maxRounds = 16,
 }) async {
   await tester.pumpWidget(widget);
   for (var i = 0; i < maxRounds; i++) {

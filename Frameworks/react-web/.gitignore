@@ -27,3 +27,7 @@ dist-ssr
 tests/e2e/.pb-e2e/
 playwright-report/
 test-results/
+
+# Stryker mutation-testing temp + reports
+.stryker-tmp/
+reports/mutation/

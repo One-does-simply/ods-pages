@@ -1,0 +1,52 @@
+name: Mutation testing (weekly)
+
+# Mutation testing flips small bits of code (e.g., > becomes <, true becomes
+# false) and re-runs the test suite. A "surviving mutant" means the tests
+# still pass when the code is broken — they aren't sensitive enough.
+#
+# Not in the main publish.sh / CI gate because each mutant reruns vitest
+# (slow). Runs weekly here, plus on demand via workflow_dispatch. The HTML
+# report is uploaded as an artifact so changes are reviewable.
+#
+# Initial scope: src/parser, src/models, the engine helpers we hand-test
+# (theme-spec-writer, formula/aggregate evaluator, spec-parser). Expand
+# in lockstep with broader test coverage.
+
+on:
+  schedule:
+    # Mondays at 06:00 UTC.
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+jobs:
+  stryker:
+    name: React mutation testing (Stryker)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: Frameworks/react-web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: Frameworks/react-web
+        run: npm ci
+
+      - name: Run Stryker
+        working-directory: Frameworks/react-web
+        # Don't fail the workflow on threshold violations yet — score
+        # baseline still TBD. Switch to `npm run mutation` (default
+        # threshold break = 0) once the first 2-3 weekly runs settle.
+        run: npm run mutation || true
+
+      - name: Upload mutation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-report
+          path: Frameworks/react-web/reports/mutation/
+          retention-days: 30
