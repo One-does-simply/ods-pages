@@ -91,11 +91,17 @@ npm run dev          # http://localhost:5173
 
 ## Test Coverage
 
-- **43 test files**, **818 test cases**
-- Unit tests: engine (15), models (14), parser (2), regression (1)
-- Component tests: all 9 renderer components + PageRenderer
-- E2E tests: 3 Playwright specs (Chromium + Firefox)
-- Coverage provider: V8
+- **~1180+ test cases** across unit, component, and conformance
+  suites, plus 51 Playwright E2E. Property-based parser tests via
+  `fast-check` landed 2026-04-26 (5 properties × ~400 random inputs).
+- Per-folder coverage thresholds enforced in `vitest.config.ts` —
+  `src/models` 90%, `src/parser` 90%, `src/engine` 50% — and run
+  in CI via `npm run test:coverage`. Mutation testing via Stryker
+  runs weekly — see `stryker.config.json` and the
+  [mutation workflow](../../.github/workflows/mutation.yml).
+- For the canonical, regularly-updated count and full layered breakdown
+  see [REGRESSION_LOG.md](../../REGRESSION_LOG.md) and
+  [docs/testing.md](../../docs/testing.md).
 
 ## Environment Variables
 

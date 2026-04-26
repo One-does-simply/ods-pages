@@ -95,8 +95,9 @@ The workflow:
 5. **Refactor with the contract as a safety net.** The scenario stays;
    internals are free to move.
 
-Concrete recent example: ADR-0002 added theme + customizations. The
-`themeConfig()` driver method, `ThemeConfig` type, and
+Concrete recent example: ADR-0002 added theme + customizations
+(shipped 2026-04-25/26 across both frameworks; phases 1-5 complete).
+The `themeConfig()` driver method, `ThemeConfig` type, and
 `s21_theme_config_round_trips` scenario landed alongside the parser
 changes — both frameworks were verified against the same assertions
 before the migration was considered done.

@@ -6,11 +6,16 @@ Running diagnostics as we build out TDD coverage across both frameworks.
 
 | Framework | Test Files | Test Cases | Last Updated |
 |-----------|-----------|------------|--------------|
-| React Web (unit + component) | 49 | 1103 | Batches 1-6 |
+| React Web (unit + component + conformance) | 55 | 1180+ | Batches 1-6 + 2026-04-26 push |
 | React Web (Playwright E2E) | 13 | 51 (49 pass + 2 skip) | Batch 8 + gap closure (2026-04-19) |
-| Flutter Local | 44 | 885 | Batches 1-6 |
+| Flutter Local (incl. widget, excl. @slow) | 50+ | 865 | Batches 1-6 + 2026-04-26 push |
 
-**Total: 2038 tests across both frameworks.**
+**Total: ~2096 tests across both frameworks.** Widget tests
+(42) joined the gate 2026-04-26 — the multi-month "harness hang on
+Windows" was diagnosed as a FakeAsync vs sqflite_ffi interaction;
+fix lives in
+[`Frameworks/flutter-local/test/widget/_test_harness.dart`](Frameworks/flutter-local/test/widget/_test_harness.dart)
+(`bootEngineFor` + `disposeAllFor` + a `runAsync`-based pump loop).
 
 ## Bugs Found by Regression Tests
 
@@ -78,40 +83,68 @@ Running diagnostics as we build out TDD coverage across both frameworks.
 
 The regression suite has found and fixed 14 issues across 6 batches. Potential future work:
 
-### Batch 7 — Flutter widget tests (implemented, skipped on Windows)
-10 widget tests cover button, chart, detail, form, kanban, list, page renderer, summary, tabs, text. Files live in `Frameworks/flutter-local/test/widget/`.
+### Batch 7 — Flutter widget tests (in gate as of 2026-04-26)
 
-**Status:** Tests pass on Linux/macOS. On Windows they hang indefinitely due to a Flutter-on-Windows `flutter_tools` temp-dir race (AV/file-system interference). Each `group(...)` is wrapped with `skip: Platform.isWindows ? ...` so Windows runs skip them cleanly. Tracked in each widget test file's header comment. (Originally suspected to be OneDrive-specific, but moving the project off OneDrive to `c:\Apps\One-does-simply` did not fix it — full suite on 2026-04-19 showed widget tests timing out after 10 min each.)
+42 widget tests covering button, chart, detail, form, kanban, list,
+page renderer, summary, tabs, text. Files live in
+`Frameworks/flutter-local/test/widget/`.
 
-### Batch 10 — Conformance parity scaffold (implemented 2026-04-19)
+**Status:** All 42 in the local + CI gate. Earlier diagnosis blamed
+"flutter_tools temp-dir race"; the actual root cause was
+`flutter_test`'s FakeAsync zone intercepting (but never firing) the
+native-bridge timers `sqflite_ffi` schedules — so `pumpAndSettle`
+waited forever for "settle." Fix: setup runs inside `tester.runAsync`
+to escape the FakeAsync zone (`bootEngineFor` / `disposeAllFor`),
+and the harness's `pumpAndSettle` does fixed real-time pump rounds
+(16 × 100ms) instead of FakeAsync settling. Plus a `pumpUntilFound`
+helper for cases where fixed timing isn't enough. Diagnosis +
+harness rewrite + 7 stale-test fixes (`SingleChildScrollView`
+wrapping a `ListView`, headers asserted on empty data sources,
+form not in pages map) all landed 2026-04-26.
 
-First parity tests via the ODS conformance driver contract (ADR-0001).
-Shared scenarios live in [`Frameworks/conformance/src/scenarios.ts`](Frameworks/conformance/src/scenarios.ts)
-and run against the ReactDriver at
-[`Frameworks/react-web/tests/conformance/react-driver.ts`](Frameworks/react-web/tests/conformance/react-driver.ts).
-**Status:** 5/5 scenarios passing on ReactDriver; FlutterDriver pending.
+### Batch 10 — Conformance parity (continuous since 2026-04-19)
 
-Scenarios:
+Cross-framework parity contract via the ODS conformance driver
+contract (ADR-0001). Shared specs live in
+[`Frameworks/conformance/specs/`](Frameworks/conformance/specs/);
+the TS scenario list at
+[`Frameworks/conformance/src/scenarios.ts`](Frameworks/conformance/src/scenarios.ts)
+mirrors the Dart side at
+[`Frameworks/flutter-local/test/conformance/scenarios.dart`](Frameworks/flutter-local/test/conformance/scenarios.dart).
 
-1. `s01_spec_loads` — spec loads and start page renders
-2. `s02_form_submit_inserts_row` — form submit inserts a row into the data source
-3. `s03_show_message_after_submit` — showMessage surfaces a message (level assertion deferred; see below)
-4. `s04_list_reflects_submitted_rows` — list row count tracks submitted rows
-5. `s05_navigate_action_switches_page` — navigate action moves to target page
+**Status (2026-04-26):** 26 scenarios × 2 drivers = 52 parity
+tests. Both drivers green on every commit (gated by `publish.sh` +
+the `flutter`/`react` GH workflows).
 
-**Capabilities exercised:** `core`, `action:submit`, `action:showMessage`, `action:navigate`.
+**Capabilities exercised:** `core`, `action:submit`, `action:update`,
+`action:delete`, `action:navigate`, `action:showMessage`,
+`action:recordNav`, `auth:multiUser`, `auth:selfRegistration`,
+`auth:ownership`, `formulas`, `summary`, `tabs`, `chart`, `kanban`,
+`detail`, `cascadeRename`, `theme`, `rowActions`.
 
-**Gaps surfaced:**
+**Bugs / parity gaps surfaced and fixed by this contract:**
 
-- `OdsAction` parser drops `level` on `showMessage` actions — tracked in [TODO.md](TODO.md). The conformance suite correctly
-  encodes what the spec *should* carry (a `level` on showMessage);
-  the React framework's parser doesn't preserve it today. Scenario
-  s03 tightens once the parser is fixed. First real example of the
-  conformance suite working as intended — catches a cross-layer gap
-  that unit tests wouldn't have flagged.
+- `OdsAction` parser dropped `level` on `showMessage` (s03) — fixed.
+- React/Flutter cascade rename used different shapes (s20) — fixed,
+  Flutter parser now preserves the canonical flat shape and runtime
+  reads `parentField` directly.
+- Flutter ownership column auto-schema missing (s16) — fixed, both
+  frameworks now auto-append `ds.ownership.ownerField` to fields.
+- React driver detail snapshot returned empty `fields: []` (s22) —
+  fixed, both drivers now project the latest row into the snapshot.
+- Both drivers explicitly punted on `CURRENT_USER.*` magic defaults
+  (s25) — fixed, drivers now resolve via auth state.
 
-**What's next (Batch 11+):** FlutterDriver + porting more
-Batch 1–6 scenarios into the shared conformance format.
+**Open parity gaps:** `recordSource` default-order parity (s23) —
+PocketBase defaults to `created` desc; SQLite returns insertion
+order. s23 sidesteps this with order-agnostic assertions. Real fix
+(optional `sort` directive on `firstRecord`) tracked in
+[TODO.md](TODO.md).
+
+**Workflow:** the conformance suite is now treated as the contract,
+not coverage applied after the fact. Cross-framework changes go in
+red on both drivers, then green on both — see
+[CONTRIBUTING.md → Conformance scenarios — contract-first](CONTRIBUTING.md#conformance-scenarios--contract-first).
 
 ### Batch 8 — E2E browser tests (implemented 2026-04-19)
 Expanded Playwright coverage from the 3-smoke starter to **22 regression tests** (21 passing, 1 skipped) across 5 new spec files, plus the 5 critical + 3 smoke specs already in place. Full run is **47 passed, 3 skipped in ~1.6 min** on a single worker (serial, one shared PB instance).

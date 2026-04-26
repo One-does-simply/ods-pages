@@ -139,8 +139,13 @@ Decision tree for new tests:
 2. **Is it framework-specific behavior with a UI?**
    - **React**: component test (`tests/component/`) if isolated;
      E2E (`tests/e2e/`) if it requires the full app + PocketBase.
-   - **Flutter**: integration test (`test/integration/`) — widget
-     tests are blocked until the harness hang is fixed.
+   - **Flutter**: widget test (`test/widget/` — 42 tests, in the
+     gate as of 2026-04-26) for component-level rendering;
+     integration test (`test/integration/`) for multi-module flows.
+     Widget tests must use `bootEngineFor(tester, …)` from the
+     harness so SQLite work runs inside `tester.runAsync` —
+     otherwise sqflite_ffi's native-bridge timers stall the
+     FakeAsync zone forever.
 
 3. **Is it framework-specific behavior with no UI** (engine, model,
    parser)?

@@ -270,6 +270,12 @@ interface ListSnapshot extends BaseSnapshot {
   rowCount: number            // rows currently displayed (after filters)
   sortField: string | null
   sortDir: 'asc' | 'desc' | null
+  // Row `_id`s in displayed order after the driver applies defaultSort
+  // (and any future runtime sort/filter state). Distinct from
+  // `dataRows`, which returns the unsorted authoritative view.
+  // Empty array when the list has no rows. Added 2026-04-26 alongside
+  // s26 (`list defaultSort drives displayed row order`).
+  displayedRowIds: string[]
 }
 
 interface KanbanSnapshot extends BaseSnapshot {

@@ -94,10 +94,16 @@ flutter run -d windows  # Run on Windows specifically
 
 ## Test Coverage
 
-- **35 test files**, **648 test cases**
-- Unit tests: engine (12), models (15), parser (5), regression (2)
-- Widget tests: 1 (app boot)
-- All models at 100% coverage
+- **~865 test cases** across engine, models, parser, integration,
+  widget, and conformance suites. Widget tests (42) joined the gate
+  on 2026-04-26 after a FakeAsync vs sqflite_ffi diagnosis — see
+  [`test/widget/_test_harness.dart`](test/widget/_test_harness.dart).
+- Per-directory line-coverage thresholds enforced in CI via
+  [`tool/coverage_check.dart`](tool/coverage_check.dart) — `lib/engine`
+  60%, `lib/models` 85%, `lib/parser` 80%.
+- For the canonical, regularly-updated count and full layered breakdown
+  see [REGRESSION_LOG.md](../../REGRESSION_LOG.md) and
+  [docs/testing.md](../../docs/testing.md).
 
 ## Data Storage
 

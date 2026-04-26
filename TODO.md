@@ -8,27 +8,19 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 
 ## Now — actively being worked on
 
-- [ ] **Path B — active coverage complete** — Both drivers at parity:
-      **20 scenarios passing on React and Flutter** (s01-s20), specs
-      shared via [Frameworks/conformance/specs/](Frameworks/conformance/specs/).
-      All capabilities either covered or deferred: `detail` (Later
-      — needs new driver primitive), `clickTab` / deeper chart
-      (Later — deepen existing). Day-to-day maintenance: when a new
-      cross-framework bug comes up, add a scenario that pins it.
+- _No focused initiative._ Day-to-day maintenance mode: when a new
+  cross-framework bug comes up, add a contract-first conformance
+  scenario that pins it (CONTRIBUTING.md → "Conformance scenarios —
+  contract-first"). Conformance count: **26 scenarios × 2 drivers =
+  52 parity tests**. Test gate (Flutter 865 + React 1180+ +
+  conformance + coverage thresholds + Stryker weekly) is solid.
 
 ## Next — next 1–2 sessions
 
-- [ ] **Theme + Customizations redesign** — collapse the `theme` /
-      `branding` split into one builder-facing concept, move app
-      identity (logo/favicon) to top-level `OdsApp`, fonts onto
-      theme, font picker becomes a curated dropdown, and admin
-      runtime customizations save back to the spec (regular users
-      stay on localStorage). Spec'd in
-      [docs/adr/0002-theme-customizations-redesign.md](docs/adr/0002-theme-customizations-redesign.md)
-      (**accepted**). Estimated ~3-4 sessions across both
-      frameworks. Lands as a single breaking spec change — no
-      parser shim; the 4 examples + 13 templates + ods-schema.json
-      get hand-rewritten to the new shape.
+- _No queued initiative._ Pick from Later / Wishlist when a session
+  starts. Strong candidates: `recordSource` default-order parity fix
+  (concrete bug surfaced by s23), or deepening s17/s18 (real behavior
+  vs initial-state assertions).
 
 ## Docs — priority 3 (pre-public polish)
 
@@ -108,6 +100,99 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 ---
 
 ## Done — recent (trim quarterly)
+
+### 2026-04-26 — TDD discipline push (sessions 12+ commits)
+
+- [x] **Conformance-first workflow doc** in
+      [CONTRIBUTING.md](CONTRIBUTING.md#conformance-scenarios--contract-first)
+      and [docs/testing.md](docs/testing.md) — scenario goes in red
+      on both drivers before implementation. ADR-0002 used as the
+      worked example.
+- [x] **6 new conformance scenarios** (s21–s26): theme config
+      round-trip, detail fields, record navigation
+      (firstRecord/nextRecord/onEnd), clickMenuItem, CURRENT_USER
+      magic defaults, list defaultSort drives displayed row order.
+      3 of them surfaced real driver/parity gaps — driver methods
+      added, gaps closed in the same flow.
+      [scenarios.ts](Frameworks/conformance/src/scenarios.ts).
+- [x] **CI ↔ local parity tightened**: workflows trigger on
+      `Frameworks/conformance/**` (was a hidden path-filter gap);
+      `publish.sh` adds `npx tsc -b` + `flutter analyze` so the
+      static checks CI runs also fail locally. Conformance count
+      bumped to 26 scenarios × 2 drivers = 52 parity tests.
+- [x] **Coverage thresholds enforced** locally + in CI: vitest
+      per-folder (`models` 90%, `parser` 90%, `engine` 50%) plus a
+      Dart `tool/coverage_check.dart` that parses `lcov.info` and
+      enforces `lib/engine` 60% / `lib/models` 85% / `lib/parser`
+      80%. Both fail-non-zero on regression.
+- [x] **Pure helper extraction**: `buildUpdatedSpecJson` on both
+      frameworks
+      ([theme-spec-writer.ts](Frameworks/react-web/src/engine/theme-spec-writer.ts)
+      / [theme_spec_writer.dart](Frameworks/flutter-local/lib/engine/theme_spec_writer.dart))
+      replaces inline JSON munging in the admin save-to-spec path.
+      28 unit tests added (14 per framework).
+- [x] **Property-based parser tests** on both frameworks: fast-check
+      for React (5 properties), seeded RNG for Flutter (5 properties)
+      — totality / soundness / minimal-valid invariants pinned over
+      ~600 random inputs.
+- [x] **Flutter widget tests un-skipped + 42 in the gate**.
+      Diagnosed the multi-month "harness hang on Windows" as a
+      FakeAsync-vs-sqflite_ffi interaction: the native-bridge timers
+      sqflite_ffi schedules are intercepted by FakeAsync but never
+      fired, so `pumpAndSettle` waits forever. Fix: `bootEngineFor` /
+      `disposeAllFor` wrap setup in `tester.runAsync` to escape the
+      FakeAsync zone; `pumpAndSettle` does fixed real-time pump
+      rounds (16 × 100ms) instead. Plus a `pumpUntilFound` helper
+      for cases where fixed timing isn't enough.
+      [_test_harness.dart](Frameworks/flutter-local/test/widget/_test_harness.dart).
+- [x] **Stale widget tests fixed**: 7 tests had real bugs that
+      compounded in the run-skip gap — `SingleChildScrollView`
+      around a `ListView` (nested viewports), assertions for column
+      headers / search inputs that the renderer hides under the
+      "No data yet" empty state, a form referencing a `formId` not
+      in the spec's pages.
+- [x] **Pre-commit + CI gate** now runs Flutter widget tests too;
+      total Flutter ~810 → 865.
+- [x] **Eliminate widget-test flake**: bumped pump rounds to
+      16 × 100ms (1.6s worst case) after a 5-run validation showed
+      ~20% flake at the 8 × 75ms tuning. 5 / 5 consecutive full-gate
+      runs now green.
+- [x] **Mutation testing scaffolded (React side)**: Stryker config,
+      `npm run mutation`, `.gitignore` updates, weekly
+      [.github/workflows/mutation.yml](.github/workflows/mutation.yml)
+      + `workflow_dispatch`. Threshold gate is `break: 0` for now —
+      switch to a real break threshold after 2-3 weekly runs settle.
+- [x] **Process docs**: regression-scenario rule in CONTRIBUTING
+      (every bug fix lands with a failing-then-passing test) +
+      [.github/pull_request_template.md](.github/pull_request_template.md)
+      with a Test plan checklist.
+
+### 2026-04-25 — ADR-0002 (Theme + Customizations redesign) shipped
+
+- [x] **Phase 1**: dropped `OdsBranding` entirely; replaced with
+      `OdsTheme { base, mode, headerStyle, overrides }`. Logo /
+      favicon / appIcon lifted to top-level `OdsApp`. Fonts moved
+      onto the theme. Both parsers + 17 in-repo specs +
+      `ods-schema.json` rewritten to the new shape — no parser shim.
+- [x] **Phase 2**: replaced the freeform font textbox with
+      [FontPicker.tsx](Frameworks/react-web/src/components/FontPicker.tsx)
+      — curated dropdown of system fonts + Google Fonts (lazy-loaded
+      via injected `<link>` tags). UI label moved to "App identity
+      & typography".
+- [x] **Phase 3**: admins save theme back to the spec via PocketBase
+      (React) — `currentAppId` + `rawSpecJson` plumbed through the
+      app store; non-admins continue to write per-app `localStorage`.
+- [x] **Phase 4**: `themeConfig()` driver method + `ThemeConfig`
+      type added to both contracts; conformance scenario s21 verifies
+      both parsers produce the same `{base, mode, headerStyle,
+      overrides, logo, favicon}` shape from the same spec.
+- [x] **Phase 5**: Flutter mirror of admin save-to-spec —
+      `AppEngine.loadedAppId` + `rawSpecJson` + `hotReplaceSpec`,
+      `LoadedAppsStore.findById`, dual-write in
+      [settings_screen.dart](Frameworks/flutter-local/lib/screens/settings_screen.dart#L657)
+      to update the spec via `LoadedAppsStore.updateApp` and
+      hot-replace the in-memory model so the UI reflects the change
+      immediately.
 
 ### 2026-04-24 — Docs pass
 
