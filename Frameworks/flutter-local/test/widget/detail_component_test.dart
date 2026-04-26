@@ -1,4 +1,3 @@
-import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
@@ -27,25 +26,19 @@ const String _kSpec = '''
 }
 ''';
 
-/// Skip on Windows: Flutter's test runner hits a `flutter_tools` temp-dir
-/// race (AV/file-system interference) that hangs the first widget test
-/// indefinitely. Tests pass cleanly on Linux/macOS. Revisit if Flutter
-/// ever ships a fix.
-final String? _skipReason = Platform.isWindows
-    ? 'Flutter-on-Windows widget-test harness hang (see REGRESSION_LOG.md)'
-    : null;
-
 void main() {
   group('OdsDetailWidget', () {
     testWidgets('Renders fields from data source row', (tester) async {
-      final booted = await bootEngine(_kSpec);
+      final booted = await bootEngineFor(tester, _kSpec);
       try {
         final ds = booted.engine.dataStore;
-        await ds.ensureTable('tasks', [
-          const OdsFieldDefinition(name: 'title', type: 'text'),
-          const OdsFieldDefinition(name: 'dueDate', type: 'date'),
-        ]);
-        await ds.insert('tasks', {'title': 'Buy Milk', 'dueDate': '2026-05-01'});
+        await tester.runAsync(() async {
+          await ds.ensureTable('tasks', [
+            const OdsFieldDefinition(name: 'title', type: 'text'),
+            const OdsFieldDefinition(name: 'dueDate', type: 'date'),
+          ]);
+          await ds.insert('tasks', {'title': 'Buy Milk', 'dueDate': '2026-05-01'});
+        });
 
         const model = OdsDetailComponent(
           dataSource: 'tasks',
@@ -59,18 +52,20 @@ void main() {
         expect(find.text('Buy Milk'), findsOneWidget);
         expect(find.text('2026-05-01'), findsOneWidget);
       } finally {
-        await booted.disposeAll();
+        await disposeAllFor(tester, booted);
       }
     });
 
     testWidgets('Custom labels map applies', (tester) async {
-      final booted = await bootEngine(_kSpec);
+      final booted = await bootEngineFor(tester, _kSpec);
       try {
         final ds = booted.engine.dataStore;
-        await ds.ensureTable('tasks', [
-          const OdsFieldDefinition(name: 'title', type: 'text'),
-        ]);
-        await ds.insert('tasks', {'title': 'Task X'});
+        await tester.runAsync(() async {
+          await ds.ensureTable('tasks', [
+            const OdsFieldDefinition(name: 'title', type: 'text'),
+          ]);
+          await ds.insert('tasks', {'title': 'Task X'});
+        });
 
         const model = OdsDetailComponent(
           dataSource: 'tasks',
@@ -84,12 +79,12 @@ void main() {
         );
         expect(find.text('Task Name'), findsOneWidget);
       } finally {
-        await booted.disposeAll();
+        await disposeAllFor(tester, booted);
       }
     });
 
     testWidgets('Empty data source shows no row content', (tester) async {
-      final booted = await bootEngine(_kSpec);
+      final booted = await bootEngineFor(tester, _kSpec);
       try {
         const model = OdsDetailComponent(
           dataSource: 'tasks',
@@ -104,8 +99,8 @@ void main() {
         // an empty-state or blank. Test just verifies no exception.
         expect(tester.takeException(), isNull);
       } finally {
-        await booted.disposeAll();
+        await disposeAllFor(tester, booted);
       }
     });
-  }, skip: _skipReason);
+  });
 }

@@ -37,14 +37,13 @@ jobs:
         # errors are always fatal; we choose not to fail on warnings/infos.
         run: flutter analyze --no-fatal-warnings --no-fatal-infos
 
-      # Mirrors publish.sh: non-widget tests only, excluding `slow`-tagged
-      # Batch 9 perf tests (dart_test.yaml). Widget tests are skipped in
-      # CI for the same reason they're skipped locally — the flutter_tools
-      # harness hangs on this project's widget suite. Revisit when the
-      # widget-test unskip item in TODO.md lands.
+      # Mirrors publish.sh. Widget tests are included now that the
+      # FakeAsync-vs-sqflite_ffi hang is fixed (see
+      # test/widget/_test_harness.dart). `slow`-tagged Batch 9 perf
+      # tests still excluded — their Windows I/O timing budgets flake.
       - name: Run tests with coverage
         working-directory: Frameworks/flutter-local
-        run: flutter test test/engine test/models test/parser test/integration test/conformance --exclude-tags=slow --coverage
+        run: flutter test test/engine test/models test/parser test/integration test/conformance test/widget --exclude-tags=slow --coverage
 
       # Per-directory line-coverage thresholds (lib/engine, lib/models,
       # lib/parser). Mirrors React's vitest threshold gate. Tool definition

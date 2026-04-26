@@ -1,4 +1,3 @@
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,7 +15,23 @@ const String _kFormSpec = '''
 {
   "appName": "FormTest",
   "startPage": "home",
-  "pages": {"home": {"component": "page", "title": "Home", "content": []}},
+  "pages": {
+    "home": {
+      "component": "page",
+      "title": "Home",
+      "content": [
+        {
+          "component": "form",
+          "id": "quizForm",
+          "recordSource": "questions",
+          "fields": [
+            {"name": "question", "type": "text", "label": "Q"},
+            {"name": "answer", "type": "text", "label": "A"}
+          ]
+        }
+      ]
+    }
+  },
   "dataSources": {
     "questions": {
       "url": "local://questions",
@@ -30,18 +45,10 @@ const String _kFormSpec = '''
 }
 ''';
 
-/// Skip on Windows: Flutter's test runner hits a `flutter_tools` temp-dir
-/// race (AV/file-system interference) that hangs the first widget test
-/// indefinitely. Tests pass cleanly on Linux/macOS. Revisit if Flutter
-/// ever ships a fix.
-final String? _skipReason = Platform.isWindows
-    ? 'Flutter-on-Windows widget-test harness hang (see REGRESSION_LOG.md)'
-    : null;
-
 void main() {
   group('OdsFormWidget', () {
     testWidgets('Renders all supported field types', (WidgetTester tester) async {
-      final booted = await bootEngine(_kFormSpec);
+      final booted = await bootEngineFor(tester, _kFormSpec);
       try {
         const model = OdsFormComponent(
           id: 'mixedForm',
@@ -82,13 +89,13 @@ void main() {
         expect(find.byType(DropdownButtonFormField<String>), findsOneWidget);
         expect(find.byType(SwitchListTile), findsOneWidget);
       } finally {
-        await booted.disposeAll();
+        await disposeAllFor(tester, booted);
       }
     });
 
     testWidgets('Entering text updates form state on engine',
         (WidgetTester tester) async {
-      final booted = await bootEngine(_kFormSpec);
+      final booted = await bootEngineFor(tester, _kFormSpec);
       try {
         const model = OdsFormComponent(
           id: 'simpleForm',
@@ -113,7 +120,7 @@ void main() {
             reason:
                 'onChanged should push the typed value into engine form state.');
       } finally {
-        await booted.disposeAll();
+        await disposeAllFor(tester, booted);
       }
     });
 
@@ -123,7 +130,7 @@ void main() {
         (WidgetTester tester) async {
       // The widget itself does not show inline errors until the user types
       // or submits. This test verifies the visible " *" marker.
-      final booted = await bootEngine(_kFormSpec);
+      final booted = await bootEngineFor(tester, _kFormSpec);
       try {
         const model = OdsFormComponent(
           id: 'reqForm',
@@ -147,13 +154,13 @@ void main() {
         expect(find.text('Name *'), findsOneWidget,
             reason: 'Required field label should have trailing " *".');
       } finally {
-        await booted.disposeAll();
+        await disposeAllFor(tester, booted);
       }
     });
 
     testWidgets('Default values populate on first render',
         (WidgetTester tester) async {
-      final booted = await bootEngine(_kFormSpec);
+      final booted = await bootEngineFor(tester, _kFormSpec);
       try {
         const model = OdsFormComponent(
           id: 'defForm',
@@ -177,13 +184,13 @@ void main() {
         expect(booted.engine.getFormState('defForm')['status'], 'open');
         expect(find.text('open'), findsOneWidget);
       } finally {
-        await booted.disposeAll();
+        await disposeAllFor(tester, booted);
       }
     });
 
     testWidgets('Computed (formula) field renders read-only with suffix',
         (WidgetTester tester) async {
-      final booted = await bootEngine(_kFormSpec);
+      final booted = await bootEngineFor(tester, _kFormSpec);
       try {
         const model = OdsFormComponent(
           id: 'computedForm',
@@ -208,26 +215,30 @@ void main() {
         );
         expect(find.text('Sum (computed)'), findsOneWidget);
       } finally {
-        await booted.disposeAll();
+        await disposeAllFor(tester, booted);
       }
     });
 
     testWidgets('recordSource pre-fills form via firstRecord action',
         (WidgetTester tester) async {
-      final booted = await bootEngine(_kFormSpec);
+      final booted = await bootEngineFor(tester, _kFormSpec);
       try {
-        // Seed a single question.
+        // Seed a single question + drive the firstRecord cursor inside
+        // tester.runAsync so the SQLite work happens in the real async
+        // zone (flutter_test FakeAsync intercepts but never fires the
+        // sqflite_ffi native-bridge timers — see _test_harness.dart).
         final ds = booted.engine.dataStore;
-        await ds.ensureTable('questions', [
-          const OdsFieldDefinition(name: 'question', type: 'text'),
-          const OdsFieldDefinition(name: 'answer', type: 'text'),
-        ]);
-        await ds.insert('questions', {'question': 'What?', 'answer': '42'});
+        await tester.runAsync(() async {
+          await ds.ensureTable('questions', [
+            const OdsFieldDefinition(name: 'question', type: 'text'),
+            const OdsFieldDefinition(name: 'answer', type: 'text'),
+          ]);
+          await ds.insert('questions', {'question': 'What?', 'answer': '42'});
 
-        // Fire firstRecord to load the cursor into quizForm state.
-        await booted.engine.executeActions(const [
-          OdsAction(action: 'firstRecord', target: 'quizForm'),
-        ]);
+          await booted.engine.executeActions(const [
+            OdsAction(action: 'firstRecord', target: 'quizForm'),
+          ]);
+        });
 
         const model = OdsFormComponent(
           id: 'quizForm',
@@ -250,13 +261,13 @@ void main() {
             reason:
                 'firstRecord should populate form state with the seeded question.');
       } finally {
-        await booted.disposeAll();
+        await disposeAllFor(tester, booted);
       }
     });
 
     testWidgets('Select dropdown renders with static options',
         (WidgetTester tester) async {
-      final booted = await bootEngine(_kFormSpec);
+      final booted = await bootEngineFor(tester, _kFormSpec);
       try {
         const model = OdsFormComponent(
           id: 'selForm',
@@ -279,13 +290,13 @@ void main() {
         );
         expect(find.byType(DropdownButtonFormField<String>), findsOneWidget);
       } finally {
-        await booted.disposeAll();
+        await disposeAllFor(tester, booted);
       }
     });
 
     testWidgets('Hidden field type does not render any input',
         (WidgetTester tester) async {
-      final booted = await bootEngine(_kFormSpec);
+      final booted = await bootEngineFor(tester, _kFormSpec);
       try {
         const model = OdsFormComponent(
           id: 'hidForm',
@@ -312,8 +323,8 @@ void main() {
         // But no UI label for the secret field.
         expect(find.text('secret'), findsNothing);
       } finally {
-        await booted.disposeAll();
+        await disposeAllFor(tester, booted);
       }
     });
-  }, skip: _skipReason);
+  });
 }

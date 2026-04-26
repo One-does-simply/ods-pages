@@ -1,4 +1,3 @@
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,18 +17,10 @@ const String _kSpec = '''
 }
 ''';
 
-/// Skip on Windows: Flutter's test runner hits a `flutter_tools` temp-dir
-/// race (AV/file-system interference) that hangs the first widget test
-/// indefinitely. Tests pass cleanly on Linux/macOS. Revisit if Flutter
-/// ever ships a fix.
-final String? _skipReason = Platform.isWindows
-    ? 'Flutter-on-Windows widget-test harness hang (see REGRESSION_LOG.md)'
-    : null;
-
 void main() {
   group('PageRenderer', () {
     testWidgets('Dispatches to text component', (tester) async {
-      final booted = await bootEngine(_kSpec);
+      final booted = await bootEngineFor(tester, _kSpec);
       try {
         const page = OdsPage(
           title: 'Home',
@@ -41,19 +32,17 @@ void main() {
           tester,
           harness(
             engine: booted.engine,
-            child: const SingleChildScrollView(
-              child: PageRenderer(page: page),
-            ),
+            child: const PageRenderer(page: page),
           ),
         );
         expect(find.text('Hello from page renderer'), findsOneWidget);
       } finally {
-        await booted.disposeAll();
+        await disposeAllFor(tester, booted);
       }
     });
 
     testWidgets('Renders multiple components in order', (tester) async {
-      final booted = await bootEngine(_kSpec);
+      final booted = await bootEngineFor(tester, _kSpec);
       try {
         const page = OdsPage(
           title: 'Home',
@@ -67,21 +56,19 @@ void main() {
           tester,
           harness(
             engine: booted.engine,
-            child: const SingleChildScrollView(
-              child: PageRenderer(page: page),
-            ),
+            child: const PageRenderer(page: page),
           ),
         );
         expect(find.text('First'), findsOneWidget);
         expect(find.text('Second'), findsOneWidget);
         expect(find.text('Third'), findsOneWidget);
       } finally {
-        await booted.disposeAll();
+        await disposeAllFor(tester, booted);
       }
     });
 
     testWidgets('Empty content renders nothing but no crash', (tester) async {
-      final booted = await bootEngine(_kSpec);
+      final booted = await bootEngineFor(tester, _kSpec);
       try {
         await pumpAndSettle(
           tester,
@@ -92,8 +79,8 @@ void main() {
         );
         expect(tester.takeException(), isNull);
       } finally {
-        await booted.disposeAll();
+        await disposeAllFor(tester, booted);
       }
     });
-  }, skip: _skipReason);
+  });
 }

@@ -1,4 +1,3 @@
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -25,18 +24,10 @@ const String _kTasksSpec = '''
 }
 ''';
 
-/// Skip on Windows: Flutter's test runner hits a `flutter_tools` temp-dir
-/// race (AV/file-system interference) that hangs the first widget test
-/// indefinitely. Tests pass cleanly on Linux/macOS. Revisit if Flutter
-/// ever ships a fix.
-final String? _skipReason = Platform.isWindows
-    ? 'Flutter-on-Windows widget-test harness hang (see REGRESSION_LOG.md)'
-    : null;
-
 void main() {
   group('OdsSummaryWidget', () {
     testWidgets('Renders label and plain value', (tester) async {
-      final booted = await bootEngine(_kTasksSpec);
+      final booted = await bootEngineFor(tester, _kTasksSpec);
       try {
         const model = OdsSummaryComponent(
           label: 'Total',
@@ -50,17 +41,19 @@ void main() {
         expect(find.text('Total'), findsOneWidget);
         expect(find.text('42'), findsOneWidget);
       } finally {
-        await booted.disposeAll();
+        await disposeAllFor(tester, booted);
       }
     });
 
     testWidgets('Value with aggregate resolves count', (tester) async {
-      final booted = await bootEngine(_kTasksSpec);
+      final booted = await bootEngineFor(tester, _kTasksSpec);
       try {
         final ds = booted.engine.dataStore;
-        await ds.ensureTable('tasks', [const OdsFieldDefinition(name: 'title', type: 'text')]);
-        await ds.insert('tasks', {'title': 'a'});
-        await ds.insert('tasks', {'title': 'b'});
+        await tester.runAsync(() async {
+          await ds.ensureTable('tasks', [const OdsFieldDefinition(name: 'title', type: 'text')]);
+          await ds.insert('tasks', {'title': 'a'});
+          await ds.insert('tasks', {'title': 'b'});
+        });
 
         const model = OdsSummaryComponent(
           label: 'Tasks',
@@ -73,12 +66,12 @@ void main() {
         );
         expect(find.text('2'), findsOneWidget);
       } finally {
-        await booted.disposeAll();
+        await disposeAllFor(tester, booted);
       }
     });
 
     testWidgets('Empty data source renders 0 count gracefully', (tester) async {
-      final booted = await bootEngine(_kTasksSpec);
+      final booted = await bootEngineFor(tester, _kTasksSpec);
       try {
         const model = OdsSummaryComponent(
           label: 'None',
@@ -91,12 +84,12 @@ void main() {
         );
         expect(find.text('0'), findsOneWidget);
       } finally {
-        await booted.disposeAll();
+        await disposeAllFor(tester, booted);
       }
     });
 
     testWidgets('Icon renders when specified', (tester) async {
-      final booted = await bootEngine(_kTasksSpec);
+      final booted = await bootEngineFor(tester, _kTasksSpec);
       try {
         const model = OdsSummaryComponent(
           label: 'Done',
@@ -110,8 +103,8 @@ void main() {
         );
         expect(find.byType(Icon), findsAtLeastNWidgets(1));
       } finally {
-        await booted.disposeAll();
+        await disposeAllFor(tester, booted);
       }
     });
-  }, skip: _skipReason);
+  });
 }

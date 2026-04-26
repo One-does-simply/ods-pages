@@ -29,9 +29,11 @@ emits the expected DOM/widget tree.
 
 - **React**: `Frameworks/react-web/tests/component/` (Testing
   Library + Vitest jsdom env)
-- **Flutter**: `test/widget/` — currently **skipped on Windows AND
-  Linux CI** due to a `flutter_tools` harness hang. Tracked in
-  TODO.md as "Widget-test unskip."
+- **Flutter**: `test/widget/` — 42 tests; in the gate. The harness
+  must use `bootEngineFor(tester, …)` + `disposeAllFor(tester, booted)`
+  so SQLite work runs inside `tester.runAsync`; otherwise sqflite_ffi's
+  native-bridge timers stall flutter_test's FakeAsync zone forever.
+  See [`_test_harness.dart`](../Frameworks/flutter-local/test/widget/_test_harness.dart).
 
 ### 3. Integration tests (Flutter only)
 
@@ -146,7 +148,7 @@ Living counts (kept rough):
 
 | Layer                 | Count |
 | --------------------- | ----- |
-| Flutter (excluding widget + slow) | ~810 |
+| Flutter (incl. widget, excl. slow) | ~865 |
 | React (unit + component + conformance) | ~1145 |
 | Conformance scenarios | 26 (× 2 drivers = 52 parity tests) |
 | React E2E (Playwright) | ~50 |

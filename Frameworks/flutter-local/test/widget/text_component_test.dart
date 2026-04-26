@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -36,18 +34,10 @@ const String _kTasksSpec = '''
 }
 ''';
 
-/// Skip on Windows: Flutter's test runner hits a `flutter_tools` temp-dir
-/// race (AV/file-system interference) that hangs the first widget test
-/// indefinitely. Tests pass cleanly on Linux/macOS. Revisit if Flutter
-/// ever ships a fix.
-final String? _skipReason = Platform.isWindows
-    ? 'Flutter-on-Windows widget-test harness hang (see REGRESSION_LOG.md)'
-    : null;
-
 void main() {
   group('OdsTextWidget', () {
     testWidgets('Plain text renders', (WidgetTester tester) async {
-      final booted = await bootEngine(_kBlankSpec);
+      final booted = await bootEngineFor(tester, _kBlankSpec);
       try {
         const model = OdsTextComponent(
           content: 'Hello World',
@@ -62,21 +52,23 @@ void main() {
         );
         expect(find.text('Hello World'), findsOneWidget);
       } finally {
-        await booted.disposeAll();
+        await disposeAllFor(tester, booted);
       }
     });
 
     testWidgets('Aggregate reference {COUNT(tasks)} resolves to count',
         (WidgetTester tester) async {
-      final booted = await bootEngine(_kTasksSpec);
+      final booted = await bootEngineFor(tester, _kTasksSpec);
       try {
         // Seed three rows directly through the real data store.
         final ds = booted.engine.dataStore;
-        await ds.ensureTable('tasks',
-            [const OdsFieldDefinition(name: 'title', type: 'text')]);
-        await ds.insert('tasks', {'title': 't1'});
-        await ds.insert('tasks', {'title': 't2'});
-        await ds.insert('tasks', {'title': 't3'});
+        await tester.runAsync(() async {
+          await ds.ensureTable('tasks',
+              [const OdsFieldDefinition(name: 'title', type: 'text')]);
+          await ds.insert('tasks', {'title': 't1'});
+          await ds.insert('tasks', {'title': 't2'});
+          await ds.insert('tasks', {'title': 't3'});
+        });
 
         const model = OdsTextComponent(
           content: 'Total: {COUNT(tasks)}',
@@ -91,13 +83,13 @@ void main() {
         );
         expect(find.text('Total: 3'), findsOneWidget);
       } finally {
-        await booted.disposeAll();
+        await disposeAllFor(tester, booted);
       }
     });
 
     testWidgets('Heading variant applies larger/bold style',
         (WidgetTester tester) async {
-      final booted = await bootEngine(_kBlankSpec);
+      final booted = await bootEngineFor(tester, _kBlankSpec);
       try {
         const model = OdsTextComponent(
           content: 'Big Heading',
@@ -115,13 +107,13 @@ void main() {
         expect(textWidget.style?.fontWeight, isNotNull,
             reason: 'Heading variant should set an explicit font weight.');
       } finally {
-        await booted.disposeAll();
+        await disposeAllFor(tester, booted);
       }
     });
 
     testWidgets('Alignment applies when styleHint.align is center',
         (WidgetTester tester) async {
-      final booted = await bootEngine(_kBlankSpec);
+      final booted = await bootEngineFor(tester, _kBlankSpec);
       try {
         const model = OdsTextComponent(
           content: 'Centered',
@@ -137,13 +129,13 @@ void main() {
         final textWidget = tester.widget<Text>(find.text('Centered'));
         expect(textWidget.textAlign, TextAlign.center);
       } finally {
-        await booted.disposeAll();
+        await disposeAllFor(tester, booted);
       }
     });
 
     testWidgets('Empty content still renders an empty Text widget',
         (WidgetTester tester) async {
-      final booted = await bootEngine(_kBlankSpec);
+      final booted = await bootEngineFor(tester, _kBlankSpec);
       try {
         const model = OdsTextComponent(
           content: '',
@@ -160,8 +152,8 @@ void main() {
         final text = tester.widget<Text>(find.byType(Text));
         expect(text.data, '');
       } finally {
-        await booted.disposeAll();
+        await disposeAllFor(tester, booted);
       }
     });
-  }, skip: _skipReason);
+  });
 }

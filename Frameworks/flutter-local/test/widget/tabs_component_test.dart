@@ -1,4 +1,3 @@
-import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
@@ -16,18 +15,10 @@ const String _kSpec = '''
 }
 ''';
 
-/// Skip on Windows: Flutter's test runner hits a `flutter_tools` temp-dir
-/// race (AV/file-system interference) that hangs the first widget test
-/// indefinitely. Tests pass cleanly on Linux/macOS. Revisit if Flutter
-/// ever ships a fix.
-final String? _skipReason = Platform.isWindows
-    ? 'Flutter-on-Windows widget-test harness hang (see REGRESSION_LOG.md)'
-    : null;
-
 void main() {
   group('OdsTabsWidget', () {
     testWidgets('Renders all tab labels', (tester) async {
-      final booted = await bootEngine(_kSpec);
+      final booted = await bootEngineFor(tester, _kSpec);
       try {
         const model = OdsTabsComponent(
           tabs: [
@@ -47,12 +38,12 @@ void main() {
         expect(find.text('Overview'), findsOneWidget);
         expect(find.text('Details'), findsOneWidget);
       } finally {
-        await booted.disposeAll();
+        await disposeAllFor(tester, booted);
       }
     });
 
     testWidgets('First tab content renders by default', (tester) async {
-      final booted = await bootEngine(_kSpec);
+      final booted = await bootEngineFor(tester, _kSpec);
       try {
         const model = OdsTabsComponent(
           tabs: [
@@ -71,12 +62,12 @@ void main() {
         );
         expect(find.text('Tab 1 body'), findsOneWidget);
       } finally {
-        await booted.disposeAll();
+        await disposeAllFor(tester, booted);
       }
     });
 
     testWidgets('Tapping second tab switches content', (tester) async {
-      final booted = await bootEngine(_kSpec);
+      final booted = await bootEngineFor(tester, _kSpec);
       try {
         const model = OdsTabsComponent(
           tabs: [
@@ -97,8 +88,8 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text('Beta body'), findsOneWidget);
       } finally {
-        await booted.disposeAll();
+        await disposeAllFor(tester, booted);
       }
     });
-  }, skip: _skipReason);
+  });
 }

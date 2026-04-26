@@ -1,4 +1,3 @@
-import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
@@ -27,18 +26,10 @@ const String _kSpec = '''
 }
 ''';
 
-/// Skip on Windows: Flutter's test runner hits a `flutter_tools` temp-dir
-/// race (AV/file-system interference) that hangs the first widget test
-/// indefinitely. Tests pass cleanly on Linux/macOS. Revisit if Flutter
-/// ever ships a fix.
-final String? _skipReason = Platform.isWindows
-    ? 'Flutter-on-Windows widget-test harness hang (see REGRESSION_LOG.md)'
-    : null;
-
 void main() {
   group('OdsChartWidget', () {
     testWidgets('Renders without crash on empty data', (tester) async {
-      final booted = await bootEngine(_kSpec);
+      final booted = await bootEngineFor(tester, _kSpec);
       try {
         const model = OdsChartComponent(
           dataSource: 'sales',
@@ -54,20 +45,22 @@ void main() {
         );
         expect(tester.takeException(), isNull);
       } finally {
-        await booted.disposeAll();
+        await disposeAllFor(tester, booted);
       }
     });
 
     testWidgets('Renders bar chart with data', (tester) async {
-      final booted = await bootEngine(_kSpec);
+      final booted = await bootEngineFor(tester, _kSpec);
       try {
         final ds = booted.engine.dataStore;
-        await ds.ensureTable('sales', [
-          const OdsFieldDefinition(name: 'month', type: 'text'),
-          const OdsFieldDefinition(name: 'revenue', type: 'number'),
-        ]);
-        await ds.insert('sales', {'month': 'Jan', 'revenue': '100'});
-        await ds.insert('sales', {'month': 'Feb', 'revenue': '200'});
+        await tester.runAsync(() async {
+          await ds.ensureTable('sales', [
+            const OdsFieldDefinition(name: 'month', type: 'text'),
+            const OdsFieldDefinition(name: 'revenue', type: 'number'),
+          ]);
+          await ds.insert('sales', {'month': 'Jan', 'revenue': '100'});
+          await ds.insert('sales', {'month': 'Feb', 'revenue': '200'});
+        });
 
         const model = OdsChartComponent(
           dataSource: 'sales',
@@ -83,13 +76,24 @@ void main() {
         );
         expect(tester.takeException(), isNull);
       } finally {
-        await booted.disposeAll();
+        await disposeAllFor(tester, booted);
       }
     });
 
     testWidgets('Renders title when provided', (tester) async {
-      final booted = await bootEngine(_kSpec);
+      final booted = await bootEngineFor(tester, _kSpec);
       try {
+        // Title only renders inside the chart-with-data branch; the
+        // empty-data path shows "No data for chart." instead. Seed a row.
+        final ds = booted.engine.dataStore;
+        await tester.runAsync(() async {
+          await ds.ensureTable('sales', [
+            const OdsFieldDefinition(name: 'month', type: 'text'),
+            const OdsFieldDefinition(name: 'revenue', type: 'number'),
+          ]);
+          await ds.insert('sales', {'month': 'Jan', 'revenue': '100'});
+        });
+
         const model = OdsChartComponent(
           dataSource: 'sales',
           chartType: 'bar',
@@ -105,8 +109,8 @@ void main() {
         );
         expect(find.text('Monthly Revenue'), findsOneWidget);
       } finally {
-        await booted.disposeAll();
+        await disposeAllFor(tester, booted);
       }
     });
-  }, skip: _skipReason);
+  });
 }

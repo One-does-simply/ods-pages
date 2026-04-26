@@ -65,16 +65,6 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
       that asserts "every scenario id in the catalog has a scenario
       implementation." Prevents the two sides from silently drifting
       in which scenarios they advertise.
-- [ ] **Widget-test unskip** — the Flutter widget suite is excluded
-      from `publish.sh` and the GH CI workflow because it hangs on
-      both Windows (flutter_tools temp-dir race, AV/FS interference)
-      and on the GH Linux runners (new finding 2026-04-24 — a 21-min
-      hang on `ods-pages` commit `406be96`). Options: (a) migrate
-      widget tests to `integration_test` which uses a real
-      device/emulator, (b) debug the harness hang directly.
-- [ ] **Coverage thresholds in CI** — vitest's `test:coverage` already
-      exists; pick a baseline after 2–3 stable runs, enforce in CI to
-      prevent regression.
 - [ ] **Generator code honors SettingsStore** — `code_generator.dart`
       still uses `getApplicationDocumentsDirectory()` directly in its
       emitted code (see [code_generator.dart:475](Frameworks/flutter-local/lib/engine/code_generator.dart#L475)).

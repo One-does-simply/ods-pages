@@ -1,4 +1,3 @@
-import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
@@ -42,18 +41,10 @@ const String _kSpec = '''
 }
 ''';
 
-/// Skip on Windows: Flutter's test runner hits a `flutter_tools` temp-dir
-/// race (AV/file-system interference) that hangs the first widget test
-/// indefinitely. Tests pass cleanly on Linux/macOS. Revisit if Flutter
-/// ever ships a fix.
-final String? _skipReason = Platform.isWindows
-    ? 'Flutter-on-Windows widget-test harness hang (see REGRESSION_LOG.md)'
-    : null;
-
 void main() {
   group('OdsKanbanWidget', () {
     testWidgets('Renders columns from status field options', (tester) async {
-      final booted = await bootEngine(_kSpec);
+      final booted = await bootEngineFor(tester, _kSpec);
       try {
         const model = OdsKanbanComponent(
           dataSource: 'cards',
@@ -71,20 +62,22 @@ void main() {
         expect(find.text('doing'), findsOneWidget);
         expect(find.text('done'), findsOneWidget);
       } finally {
-        await booted.disposeAll();
+        await disposeAllFor(tester, booted);
       }
     });
 
     testWidgets('Cards appear in their status column', (tester) async {
-      final booted = await bootEngine(_kSpec);
+      final booted = await bootEngineFor(tester, _kSpec);
       try {
         final ds = booted.engine.dataStore;
-        await ds.ensureTable('cards', [
-          const OdsFieldDefinition(name: 'title', type: 'text'),
-          const OdsFieldDefinition(name: 'status', type: 'select', options: ['todo', 'doing', 'done']),
-        ]);
-        await ds.insert('cards', {'title': 'Card A', 'status': 'todo'});
-        await ds.insert('cards', {'title': 'Card B', 'status': 'done'});
+        await tester.runAsync(() async {
+          await ds.ensureTable('cards', [
+            const OdsFieldDefinition(name: 'title', type: 'text'),
+            const OdsFieldDefinition(name: 'status', type: 'select', options: ['todo', 'doing', 'done']),
+          ]);
+          await ds.insert('cards', {'title': 'Card A', 'status': 'todo'});
+          await ds.insert('cards', {'title': 'Card B', 'status': 'done'});
+        });
 
         const model = OdsKanbanComponent(
           dataSource: 'cards',
@@ -101,12 +94,12 @@ void main() {
         expect(find.text('Card A'), findsOneWidget);
         expect(find.text('Card B'), findsOneWidget);
       } finally {
-        await booted.disposeAll();
+        await disposeAllFor(tester, booted);
       }
     });
 
     testWidgets('Empty data source still renders columns', (tester) async {
-      final booted = await bootEngine(_kSpec);
+      final booted = await bootEngineFor(tester, _kSpec);
       try {
         const model = OdsKanbanComponent(
           dataSource: 'cards',
@@ -122,8 +115,8 @@ void main() {
         );
         expect(find.text('todo'), findsOneWidget);
       } finally {
-        await booted.disposeAll();
+        await disposeAllFor(tester, booted);
       }
     });
-  }, skip: _skipReason);
+  });
 }

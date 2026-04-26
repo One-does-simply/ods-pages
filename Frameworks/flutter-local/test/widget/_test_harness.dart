@@ -22,6 +22,11 @@ Widget harness({required AppEngine engine, required Widget child}) {
 /// so widget tests get real data-store behavior without polluting shared dirs.
 ///
 /// [specJson] should be the full app-spec JSON string.
+///
+/// MUST be called inside [WidgetTester.runAsync]. sqflite_ffi schedules
+/// native-bridge work that flutter_test's FakeAsync zone intercepts but
+/// never fires — without `runAsync`, `loadSpec` deadlocks. Use [bootEngineFor]
+/// for the common case; this raw form exists for non-widget tests.
 Future<_BootedEngine> bootEngine(String specJson) async {
   final tmp = await Directory.systemTemp.createTemp('ods_widget_');
   final engine = AppEngine();
@@ -33,11 +38,23 @@ Future<_BootedEngine> bootEngine(String specJson) async {
   return _BootedEngine(engine: engine, tmp: tmp);
 }
 
+/// Convenience: runs [bootEngine] inside the tester's real async zone so
+/// sqflite_ffi work completes. Always prefer this in `testWidgets`.
+Future<_BootedEngine> bootEngineFor(WidgetTester tester, String specJson) async {
+  final booted = await tester.runAsync(() => bootEngine(specJson));
+  if (booted == null) {
+    throw StateError('bootEngineFor: tester.runAsync returned null');
+  }
+  return booted;
+}
+
 class _BootedEngine {
   final AppEngine engine;
   final Directory tmp;
   _BootedEngine({required this.engine, required this.tmp});
 
+  /// Tear down. Run inside [WidgetTester.runAsync] from a `testWidgets`
+  /// body — see [disposeAllFor] for the convenience wrapper.
   Future<void> disposeAll() async {
     await engine.reset();
     engine.dispose();
@@ -49,13 +66,32 @@ class _BootedEngine {
   }
 }
 
-/// Pumps [widget] into [tester] and waits for pending futures (e.g.
-/// FutureBuilder data sources) to settle.
+/// Convenience: runs [_BootedEngine.disposeAll] inside the tester's real
+/// async zone so the SQLite close + temp-dir delete don't deadlock.
+Future<void> disposeAllFor(WidgetTester tester, _BootedEngine booted) async {
+  await tester.runAsync(() => booted.disposeAll());
+}
+
+/// Pumps [widget] into [tester]. Cannot use [WidgetTester.pumpAndSettle]:
+/// it waits for FakeAsync to drain, but sqflite_ffi keeps native-bridge
+/// timers alive that FakeAsync never fires, so pumpAndSettle would always
+/// hit its max-iterations timeout.
+///
+/// Instead we alternate `tester.runAsync(delay)` (which lets the real
+/// event loop run so SQLite-bound FutureBuilders resolve) with `pump()`
+/// (which flushes the rebuild). For widgets with chained futures we may
+/// need several rounds before the tree stabilises; [maxRounds] caps the
+/// loop. Empirically 4 rounds × 50ms covers every component in this
+/// codebase including FormComponent's recordSource cursor.
 Future<void> pumpAndSettle(
   WidgetTester tester,
   Widget widget, {
-  Duration timeout = const Duration(seconds: 5),
+  Duration roundDuration = const Duration(milliseconds: 50),
+  int maxRounds = 4,
 }) async {
   await tester.pumpWidget(widget);
-  await tester.pumpAndSettle(timeout);
+  for (var i = 0; i < maxRounds; i++) {
+    await tester.runAsync(() => Future<void>.delayed(roundDuration));
+    await tester.pump();
+  }
 }
