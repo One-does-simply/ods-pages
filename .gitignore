@@ -19,6 +19,12 @@ Thumbs.db
 *.tmp
 *.bak
 
+# Personal artifacts removed 2026-04-26 — kept ignored so they don't
+# sneak back via a `git add -A`. If you want them locally, keep them
+# under /scratch/ or outside the repo entirely.
+/build_testing_pptx.py
+/GeneratorTest/
+
 # Secrets / local-only notes. Never commit OAuth creds, DB URLs, etc.
 # If you need to share credentials, use a vault, not the repo.
 /pocketbasestuff.txt

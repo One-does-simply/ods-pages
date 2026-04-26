@@ -13,9 +13,16 @@
 
 set -euo pipefail
 
-ODS_ROOT="c:/Apps/One-does-simply"
-FLUTTER="c:/Users/<user>/develop/flutter/bin/flutter.bat"
-DART="c:/Users/<user>/develop/flutter/bin/dart.bat"
+# Resolve the monorepo root from this script's own location so the
+# script is portable across machines / checkout paths.
+ODS_ROOT="$(cd "$(dirname "$0")" && pwd)"
+
+# Locate the Flutter SDK. Order: explicit env var, then PATH (works on
+# any machine where `flutter` is installed normally), with a final
+# fallback to bare `flutter` so the error from `command -v` is loud
+# rather than silent.
+FLUTTER="${FLUTTER:-$(command -v flutter.bat 2>/dev/null || command -v flutter 2>/dev/null || echo flutter)}"
+DART="${DART:-$(command -v dart.bat 2>/dev/null || command -v dart 2>/dev/null || echo dart)}"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'

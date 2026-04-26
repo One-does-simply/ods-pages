@@ -9,29 +9,34 @@ with a test that protects it.
 
 ## Flutter
 
-### Widget tests hang indefinitely on Windows
+### Widget tests hang indefinitely (FakeAsync × sqflite_ffi)
 
-**Symptom.** Running `flutter test test/widget/` on Windows: the first
-widget test either never completes or dies after ~10 minutes with a
-`TimeoutException`. The rest of the suite (engine / models / parser /
-integration) runs fine.
+**Symptom.** A widget test that boots an `AppEngine` (and therefore
+opens SQLite via `sqflite_ffi`) hangs forever inside `pumpAndSettle`,
+even though the same engine setup works fine in non-widget tests.
 
-**Cause.** `flutter_tools` creates temporary directories under `%TEMP%`
-and occasionally races with Windows Defender / OneDrive / other
-watchers that delete files mid-run. The widget-test harness is more
-sensitive to this than the unit-test harness. Moving the project off
-OneDrive didn't fix it — the race is with Windows filesystem
-observers more broadly.
+**Cause.** `flutter_test` runs the test body inside a `FakeAsync` zone
+that intercepts every `Timer` / `scheduleMicrotask` and only fires
+them when the zone advances. `sqflite_ffi` schedules work on a
+native-bridge isolate that runs *outside* the FakeAsync zone — its
+completion timers are intercepted but never fired, so any
+`pumpAndSettle` waiting for "settle" waits forever.
 
-**Fix.** Every widget test's `group()` is wrapped with
-`skip: Platform.isWindows ? '...' : null`. Tests run cleanly on
-Linux/macOS, which is also where CI should run them. See
-[Frameworks/flutter-local/test/widget/page_renderer_test.dart](../Frameworks/flutter-local/test/widget/page_renderer_test.dart)
-for the canonical skip pattern.
+**Fix.** Use the harness primitives in
+[`test/widget/_test_harness.dart`](../Frameworks/flutter-local/test/widget/_test_harness.dart):
 
-**Long-term.** Migrate to `package:integration_test` (uses a real
-device/emulator, doesn't hit the temp-dir race) — tracked in
-[TODO.md](../TODO.md).
+- `bootEngineFor(tester, specJson)` wraps `bootEngine` in
+  `tester.runAsync(...)` so SQLite work happens in the real async
+  zone.
+- `disposeAllFor(tester, booted)` does the same for teardown.
+- `pumpAndSettle(tester, widget)` does fixed real-time pump rounds
+  (16 × 100ms by default) instead of FakeAsync-based settling.
+- For tests asserting on data that arrives via FutureBuilder, use
+  `pumpUntilFound(tester, finder, timeout)` rather than hoping
+  fixed rounds are enough.
+
+This was diagnosed and the harness rewritten on 2026-04-26 — widget
+tests went from "all skipped on Windows" to "42 in the gate."
 
 ### `Color` APIs expect floats, not ints
 
@@ -177,24 +182,6 @@ E2E suite downloads its own binary to
 `./tests/e2e/.pb-e2e/pocketbase.exe serve` from `Frameworks/react-web/`,
 or (b) download separately from <https://pocketbase.io/> to somewhere
 convenient.
-
----
-
-## Workflow
-
-### `c:\Apps\One-does-simply` instead of the OneDrive path
-
-**Symptom.** Old docs, bash history, or stashed scripts reference
-`C:\Users\<user>\OneDrive - <Company>\Apps\One-does-simply\`.
-
-**Cause.** The workspace migrated off OneDrive on 2026-04-18 to dodge
-the file-system watcher race (see Flutter widget tests above). Paths
-throughout the codebase (`publish.sh`, `.vscode/settings.json`,
-`.claude/settings.json`) were updated.
-
-**Fix.** Use `c:\Apps\One-does-simply\` everywhere. If something
-references an old OneDrive path, it's either stale or a bug — grep
-and fix.
 
 ---
 

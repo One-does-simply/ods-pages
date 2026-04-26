@@ -121,22 +121,32 @@ The interesting invariant: **the parser's output, the engine's state
 shape, and the data layer's I/O are the same across renderers.** Only
 the renderer and the data layer's backend are framework-specific.
 
-## Why three repos?
+## Why one monorepo?
 
-Because they have different release cadences and audiences:
+The spec, the renderers, and the build helpers used to live in three
+separate repos with different release cadences. We consolidated into
+one monorepo (`ods-pages`) on 2026-04-20 — the upstream repos are
+archived; their histories live there.
 
-- The **Specification** changes slowly and publicly. Third parties
-  (AI assistants, alternate renderers, conformance tools) all depend
-  on it. It deserves its own git history and LICENSE.
-- The **Frameworks** change fast internally. Multiple of them exist;
-  they version independently; they must not block each other.
-- **BuildHelpers** are essentially content — prompt files and example
-  outputs. They evolve with the spec and don't need their own release
-  cycle.
+What changed our minds:
 
-Keeping them in separate git repos lets each move at its own pace
-without cross-contamination. The workspace view (this repo root)
-just makes local dev pleasant.
+- **Spec changes invariably touch both renderers** — adding a field
+  type, an action, or a component kind requires React, Flutter, AND
+  the spec to land together. Three repos meant a spec PR could merge
+  before its renderer support did, breaking things in the wild.
+- **The conformance suite needs a single source of truth.** Shared
+  scenario specs in [`Frameworks/conformance/specs/`](Frameworks/conformance/specs/)
+  are read by both drivers from the same bytes. Three repos meant
+  duplicating them and watching them drift.
+- **Branching for cross-cutting work is easier in a monorepo.** A
+  feature like ADR-0002 (theme + customizations) crossed all three
+  former repos; in a monorepo it's one branch, one PR, one set of
+  CI checks.
+
+What stays separate at the org level: each ODS *family* gets its own
+repo (`ods-pages`, `ods-chat` planned, `ods-workflow` planned,
+`ods-game` planned). Within a family, the spec + renderers + helpers
+go together.
 
 ## Key invariants
 
