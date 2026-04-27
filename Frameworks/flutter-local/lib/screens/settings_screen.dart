@@ -21,6 +21,7 @@ import '../models/ods_app_setting.dart';
 import '../renderer/snackbar_helper.dart';
 import '../screens/app_tour_dialog.dart';
 import '../widgets/color_picker_widgets.dart';
+import '../widgets/font_picker.dart';
 import '../widgets/framework_user_list.dart';
 import '../widgets/theme_picker_dialog.dart';
 
@@ -297,7 +298,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
 
                 // -- Branding --
-                _SectionHeader(label: 'BRANDING'),
+                _SectionHeader(label: 'THEME'),
                 _BrandingSection(
                   app: app,
                   engine: engine,
@@ -620,7 +621,8 @@ class _BrandingSectionState extends State<_BrandingSection> {
   bool _customizeOpen = false;
   bool _brandingOpen = false;
   late TextEditingController _logoController;
-  late TextEditingController _fontFamilyController;
+  late TextEditingController _faviconController;
+  late String _fontFamily;
   late String _headerStyle;
 
   static const _customizableTokens = [
@@ -647,19 +649,20 @@ class _BrandingSectionState extends State<_BrandingSection> {
     _logoController = TextEditingController(
       text: overrides['logo'] ?? widget.app.logo ?? '',
     );
-    _fontFamilyController = TextEditingController(
-      text: overrides['fontFamily']
-          ?? overrides['fontSans']
-          ?? widget.app.theme.overrides['fontSans']
-          ?? '',
+    _faviconController = TextEditingController(
+      text: overrides['favicon'] ?? widget.app.favicon ?? '',
     );
+    _fontFamily = overrides['fontFamily']
+        ?? overrides['fontSans']
+        ?? widget.app.theme.overrides['fontSans']
+        ?? '';
     _headerStyle = overrides['headerStyle'] ?? widget.app.theme.headerStyle;
   }
 
   @override
   void dispose() {
     _logoController.dispose();
-    _fontFamilyController.dispose();
+    _faviconController.dispose();
     super.dispose();
   }
 
@@ -683,8 +686,13 @@ class _BrandingSectionState extends State<_BrandingSection> {
     } else {
       overrides.remove('logo');
     }
-    if (_fontFamilyController.text.trim().isNotEmpty) {
-      overrides['fontFamily'] = _fontFamilyController.text.trim();
+    if (_faviconController.text.trim().isNotEmpty) {
+      overrides['favicon'] = _faviconController.text.trim();
+    } else {
+      overrides.remove('favicon');
+    }
+    if (_fontFamily.trim().isNotEmpty) {
+      overrides['fontFamily'] = _fontFamily.trim();
     } else {
       overrides.remove('fontFamily');
     }
@@ -716,7 +724,8 @@ class _BrandingSectionState extends State<_BrandingSection> {
     if (rawJson == null || appId == null) return;
 
     final logo = _logoController.text.trim();
-    final font = _fontFamilyController.text.trim();
+    final favicon = _faviconController.text.trim();
+    final font = _fontFamily.trim();
 
     // Carry through any user-level token overrides that aren't theme
     // metadata. The pure helper folds in fontSans for us.
@@ -736,7 +745,7 @@ class _BrandingSectionState extends State<_BrandingSection> {
         base: _theme,
         tokenOverrides: tokenOverrides,
         logo: logo,
-        favicon: '',
+        favicon: favicon,
         headerStyle: _headerStyle,
         fontFamily: font,
       ),
@@ -776,8 +785,8 @@ class _BrandingSectionState extends State<_BrandingSection> {
       _customizeOpen = false;
       _brandingOpen = false;
       _logoController.text = widget.app.logo ?? '';
-      _fontFamilyController.text =
-          widget.app.theme.overrides['fontSans'] ?? '';
+      _faviconController.text = widget.app.favicon ?? '';
+      _fontFamily = widget.app.theme.overrides['fontSans'] ?? '';
       _headerStyle = widget.app.theme.headerStyle;
     });
     widget.onChanged();
@@ -1035,7 +1044,7 @@ class _BrandingSectionState extends State<_BrandingSection> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        'App Branding',
+                        'App identity & typography',
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
@@ -1076,6 +1085,21 @@ class _BrandingSectionState extends State<_BrandingSection> {
           const SizedBox(height: 12),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: TextField(
+              controller: _faviconController,
+              decoration: const InputDecoration(
+                labelText: 'Favicon URL',
+                hintText: 'https://example.com/favicon.ico',
+                helperText: 'Optional — for web framework compatibility',
+                isDense: true,
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (_) => _save(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1106,16 +1130,12 @@ class _BrandingSectionState extends State<_BrandingSection> {
           const SizedBox(height: 12),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: TextField(
-              controller: _fontFamilyController,
-              decoration: const InputDecoration(
-                labelText: 'Font Family',
-                hintText: 'e.g., Inter, Georgia',
-                helperText: 'Custom font for the app',
-                isDense: true,
-                border: OutlineInputBorder(),
-              ),
-              onChanged: (_) => _save(),
+            child: FontPicker(
+              value: _fontFamily,
+              onChanged: (next) {
+                setState(() => _fontFamily = next);
+                _save();
+              },
             ),
           ),
           const SizedBox(height: 8),

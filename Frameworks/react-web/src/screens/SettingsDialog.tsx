@@ -421,10 +421,10 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
             </>
           )}
 
-          {/* ---- Branding ---- */}
+          {/* ---- Theme ---- */}
           <div>
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Branding
+              Theme
             </span>
           </div>
 
