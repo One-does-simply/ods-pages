@@ -41,6 +41,7 @@ mark the amendment with a date and keep the original reasoning visible.
 |------|---------------------------------------------------------------------------------|----------|
 | 0001 | [Conformance Driver Contract](0001-conformance-driver-contract.md)              | accepted |
 | 0002 | [Theme + Customizations Redesign](0002-theme-customizations-redesign.md)        | accepted |
+| 0003 | [In-app AI Build Helper (BYO API key)](0003-ai-build-helper.md)                 | draft    |
 
 ## Format inspiration
 

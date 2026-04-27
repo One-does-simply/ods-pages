@@ -17,10 +17,18 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 
 ## Next — next 1–2 sessions
 
-- _No queued initiative._ Pick from Later / Wishlist when a session
-  starts. Strong candidates: `recordSource` default-order parity fix
-  (concrete bug surfaced by s23), or deepening s17/s18 (real behavior
-  vs initial-state assertions).
+- [ ] **AI Build Helper (BYO API key)** — collapse the existing
+      copy/paste "Edit with AI" loop into an in-app flow when the
+      builder has an API key configured. Two interaction modes
+      (one-shot edit + multi-turn chat), both providers (Anthropic +
+      OpenAI) from day one, diff-review gate before any spec write.
+      Spec'd in
+      [docs/adr/0003-ai-build-helper.md](docs/adr/0003-ai-build-helper.md)
+      (**draft** — open questions on streaming, conversation
+      persistence, tool-use). Estimated 4–6 sessions across both
+      frameworks; lands as a phased rollout (provider layer →
+      settings → one-shot → chat → conformance → Flutter mirror). The
+      existing 3-step copy/paste flow stays as the no-key fallback.
 
 ## Docs — priority 3 (pre-public polish)
 
