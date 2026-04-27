@@ -7,6 +7,7 @@ import '../engine/log_service.dart';
 import '../engine/template_engine.dart';
 import '../engine/theme_resolver.dart';
 import '../widgets/color_picker_widgets.dart';
+import '../widgets/font_picker.dart';
 
 /// Base URL for the ODS template catalog on GitHub Pages.
 const _templateBaseUrl =
@@ -84,10 +85,10 @@ class _QuickBuildScreenState extends State<QuickBuildScreen> {
   ColorScheme? _themePreviewLightCs;
   ColorScheme? _themePreviewDarkCs;
 
-  // Phase 2.5: Branding fields
+  // Phase 2.5: App identity & typography fields (ADR-0002).
   final TextEditingController _logoUrlController = TextEditingController();
   final TextEditingController _faviconUrlController = TextEditingController();
-  final TextEditingController _fontFamilyController = TextEditingController();
+  String _fontFamily = '';
   String _headerStyle = 'light';
   bool _brandingExpanded = false;
 
@@ -105,7 +106,6 @@ class _QuickBuildScreenState extends State<QuickBuildScreen> {
   void dispose() {
     _logoUrlController.dispose();
     _faviconUrlController.dispose();
-    _fontFamilyController.dispose();
     super.dispose();
   }
 
@@ -201,26 +201,37 @@ class _QuickBuildScreenState extends State<QuickBuildScreen> {
       final rendered = TemplateEngine.render(templateBody, context);
       final spec = rendered as Map<String, dynamic>;
 
-      // Inject branding from theme selection
-      final branding = (spec['branding'] as Map<String, dynamic>?) ?? <String, dynamic>{};
-      branding['theme'] = _selectedTheme;
-      branding['mode'] = 'system';
-      if (_colorOverrides.isNotEmpty) {
-        branding['overrides'] = Map<String, String>.from(_colorOverrides);
+      // Per ADR-0002, the spec no longer has a `branding` block. Theme
+      // metadata + token overrides go under `theme`, and app identity
+      // (logo/favicon) lives at the top level. Mirrors the React Quick
+      // Build emit logic in QuickBuildScreen.tsx.
+      spec.remove('branding');
+
+      final overrides = <String, String>{
+        ..._colorOverrides,
+      };
+      final fontValue = _fontFamily.trim();
+      if (fontValue.isNotEmpty) {
+        overrides['fontSans'] = fontValue;
       }
+      final theme = <String, dynamic>{
+        'base': _selectedTheme,
+        'mode': 'system',
+      };
+      if (_headerStyle != 'light') {
+        theme['headerStyle'] = _headerStyle;
+      }
+      if (overrides.isNotEmpty) {
+        theme['overrides'] = overrides;
+      }
+      spec['theme'] = theme;
+
       if (_logoUrlController.text.trim().isNotEmpty) {
-        branding['logo'] = _logoUrlController.text.trim();
+        spec['logo'] = _logoUrlController.text.trim();
       }
       if (_faviconUrlController.text.trim().isNotEmpty) {
-        branding['favicon'] = _faviconUrlController.text.trim();
+        spec['favicon'] = _faviconUrlController.text.trim();
       }
-      if (_headerStyle != 'light') {
-        branding['headerStyle'] = _headerStyle;
-      }
-      if (_fontFamilyController.text.trim().isNotEmpty) {
-        branding['fontFamily'] = _fontFamilyController.text.trim();
-      }
-      spec['branding'] = branding;
 
       logDebug('QuickBuild', 'Rendered spec', const JsonEncoder.withIndent('  ').convert(spec));
 
@@ -1103,7 +1114,7 @@ class _QuickBuildScreenState extends State<QuickBuildScreen> {
                               color: theme.colorScheme.onSurfaceVariant,
                             ),
                             const SizedBox(width: 4),
-                            Text('App Branding', style: theme.textTheme.titleSmall),
+                            Text('App identity & typography', style: theme.textTheme.titleSmall),
                           ],
                         ),
                       ),
@@ -1159,15 +1170,9 @@ class _QuickBuildScreenState extends State<QuickBuildScreen> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      TextField(
-                        controller: _fontFamilyController,
-                        decoration: const InputDecoration(
-                          labelText: 'Font Family',
-                          hintText: 'e.g., Inter, Georgia',
-                          helperText: 'Optional — custom font for the app',
-                          isDense: true,
-                          border: OutlineInputBorder(),
-                        ),
+                      FontPicker(
+                        value: _fontFamily,
+                        onChanged: (next) => setState(() => _fontFamily = next),
                       ),
                     ],
                   ],
