@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../engine/ai_provider.dart';
 import '../engine/framework_auth_service.dart';
 import '../engine/settings_store.dart';
 import '../widgets/framework_user_list.dart';
@@ -271,6 +272,10 @@ class _FrameworkSettingsScreenState extends State<FrameworkSettingsScreen> {
               },
             ),
           ],
+          // -- AI Build Helper (ADR-0003 phase 2) --
+          const Divider(),
+          _SectionHeader(label: 'AI BUILD HELPER'),
+          _AiSettingsSection(settings: settings),
           // -- Storage (admin-only) --
           if (_isAdmin) ...[
             const Divider(),
@@ -422,6 +427,228 @@ class _PathBox extends StatelessWidget {
       child: Text(
         path,
         style: Theme.of(context).textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// AI Build Helper section (ADR-0003 phase 2). Three controls — provider
+// segmented button, masked API key, model dropdown — plus a "Test
+// connection" button that pings the chosen provider with a tiny prompt.
+// ---------------------------------------------------------------------------
+
+class _AiSettingsSection extends StatefulWidget {
+  final SettingsStore settings;
+  const _AiSettingsSection({required this.settings});
+
+  @override
+  State<_AiSettingsSection> createState() => _AiSettingsSectionState();
+}
+
+class _AiSettingsSectionState extends State<_AiSettingsSection> {
+  late final TextEditingController _apiKeyController;
+  bool _testing = false;
+  ({bool ok, String? message})? _testResult;
+  bool _showKey = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _apiKeyController = TextEditingController(text: widget.settings.aiApiKey);
+  }
+
+  @override
+  void dispose() {
+    _apiKeyController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _setProvider(String? next) async {
+    if (next == widget.settings.aiProvider) return;
+    await widget.settings.setAiProvider(next);
+    if (next != null) {
+      // Default to the first model when the provider changes so the
+      // dropdown never shows a model id from the wrong provider.
+      final firstModel = next == 'anthropic'
+          ? anthropicModels.first.id
+          : openaiModels.first.id;
+      if (widget.settings.aiModel.isEmpty || !_modelBelongsTo(widget.settings.aiModel, next)) {
+        await widget.settings.setAiModel(firstModel);
+      }
+    } else {
+      _apiKeyController.text = '';
+    }
+    setState(() => _testResult = null);
+  }
+
+  bool _modelBelongsTo(String modelId, String provider) {
+    final list = provider == 'anthropic' ? anthropicModels : openaiModels;
+    return list.any((m) => m.id == modelId);
+  }
+
+  Future<void> _testConnection() async {
+    final s = widget.settings;
+    if (s.aiProvider == null) return;
+    setState(() {
+      _testing = true;
+      _testResult = null;
+    });
+    try {
+      final provider = makeProvider(s.aiProvider!);
+      await provider.sendMessage(
+        'Reply with the single word "ok".',
+        const [],
+        'ping',
+        SendOptions(model: s.aiModel, apiKey: s.aiApiKey),
+      );
+      if (!mounted) return;
+      setState(() => _testResult = (ok: true, message: null));
+    } catch (e) {
+      final msg = e is AiProviderError
+          ? '${e.provider} ${e.status ?? ''}: ${e.message}'.trim()
+          : e.toString();
+      if (!mounted) return;
+      setState(() => _testResult = (ok: false, message: msg));
+    } finally {
+      if (mounted) setState(() => _testing = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final s = widget.settings;
+    final canTest = s.aiProvider != null && s.aiApiKey.isNotEmpty && s.aiModel.isNotEmpty;
+    final modelList = s.aiProvider == 'anthropic'
+        ? anthropicModels
+        : s.aiProvider == 'openai'
+            ? openaiModels
+            : <AiModel>[];
+    final selectedModel = modelList.any((m) => m.id == s.aiModel) ? s.aiModel : null;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Bring your own API key to skip the copy/paste loop in "Edit with AI". '
+            'Stored locally on this device; sent only to your chosen provider\'s API.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Text('Provider', style: theme.textTheme.bodyMedium),
+              const Spacer(),
+              SegmentedButton<String?>(
+                segments: const [
+                  ButtonSegment(value: null, label: Text('None')),
+                  ButtonSegment(value: 'anthropic', label: Text('Anthropic')),
+                  ButtonSegment(value: 'openai', label: Text('OpenAI')),
+                ],
+                selected: {s.aiProvider},
+                onSelectionChanged: (sel) => _setProvider(sel.first),
+                showSelectedIcon: false,
+                style: const ButtonStyle(visualDensity: VisualDensity.compact),
+              ),
+            ],
+          ),
+          if (s.aiProvider != null) ...[
+            const SizedBox(height: 16),
+            TextField(
+              controller: _apiKeyController,
+              obscureText: !_showKey,
+              autocorrect: false,
+              enableSuggestions: false,
+              decoration: InputDecoration(
+                labelText: 'API Key',
+                hintText: s.aiProvider == 'anthropic' ? 'sk-ant-…' : 'sk-…',
+                helperText:
+                    'Stored as plaintext in ods_settings.json (v1) — OS-keychain follow-up tracked.',
+                isDense: true,
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: Icon(_showKey ? Icons.visibility_off : Icons.visibility),
+                  tooltip: _showKey ? 'Hide key' : 'Show key',
+                  onPressed: () => setState(() => _showKey = !_showKey),
+                ),
+              ),
+              onChanged: (v) {
+                widget.settings.setAiApiKey(v);
+                setState(() => _testResult = null);
+              },
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Text('Model', style: theme.textTheme.bodyMedium),
+                const Spacer(),
+                DropdownButton<String>(
+                  value: selectedModel,
+                  hint: const Text('Pick a model'),
+                  underline: const SizedBox.shrink(),
+                  items: [
+                    for (final m in modelList)
+                      DropdownMenuItem(value: m.id, child: Text(m.label)),
+                  ],
+                  onChanged: (v) {
+                    if (v != null) {
+                      widget.settings.setAiModel(v);
+                      setState(() => _testResult = null);
+                    }
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                FilledButton.tonalIcon(
+                  icon: _testing
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.bolt, size: 18),
+                  label: Text(_testing ? 'Testing…' : 'Test connection'),
+                  onPressed: !canTest || _testing ? null : _testConnection,
+                ),
+                const SizedBox(width: 12),
+                if (_testResult?.ok == true)
+                  Row(
+                    children: [
+                      Icon(Icons.check_circle, color: Colors.green.shade600, size: 18),
+                      const SizedBox(width: 4),
+                      Text('Connected', style: TextStyle(color: Colors.green.shade600)),
+                    ],
+                  )
+                else if (_testResult?.ok == false)
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Icon(Icons.error, color: theme.colorScheme.error, size: 18),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            _testResult!.message ?? 'Failed',
+                            style: TextStyle(color: theme.colorScheme.error, fontSize: 12),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 2,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 8),
+        ],
       ),
     );
   }

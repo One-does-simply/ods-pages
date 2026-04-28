@@ -119,6 +119,12 @@ class SettingsStore extends ChangeNotifier {
   String? _storageFolder;
   bool _hasPickedStorageFolder = false;
 
+  // AI Build Helper (ADR-0003 phase 2). Null provider = not configured.
+  // v1: stored as plaintext in ods_settings.json; OS-keychain follow-up.
+  String? _aiProvider;
+  String _aiApiKey = '';
+  String _aiModel = '';
+
   /// Per-app branding overrides: appName -> {primaryColor, cornerStyle}
   final Map<String, Map<String, String>> _brandingOverrides = {};
 
@@ -130,6 +136,16 @@ class SettingsStore extends ChangeNotifier {
   bool get isMultiUserEnabled => _isMultiUserEnabled;
   String? get defaultAppId => _defaultAppId;
   String get defaultTheme => _defaultTheme;
+
+  /// AI provider name ('anthropic' / 'openai'), or null when AI is off.
+  String? get aiProvider => _aiProvider;
+  String get aiApiKey => _aiApiKey;
+  String get aiModel => _aiModel;
+
+  /// True when provider, key, and model are all set — i.e. the in-app
+  /// AI flow can use this configuration without falling back to copy/paste.
+  bool get isAiConfigured =>
+      _aiProvider != null && _aiApiKey.isNotEmpty && _aiModel.isNotEmpty;
 
   /// Custom storage folder for all ODS data. When null, defaults to
   /// `Documents/One Does Simply/`.
@@ -374,6 +390,16 @@ class SettingsStore extends ChangeNotifier {
             _brandingOverrides[entry.key] = Map<String, String>.from(entry.value as Map);
           }
         }
+        // AI settings (ADR-0003 phase 2). Only accept the two known
+        // provider names; anything else (including legacy garbage)
+        // collapses to "AI off" so we never feed an unknown provider
+        // into the makeProvider() registry.
+        final loadedProvider = data['aiProvider'] as String?;
+        if (loadedProvider == 'anthropic' || loadedProvider == 'openai') {
+          _aiProvider = loadedProvider;
+        }
+        _aiApiKey = data['aiApiKey'] as String? ?? '';
+        _aiModel = data['aiModel'] as String? ?? '';
       } catch (e) {
         debugPrint('SettingsStore: failed to load settings: $e');
       }
@@ -407,6 +433,43 @@ class SettingsStore extends ChangeNotifier {
       if (_storageFolder != null) 'storageFolder': _storageFolder,
       'hasPickedStorageFolder': _hasPickedStorageFolder,
       if (_brandingOverrides.isNotEmpty) 'brandingOverrides': _brandingOverrides,
+      if (_aiProvider != null) 'aiProvider': _aiProvider,
+      if (_aiApiKey.isNotEmpty) 'aiApiKey': _aiApiKey,
+      if (_aiModel.isNotEmpty) 'aiModel': _aiModel,
     }));
+  }
+
+  // ---------------------------------------------------------------------------
+  // AI Build Helper setters (ADR-0003 phase 2)
+  // ---------------------------------------------------------------------------
+
+  /// Set the AI provider. Pass null to clear all AI settings.
+  Future<void> setAiProvider(String? provider) async {
+    if (provider != null && provider != 'anthropic' && provider != 'openai') {
+      throw ArgumentError('Unknown AI provider: $provider');
+    }
+    if (provider == null) {
+      _aiProvider = null;
+      _aiApiKey = '';
+      _aiModel = '';
+    } else {
+      _aiProvider = provider;
+    }
+    notifyListeners();
+    await _save();
+  }
+
+  Future<void> setAiApiKey(String key) async {
+    if (_aiApiKey == key) return;
+    _aiApiKey = key;
+    notifyListeners();
+    await _save();
+  }
+
+  Future<void> setAiModel(String model) async {
+    if (_aiModel == model) return;
+    _aiModel = model;
+    notifyListeners();
+    await _save();
   }
 }

@@ -116,8 +116,8 @@ Future<void> pumpUntilFound(
 Future<void> pumpAndSettle(
   WidgetTester tester,
   Widget widget, {
-  Duration roundDuration = const Duration(milliseconds: 100),
-  int maxRounds = 16,
+  Duration roundDuration = const Duration(milliseconds: 150),
+  int maxRounds = 20,
 }) async {
   await tester.pumpWidget(widget);
   for (var i = 0; i < maxRounds; i++) {

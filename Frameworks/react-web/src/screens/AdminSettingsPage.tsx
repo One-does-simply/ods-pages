@@ -57,6 +57,21 @@ import {
   setDefaultAppSlug,
 } from '@/engine/default-app-store.ts'
 import { AppRegistry, type AppRecord } from '@/engine/app-registry.ts'
+import {
+  getAiSettings,
+  setAiSettings,
+  clearAiSettings,
+  type AiSettings,
+  type AiProviderName,
+} from '@/engine/ai-settings.ts'
+import {
+  ANTHROPIC_MODELS,
+  OPENAI_MODELS,
+  AnthropicProvider,
+  OpenAiProvider,
+  AiProviderError,
+  type AiProvider,
+} from '@/engine/ai-provider.ts'
 import { toast } from 'sonner'
 import {
   ArrowLeft,
@@ -70,6 +85,9 @@ import {
   KeyRound,
   Trash2,
   Shield,
+  Sparkles,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react'
 import {
   AlertDialog,
@@ -106,6 +124,13 @@ export function AdminSettingsPage() {
   // Logging
   const [logSettingsState, setLogSettingsState] = useState<LogSettings>(getLogSettings)
   const [logCount, setLogCount] = useState(getLogCount)
+
+  // AI Build Helper (ADR-0003)
+  const [ai, setAi] = useState<AiSettings>(getAiSettings)
+  const [aiTesting, setAiTesting] = useState(false)
+  const [aiTestResult, setAiTestResult] = useState<
+    { ok: true } | { ok: false; message: string } | null
+  >(null)
 
   // PocketBase
   const pbUrl = import.meta.env.VITE_POCKETBASE_URL ?? 'http://127.0.0.1:8090'
@@ -214,6 +239,72 @@ export function AdminSettingsPage() {
     setDefaultAppSlug(slug)
     setDefaultSlugState(slug)
     toast.success('Default app updated')
+  }
+
+  // ---- AI Build Helper handlers (ADR-0003 phase 2) ---------------------
+
+  function setAiProvider(provider: AiProviderName | null) {
+    // Reset model to the provider's first model when switching, so the
+    // dropdown never shows a model id that doesn't belong to the
+    // selected provider.
+    const defaultModel = provider === 'anthropic'
+      ? ANTHROPIC_MODELS[0].id
+      : provider === 'openai'
+        ? OPENAI_MODELS[0].id
+        : ''
+    const next: AiSettings = {
+      provider,
+      apiKey: provider === null ? '' : ai.apiKey,
+      model: provider === null ? '' : (ai.provider === provider ? ai.model : defaultModel),
+    }
+    setAi(next)
+    setAiTestResult(null)
+    if (provider === null) clearAiSettings()
+    else setAiSettings(next)
+  }
+
+  function setAiKey(apiKey: string) {
+    const next = { ...ai, apiKey }
+    setAi(next)
+    setAiTestResult(null)
+    setAiSettings(next)
+  }
+
+  function setAiModel(model: string) {
+    const next = { ...ai, model }
+    setAi(next)
+    setAiTestResult(null)
+    setAiSettings(next)
+  }
+
+  async function handleTestAiConnection() {
+    if (ai.provider === null) return
+    setAiTesting(true)
+    setAiTestResult(null)
+    try {
+      const provider: AiProvider = ai.provider === 'anthropic'
+        ? new AnthropicProvider()
+        : new OpenAiProvider()
+      // Tiny ping — both providers will return *something* even with
+      // a one-character user message; we only care that the round-trip
+      // succeeds and the response shape is valid.
+      await provider.sendMessage(
+        'Reply with the single word "ok".',
+        [],
+        'ping',
+        { model: ai.model, apiKey: ai.apiKey },
+      )
+      setAiTestResult({ ok: true })
+    } catch (e) {
+      const message = e instanceof AiProviderError
+        ? `${e.provider} ${e.status ?? ''}: ${e.message}`
+        : e instanceof Error
+          ? e.message
+          : String(e)
+      setAiTestResult({ ok: false, message })
+    } finally {
+      setAiTesting(false)
+    }
   }
 
   function handleSwitchPb() {
@@ -490,6 +581,115 @@ export function AdminSettingsPage() {
                   </SelectContent>
                 </Select>
               </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* ---- AI Build Helper (ADR-0003) ---- */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Sparkles className="size-4" />
+              AI Build Helper
+            </CardTitle>
+            <CardDescription>
+              Bring your own API key to skip the copy/paste loop in "Edit with AI". Stored
+              locally in this browser; never sent anywhere except your chosen provider's API.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between gap-4">
+              <Label>Provider</Label>
+              <div className="flex gap-1 rounded-lg border p-0.5">
+                {([
+                  { value: null, label: 'None' },
+                  { value: 'anthropic' as AiProviderName, label: 'Anthropic' },
+                  { value: 'openai' as AiProviderName, label: 'OpenAI' },
+                ]).map(({ value, label }) => (
+                  <button
+                    key={String(value)}
+                    type="button"
+                    onClick={() => setAiProvider(value)}
+                    className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+                      ai.provider === value
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {ai.provider !== null && (
+              <>
+                <Separator />
+                <div className="space-y-1">
+                  <Label htmlFor="ai-key">API Key</Label>
+                  <Input
+                    id="ai-key"
+                    type="password"
+                    autoComplete="off"
+                    value={ai.apiKey}
+                    onChange={(e) => setAiKey(e.target.value)}
+                    placeholder={ai.provider === 'anthropic' ? 'sk-ant-...' : 'sk-...'}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Stored as plaintext in <code>localStorage</code> for v1 — OS keychain
+                    integration tracked as a follow-up. Clear it by selecting Provider:
+                    None.
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between gap-4">
+                  <Label>Model</Label>
+                  <Select value={ai.model} onValueChange={(v) => setAiModel(v ?? '')}>
+                    <SelectTrigger className="w-[260px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(ai.provider === 'anthropic' ? ANTHROPIC_MODELS : OPENAI_MODELS).map((m) => (
+                        <SelectItem key={m.id} value={m.id}>
+                          {m.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleTestAiConnection}
+                    disabled={aiTesting || !ai.apiKey || !ai.model}
+                  >
+                    {aiTesting ? (
+                      <>
+                        <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                        Testing...
+                      </>
+                    ) : (
+                      'Test connection'
+                    )}
+                  </Button>
+                  {aiTestResult?.ok === true && (
+                    <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                      <CheckCircle2 className="size-3.5" />
+                      Connected
+                    </span>
+                  )}
+                  {aiTestResult?.ok === false && (
+                    <span className="flex items-center gap-1 text-xs text-destructive" title={aiTestResult.message}>
+                      <XCircle className="size-3.5" />
+                      {aiTestResult.message.length > 60
+                        ? aiTestResult.message.slice(0, 60) + '…'
+                        : aiTestResult.message}
+                    </span>
+                  )}
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
