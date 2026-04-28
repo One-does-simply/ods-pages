@@ -45,10 +45,13 @@ void main() {
           fields: ['title', 'dueDate'],
           styleHint: OdsStyleHint({}),
         );
-        await pumpAndSettle(
-          tester,
+        await tester.pumpWidget(
           harness(engine: booted.engine, child: const OdsDetailWidget(model: model)),
         );
+        // Wait until the seeded row appears — fixed pump rounds flake
+        // under full-gate load when many SQLite operations have already
+        // happened in this process. pumpUntilFound polls until found.
+        await pumpUntilFound(tester, find.text('Buy Milk'));
         expect(find.text('Buy Milk'), findsOneWidget);
         expect(find.text('2026-05-01'), findsOneWidget);
       } finally {

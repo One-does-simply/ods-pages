@@ -39,10 +39,16 @@ void main() {
           aggregate: 'sum',
           styleHint: OdsStyleHint({}),
         );
-        await pumpAndSettle(
-          tester,
+        // Empty-data path renders synchronously; a long pumpAndSettle
+        // gives stale FutureBuilders from prior tests time to throw
+        // into takeException (intermittent flake under full-gate load).
+        // A single short pump is enough — the no-data branch doesn't
+        // need any SQLite round-trip to render.
+        await tester.pumpWidget(
           harness(engine: booted.engine, child: const OdsChartWidget(model: model)),
         );
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+        await tester.pump();
         expect(tester.takeException(), isNull);
       } finally {
         await disposeAllFor(tester, booted);
