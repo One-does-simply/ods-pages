@@ -138,8 +138,12 @@ export class AnthropicProvider implements AiProvider {
   readonly models = ANTHROPIC_MODELS
   private readonly fetchImpl: Fetch
 
-  constructor(fetchImpl: Fetch = fetch) {
-    this.fetchImpl = fetchImpl
+  constructor(fetchImpl?: Fetch) {
+    // If no impl is injected (production path), bind the global fetch
+    // to its rightful receiver. Without this, browsers throw "Illegal
+    // invocation" because `fetch` requires `this === window`. Tests
+    // pass their own MockClient-like function so the bind is a no-op.
+    this.fetchImpl = fetchImpl ?? ((input, init) => globalThis.fetch(input, init))
   }
 
   estimateCost(systemPrompt: string, history: Message[], userMessage: string, modelId: string): CostEstimate {
@@ -218,8 +222,11 @@ export class OpenAiProvider implements AiProvider {
   readonly models = OPENAI_MODELS
   private readonly fetchImpl: Fetch
 
-  constructor(fetchImpl: Fetch = fetch) {
-    this.fetchImpl = fetchImpl
+  constructor(fetchImpl?: Fetch) {
+    // See AnthropicProvider — bind global fetch to globalThis so the
+    // browser doesn't throw "Illegal invocation" when we call it via
+    // `this.fetchImpl(...)`.
+    this.fetchImpl = fetchImpl ?? ((input, init) => globalThis.fetch(input, init))
   }
 
   estimateCost(systemPrompt: string, history: Message[], userMessage: string, modelId: string): CostEstimate {

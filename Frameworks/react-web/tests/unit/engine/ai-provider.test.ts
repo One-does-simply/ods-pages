@@ -261,3 +261,63 @@ describe('model registry', () => {
     }
   })
 })
+
+// =========================================================================
+// Regression: the production path (no fetchImpl injected) used to break
+// in the browser with "Failed to execute 'fetch' on 'Window': Illegal
+// invocation" because the bare `fetch` reference loses its `this`
+// binding when stored as a class field. The default impl now wraps it
+// in an arrow that calls `globalThis.fetch`. This test pins the wiring.
+// =========================================================================
+
+describe('default fetch invocation context', () => {
+  it('AnthropicProvider with no injected fetch calls globalThis.fetch (no Illegal invocation)', async () => {
+    const realFetch = globalThis.fetch
+    const calls: { url: string }[] = []
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      calls.push({ url: String(input) })
+      return new Response(
+        JSON.stringify({
+          content: [{ type: 'text', text: 'ok' }],
+          usage: { input_tokens: 1, output_tokens: 1 },
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      )
+    }) as unknown as typeof fetch
+    try {
+      // Construct WITHOUT injecting a fetch impl — the production path
+      // that was broken.
+      await new AnthropicProvider().sendMessage(SYSTEM, [], USER, {
+        model: 'claude-sonnet-4-6',
+        apiKey: 'sk-ant-test',
+      })
+      expect(calls[0].url).toBe('https://api.anthropic.com/v1/messages')
+    } finally {
+      globalThis.fetch = realFetch
+    }
+  })
+
+  it('OpenAiProvider with no injected fetch calls globalThis.fetch', async () => {
+    const realFetch = globalThis.fetch
+    const calls: { url: string }[] = []
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      calls.push({ url: String(input) })
+      return new Response(
+        JSON.stringify({
+          choices: [{ message: { content: 'ok' } }],
+          usage: { prompt_tokens: 1, completion_tokens: 1 },
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      )
+    }) as unknown as typeof fetch
+    try {
+      await new OpenAiProvider().sendMessage(SYSTEM, [], USER, {
+        model: 'gpt-4o',
+        apiKey: 'sk-openai-test',
+      })
+      expect(calls[0].url).toBe('https://api.openai.com/v1/chat/completions')
+    } finally {
+      globalThis.fetch = realFetch
+    }
+  })
+})

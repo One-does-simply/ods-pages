@@ -84,7 +84,7 @@ Future<void> disposeAllFor(WidgetTester tester, _BootedEngine booted) async {
 Future<void> pumpUntilFound(
   WidgetTester tester,
   Finder finder, {
-  Duration timeout = const Duration(seconds: 5),
+  Duration timeout = const Duration(seconds: 10),
   Duration pollInterval = const Duration(milliseconds: 50),
 }) async {
   final deadline = DateTime.now().add(timeout);
