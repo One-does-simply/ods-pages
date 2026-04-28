@@ -48,6 +48,7 @@ import {
   MoreVertical,
   Play,
   Link2,
+  ClipboardPaste,
   Download,
   Code,
   Star,
@@ -418,6 +419,7 @@ export function AdminDashboard() {
               onPasteJson={() => { setLocalError(null); setMode('paste') }}
               onBrowseExamples={() => setCatalogOpen(true)}
               onQuickBuild={() => navigate('/admin/quick-build')}
+              onBuildWithAi={() => navigate('/admin/apps/new-ai')}
             />
           </div>
 
@@ -753,12 +755,14 @@ function AddAppButton({
   onPasteJson,
   onBrowseExamples,
   onQuickBuild,
+  onBuildWithAi,
 }: {
   onPickFile: () => void
   onLoadUrl: () => void
   onPasteJson: () => void
   onBrowseExamples: () => void
   onQuickBuild: () => void
+  onBuildWithAi: () => void
 }) {
   const [open, setOpen] = useState(false)
 
@@ -808,8 +812,14 @@ function AddAppButton({
             <div className="my-1.5 h-px bg-border" />
             <AddAppMenuItem
               icon={Sparkles}
-              title="Create New"
-              subtitle="Build an app with AI assistance"
+              title="Build with AI"
+              subtitle="Describe an app and let AI draft the spec"
+              onClick={item(onBuildWithAi)}
+            />
+            <AddAppMenuItem
+              icon={ClipboardPaste}
+              title="Paste JSON"
+              subtitle="Paste a spec you already have"
               onClick={item(onPasteJson)}
             />
           </div>

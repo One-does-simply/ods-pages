@@ -5,6 +5,7 @@ import { AdminSettingsPage } from '@/screens/AdminSettingsPage.tsx'
 import { UserManagementPage } from '@/screens/UserManagementPage.tsx'
 import { AppEditor } from '@/screens/AppEditor.tsx'
 import { EditWithAiScreen } from '@/screens/EditWithAiScreen.tsx'
+import { BuildWithAiScreen } from '@/screens/BuildWithAiScreen.tsx'
 import { QuickBuildScreen } from '@/screens/QuickBuildScreen.tsx'
 import { AppLoader } from '@/screens/AppLoader.tsx'
 import { RootRedirect } from '@/screens/RootRedirect.tsx'
@@ -25,6 +26,7 @@ export default function App() {
           <Route path="settings" element={<AdminSettingsPage />} />
           <Route path="apps/:appId/edit" element={<AppEditor />} />
           <Route path="apps/:appId/edit-ai" element={<EditWithAiScreen />} />
+          <Route path="apps/new-ai" element={<BuildWithAiScreen />} />
           <Route path="quick-build" element={<QuickBuildScreen />} />
         </Route>
         <Route path="/oauth2-callback" element={<OAuth2Callback />} />
