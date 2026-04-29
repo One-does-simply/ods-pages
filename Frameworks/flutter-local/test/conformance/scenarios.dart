@@ -6,6 +6,8 @@
 /// of the contract.
 library;
 
+import 'dart:convert';
+
 import 'contract.dart';
 import 'load_spec.dart';
 
@@ -824,6 +826,91 @@ final s26ListDefaultSortOrdersDisplayedRows = Scenario(
   },
 );
 
+final s27AiProviderRequestShape = Scenario(
+  name: 'AI provider wire shape is identical across frameworks (ADR-0003 phase 5)',
+  // miniTodo is a no-op host spec — simulateAiRequest doesn't touch the
+  // app, but the runner still mounts something so unmount/reset stay sane.
+  spec: miniTodoSpec,
+  capabilities: const ['core', 'ai:provider'],
+  run: (d) async {
+    const system = 'You are an ODS Build Helper.';
+    const history = <({String role, String content})>[
+      (role: 'user', content: 'Add a priority field'),
+      (role: 'assistant', content: 'Sure, here is the update.'),
+    ];
+    const user = 'Now make the default "medium"';
+
+    // -- Anthropic ---------------------------------------------------------
+    final anth = await d.simulateAiRequest(
+      provider: 'anthropic',
+      model: 'claude-sonnet-4-6',
+      apiKey: 'sk-ant-conformance',
+      systemPrompt: system,
+      history: history,
+      userMessage: user,
+    );
+    assertEqual(
+      anth.url,
+      'https://api.anthropic.com/v1/messages',
+      'anthropic endpoint URL',
+    );
+    assertEqual(anth.method, 'POST', 'anthropic HTTP method');
+    assertEqual(
+      anth.authHeader,
+      'x-api-key: sk-ant-conformance',
+      'anthropic auth header (x-api-key form, normalized lowercase)',
+    );
+    assertEqual(anth.body['model'], 'claude-sonnet-4-6', 'anthropic body.model');
+    assertEqual(anth.body['system'], system, 'anthropic body.system');
+    final maxTokens = anth.body['max_tokens'];
+    assertTrue(
+      maxTokens is int && maxTokens > 0,
+      'anthropic body.max_tokens is a positive number',
+    );
+    // Anthropic format: history then current user, no system in messages array.
+    assertEqual(
+      jsonEncode(anth.body['messages']),
+      jsonEncode([
+        for (final m in history) {'role': m.role, 'content': m.content},
+        {'role': 'user', 'content': user},
+      ]),
+      'anthropic body.messages = history + final user turn',
+    );
+
+    // -- OpenAI ------------------------------------------------------------
+    final oai = await d.simulateAiRequest(
+      provider: 'openai',
+      model: 'gpt-4o',
+      apiKey: 'sk-openai-conformance',
+      systemPrompt: system,
+      history: history,
+      userMessage: user,
+    );
+    assertEqual(
+      oai.url,
+      'https://api.openai.com/v1/chat/completions',
+      'openai endpoint URL',
+    );
+    assertEqual(oai.method, 'POST', 'openai HTTP method');
+    assertEqual(
+      oai.authHeader,
+      'authorization: Bearer sk-openai-conformance',
+      'openai auth header (Bearer form, normalized lowercase)',
+    );
+    assertEqual(oai.body['model'], 'gpt-4o', 'openai body.model');
+    // OpenAI format: system as first message in the messages array.
+    assertEqual(
+      jsonEncode(oai.body['messages']),
+      jsonEncode([
+        {'role': 'system', 'content': system},
+        for (final m in history) {'role': m.role, 'content': m.content},
+        {'role': 'user', 'content': user},
+      ]),
+      'openai body.messages = [system, ...history, final user turn]',
+    );
+  },
+);
+
 /// Full list of scenarios the runner executes.
 final List<Scenario> allScenarios = [
   s01SpecLoads,
@@ -852,4 +939,5 @@ final List<Scenario> allScenarios = [
   s24ClickMenuItemNavigatesBetweenPages,
   s25CurrentUserMagicDefaultsResolveAfterLogin,
   s26ListDefaultSortOrdersDisplayedRows,
+  s27AiProviderRequestShape,
 ];

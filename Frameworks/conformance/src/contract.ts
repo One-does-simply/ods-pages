@@ -37,6 +37,30 @@ export interface UserSnapshot {
 }
 
 /**
+ * Captured wire shape of an outbound AI provider request. Used by the
+ * `ai:provider` conformance scenario (ADR-0003 phase 5) to verify both
+ * frameworks produce identical request bodies for the same logical
+ * inputs. The driver's `simulateAiRequest` injects a fake transport,
+ * makes a one-shot call, and returns this snapshot — no real network.
+ */
+export interface AiRequestSnapshot {
+  /** Full request URL. */
+  url: string
+  /** HTTP method, always uppercase. */
+  method: string
+  /** The provider's auth header value. Anthropic uses `x-api-key:
+   *  <key>`; OpenAI uses `Authorization: Bearer <key>`. The driver
+   *  normalizes both into `<header-name>: <header-value>` form so the
+   *  scenario can pin the per-provider convention without caring about
+   *  case. */
+  authHeader: string
+  /** Parsed request body. Both providers wrap the user message + history
+   *  + system prompt + model into a JSON body — the scenario asserts on
+   *  the structural keys (model, messages, system, etc.). */
+  body: Record<string, unknown>
+}
+
+/**
  * Effective theme as a framework should expose it after parsing the
  * spec. Used by the theme conformance scenario to verify both
  * frameworks produce the same shape (per ADR-0002).
@@ -273,6 +297,27 @@ export interface OdsDriver {
    * capability may throw.
    */
   themeConfig(): Promise<ThemeConfig>
+
+  // -- AI provider parity ----------------------------------------------------
+
+  /**
+   * Build the wire-shape an AI provider WOULD send for the given inputs,
+   * without touching the network. The driver instantiates the named
+   * provider with a fake transport that captures the outbound request,
+   * sends a fixed-stub response, and returns the captured request as an
+   * AiRequestSnapshot. Used by the AI provider conformance scenario
+   * (ADR-0003 phase 5) to verify both frameworks produce identical
+   * request bodies. Drivers without the `ai:provider` capability may
+   * throw.
+   */
+  simulateAiRequest(opts: {
+    provider: 'anthropic' | 'openai'
+    model: string
+    apiKey: string
+    systemPrompt: string
+    history: ReadonlyArray<{ role: 'user' | 'assistant'; content: string }>
+    userMessage: string
+  }): Promise<AiRequestSnapshot>
 
   // -- Determinism -----------------------------------------------------------
 

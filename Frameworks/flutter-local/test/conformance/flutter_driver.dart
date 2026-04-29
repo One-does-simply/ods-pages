@@ -15,7 +15,10 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:ods_flutter_local/engine/aggregate_evaluator.dart';
+import 'package:ods_flutter_local/engine/ai_provider.dart' as ai;
 import 'package:ods_flutter_local/engine/app_engine.dart';
 import 'package:ods_flutter_local/engine/formula_evaluator.dart';
 import 'package:ods_flutter_local/models/ods_action.dart';
@@ -43,6 +46,7 @@ class FlutterDriver implements OdsDriver {
     'detail',
     'cascadeRename',
     'theme',
+    'ai:provider',
     'auth:multiUser',
     'auth:selfRegistration',
     'auth:ownership',
@@ -519,6 +523,80 @@ class FlutterDriver implements OdsDriver {
   @override
   Future<void> setSeed(int seed) async {
     // No RNG surface exposed in the MVP scenarios.
+  }
+
+  // -- AI provider parity ---------------------------------------------------
+
+  @override
+  Future<AiRequestSnapshot> simulateAiRequest({
+    required String provider,
+    required String model,
+    required String apiKey,
+    required String systemPrompt,
+    required List<({String role, String content})> history,
+    required String userMessage,
+  }) async {
+    // Inject a MockClient that captures the outbound request and returns a
+    // canned success body so the provider's success path runs through.
+    http.Request? captured;
+    final stubBody = provider == 'anthropic'
+        ? jsonEncode({
+            'content': [
+              {'type': 'text', 'text': 'ok'},
+            ],
+            'usage': {'input_tokens': 1, 'output_tokens': 1},
+          })
+        : jsonEncode({
+            'choices': [
+              {
+                'message': {'content': 'ok'},
+              },
+            ],
+            'usage': {'prompt_tokens': 1, 'completion_tokens': 1},
+          });
+
+    final client = MockClient((req) async {
+      captured = req;
+      return http.Response(
+        stubBody,
+        200,
+        headers: {'content-type': 'application/json'},
+      );
+    });
+
+    final providerImpl = ai.makeProvider(provider, client: client);
+    await providerImpl.sendMessage(
+      systemPrompt,
+      [for (final m in history) ai.Message(role: m.role, content: m.content)],
+      userMessage,
+      ai.SendOptions(model: model, apiKey: apiKey),
+    );
+
+    final c = captured;
+    if (c == null) {
+      throw StateError('simulateAiRequest: provider did not invoke the http client');
+    }
+
+    // Normalize header keys to lowercase so the snapshot is case-insensitive
+    // by construction. Both providers already emit lowercase but http may
+    // normalize differently across platforms.
+    final lowerHeaders = <String, String>{};
+    c.headers.forEach((k, v) {
+      lowerHeaders[k.toLowerCase()] = v;
+    });
+    final authHeader = provider == 'anthropic'
+        ? 'x-api-key: ${lowerHeaders['x-api-key'] ?? ''}'
+        : 'authorization: ${lowerHeaders['authorization'] ?? ''}';
+
+    final bodyJson = jsonDecode(c.body);
+    return AiRequestSnapshot(
+      url: c.url.toString(),
+      method: c.method.toUpperCase(),
+      authHeader: authHeader,
+      body: bodyJson is Map<String, dynamic>
+          ? bodyJson
+          : Map<String, dynamic>.from(bodyJson as Map),
+    );
   }
 
   // -- Theme -----------------------------------------------------------------

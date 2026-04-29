@@ -23,6 +23,7 @@ export type Capability =
   | 'rowActions'
   | 'cascadeRename'
   | 'theme'
+  | 'ai:provider'
 
   // Auth.
   | 'auth:multiUser'

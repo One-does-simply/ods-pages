@@ -863,6 +863,87 @@ export const s26_list_default_sort_orders_displayed_rows: Scenario = {
   },
 }
 
+export const s27_ai_provider_request_shape: Scenario = {
+  name: 'AI provider wire shape is identical across frameworks (ADR-0003 phase 5)',
+  // miniTodo is a no-op host spec — simulateAiRequest doesn't touch the
+  // app, but the runner still mounts something so unmount/reset stay sane.
+  spec: miniTodoSpec,
+  capabilities: ['core', 'ai:provider'],
+  run: async (d) => {
+    const SYSTEM = 'You are an ODS Build Helper.'
+    const HISTORY: ReadonlyArray<{ role: 'user' | 'assistant'; content: string }> = [
+      { role: 'user', content: 'Add a priority field' },
+      { role: 'assistant', content: 'Sure, here is the update.' },
+    ]
+    const USER = 'Now make the default "medium"'
+
+    // -- Anthropic ---------------------------------------------------------
+    const anth = await d.simulateAiRequest({
+      provider: 'anthropic',
+      model: 'claude-sonnet-4-6',
+      apiKey: 'sk-ant-conformance',
+      systemPrompt: SYSTEM,
+      history: HISTORY,
+      userMessage: USER,
+    })
+    assertEqual(
+      anth.url,
+      'https://api.anthropic.com/v1/messages',
+      'anthropic endpoint URL',
+    )
+    assertEqual(anth.method, 'POST', 'anthropic HTTP method')
+    assertEqual(
+      anth.authHeader,
+      'x-api-key: sk-ant-conformance',
+      'anthropic auth header (x-api-key form, normalized lowercase)',
+    )
+    assertEqual(anth.body['model'], 'claude-sonnet-4-6', 'anthropic body.model')
+    assertEqual(anth.body['system'], SYSTEM, 'anthropic body.system')
+    assertTrue(
+      typeof anth.body['max_tokens'] === 'number' && (anth.body['max_tokens'] as number) > 0,
+      'anthropic body.max_tokens is a positive number',
+    )
+    // Anthropic format: history then current user, no system in messages array.
+    assertEqual(
+      JSON.stringify(anth.body['messages']),
+      JSON.stringify([...HISTORY, { role: 'user', content: USER }]),
+      'anthropic body.messages = history + final user turn',
+    )
+
+    // -- OpenAI ------------------------------------------------------------
+    const oai = await d.simulateAiRequest({
+      provider: 'openai',
+      model: 'gpt-4o',
+      apiKey: 'sk-openai-conformance',
+      systemPrompt: SYSTEM,
+      history: HISTORY,
+      userMessage: USER,
+    })
+    assertEqual(
+      oai.url,
+      'https://api.openai.com/v1/chat/completions',
+      'openai endpoint URL',
+    )
+    assertEqual(oai.method, 'POST', 'openai HTTP method')
+    assertEqual(
+      oai.authHeader,
+      'authorization: Bearer sk-openai-conformance',
+      'openai auth header (Bearer form, normalized lowercase)',
+    )
+    assertEqual(oai.body['model'], 'gpt-4o', 'openai body.model')
+    // OpenAI format: system as first message in the messages array.
+    assertEqual(
+      JSON.stringify(oai.body['messages']),
+      JSON.stringify([
+        { role: 'system', content: SYSTEM },
+        ...HISTORY,
+        { role: 'user', content: USER },
+      ]),
+      'openai body.messages = [system, ...history, final user turn]',
+    )
+  },
+}
+
 /** Full list of scenarios the runner should execute. */
 export const allScenarios: ReadonlyArray<Scenario> = [
   s01_spec_loads,
@@ -891,4 +972,5 @@ export const allScenarios: ReadonlyArray<Scenario> = [
   s24_click_menu_item_navigates_between_pages,
   s25_current_user_magic_defaults_resolve_after_login,
   s26_list_default_sort_orders_displayed_rows,
+  s27_ai_provider_request_shape,
 ]

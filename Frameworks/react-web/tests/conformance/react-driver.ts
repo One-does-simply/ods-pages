@@ -1,6 +1,7 @@
 import { vi } from 'vitest'
 import { useAppStore } from '../../src/engine/app-store.ts'
 import { AuthService } from '../../src/engine/auth-service.ts'
+import { makeProvider, type Fetch, type Message as AiProviderMessage } from '../../src/engine/ai-provider.ts'
 import type { OdsAction } from '../../src/models/ods-action.ts'
 import type { OdsApp } from '../../src/models/ods-app.ts'
 import type {
@@ -22,6 +23,7 @@ import { FakeDataService } from '../helpers/fake-data-service.ts'
 import { FakePocketBase } from '../helpers/fake-pocketbase.ts'
 
 import type {
+  AiRequestSnapshot,
   Capability,
   ComponentSnapshot,
   FieldType,
@@ -116,6 +118,7 @@ export class ReactDriver implements OdsDriver {
     'rowActions',
     'cascadeRename',
     'theme',
+    'ai:provider',
     'auth:multiUser',
     'auth:selfRegistration',
     'auth:ownership',
@@ -543,6 +546,72 @@ export class ReactDriver implements OdsDriver {
 
   async setSeed(_seed: number): Promise<void> {
     // FakeDataService uses a counter; deterministic by construction.
+  }
+
+  // -- AI provider parity ---------------------------------------------------
+
+  async simulateAiRequest(opts: {
+    provider: 'anthropic' | 'openai'
+    model: string
+    apiKey: string
+    systemPrompt: string
+    history: ReadonlyArray<{ role: 'user' | 'assistant'; content: string }>
+    userMessage: string
+  }): Promise<AiRequestSnapshot> {
+    // Capture the outbound request via an injected fetch impl, then send a
+    // canned success body so the provider's success path runs to completion.
+    let captured: { url: string; init: RequestInit } | null = null
+    const stubBody =
+      opts.provider === 'anthropic'
+        ? JSON.stringify({
+            content: [{ type: 'text', text: 'ok' }],
+            usage: { input_tokens: 1, output_tokens: 1 },
+          })
+        : JSON.stringify({
+            choices: [{ message: { content: 'ok' } }],
+            usage: { prompt_tokens: 1, completion_tokens: 1 },
+          })
+
+    const captureFetch: Fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      captured = { url: String(input), init: init ?? {} }
+      return new Response(stubBody, {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }) as unknown as Fetch
+
+    const provider = makeProvider(opts.provider, captureFetch)
+    await provider.sendMessage(
+      opts.systemPrompt,
+      opts.history.map((m) => ({ role: m.role, content: m.content }) as AiProviderMessage),
+      opts.userMessage,
+      { model: opts.model, apiKey: opts.apiKey },
+    )
+
+    if (!captured) {
+      throw new Error('simulateAiRequest: provider did not call fetch')
+    }
+
+    const c = captured as { url: string; init: RequestInit }
+    const headers = (c.init.headers ?? {}) as Record<string, string>
+    // Normalize header keys to lowercase so the snapshot is case-insensitive
+    // by construction. Both providers already emit lowercase, but the
+    // browser/runtime may normalize differently if they ever change.
+    const lowerHeaders: Record<string, string> = {}
+    for (const [k, v] of Object.entries(headers)) {
+      lowerHeaders[k.toLowerCase()] = v
+    }
+    const authValue =
+      opts.provider === 'anthropic'
+        ? `x-api-key: ${lowerHeaders['x-api-key'] ?? ''}`
+        : `authorization: ${lowerHeaders['authorization'] ?? ''}`
+
+    return {
+      url: c.url,
+      method: String(c.init.method ?? 'GET').toUpperCase(),
+      authHeader: authValue,
+      body: JSON.parse(String(c.init.body ?? 'null')) as Record<string, unknown>,
+    }
   }
 
   // -- Theme -----------------------------------------------------------------

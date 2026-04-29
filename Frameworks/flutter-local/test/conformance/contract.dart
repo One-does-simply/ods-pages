@@ -81,6 +81,29 @@ class ThemeConfig {
   final String? favicon;
 }
 
+/// Captured wire shape of an outbound AI provider request. See
+/// `contract.ts` for the cross-language contract — both frameworks must
+/// produce identical snapshots for the same logical inputs (ADR-0003
+/// phase 5).
+class AiRequestSnapshot {
+  const AiRequestSnapshot({
+    required this.url,
+    required this.method,
+    required this.authHeader,
+    required this.body,
+  });
+  final String url;
+  final String method;
+
+  /// `<header-name>: <header-value>` form, normalized lowercase header
+  /// name. Anthropic = `x-api-key: <key>`, OpenAI = `authorization:
+  /// Bearer <key>`.
+  final String authHeader;
+
+  /// Parsed JSON body.
+  final Map<String, dynamic> body;
+}
+
 // ---------------------------------------------------------------------------
 // ComponentSnapshot — framework-neutral view of what's on a page
 // ---------------------------------------------------------------------------
@@ -344,6 +367,21 @@ abstract class OdsDriver {
   /// the same parse shape per ADR-0002. Drivers without the `theme`
   /// capability may throw.
   Future<ThemeConfig> themeConfig();
+
+  // -- AI provider parity ---------------------------------------------------
+
+  /// Build the wire-shape an AI provider WOULD send for the given inputs,
+  /// without touching the network. Drivers without the `ai:provider`
+  /// capability may throw. See `contract.ts` for the full description
+  /// (ADR-0003 phase 5).
+  Future<AiRequestSnapshot> simulateAiRequest({
+    required String provider,
+    required String model,
+    required String apiKey,
+    required String systemPrompt,
+    required List<({String role, String content})> history,
+    required String userMessage,
+  });
 
   // -- Determinism -----------------------------------------------------------
 

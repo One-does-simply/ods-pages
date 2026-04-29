@@ -19,6 +19,7 @@ export type {
   TextSnapshot,
   ThemeConfig,
   UserSnapshot,
+  AiRequestSnapshot,
 } from './contract.ts'
 export { allScenarios } from './scenarios.ts'
 export type { Scenario } from './scenarios.ts'

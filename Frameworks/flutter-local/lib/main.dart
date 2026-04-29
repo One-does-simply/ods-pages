@@ -8,6 +8,8 @@ import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 
 import 'debug/debug_panel.dart';
+import 'engine/ai_edit_prompt.dart';
+import 'engine/ai_provider.dart' as ai;
 import 'engine/app_engine.dart';
 import 'engine/log_service.dart';
 import 'engine/backup_manager.dart';
@@ -2420,15 +2422,34 @@ class _EditWithAiScreen extends StatefulWidget {
 }
 
 class _EditWithAiScreenState extends State<_EditWithAiScreen> {
+  // Copy/paste fallback state.
   bool _specCopied = false;
   bool _promptCopied = false;
   final _pasteController = TextEditingController();
   String? _importError;
 
+  // One-shot AI flow state (used only when SettingsStore.isAiConfigured).
+  final _instructionController = TextEditingController();
+  bool _generating = false;
+  String? _proposedSpec;
+  String? _genError;
+  String? _validationError;
+  bool _saving = false;
+
   @override
   void dispose() {
     _pasteController.dispose();
+    _instructionController.dispose();
     super.dispose();
+  }
+
+  String get _prettyCurrentSpec {
+    try {
+      const enc = JsonEncoder.withIndent('  ');
+      return enc.convert(jsonDecode(widget.app.specJson));
+    } catch (_) {
+      return widget.app.specJson;
+    }
   }
 
   Future<void> _copySpec() async {
@@ -2470,11 +2491,115 @@ class _EditWithAiScreenState extends State<_EditWithAiScreen> {
     }
   }
 
+  Future<void> _handleGenerate() async {
+    final instruction = _instructionController.text.trim();
+    if (instruction.isEmpty) return;
+
+    final settings = context.read<SettingsStore>();
+    final providerName = settings.aiProvider;
+    if (providerName == null) return;
+
+    setState(() {
+      _generating = true;
+      _genError = null;
+      _proposedSpec = null;
+      _validationError = null;
+    });
+
+    try {
+      // Try to load the bundled Build Helper prompt; fall back to a
+      // minimal inline string if the asset is missing.
+      String basePrompt;
+      try {
+        basePrompt = await rootBundle.loadString('assets/build-helper-prompt.txt');
+      } catch (_) {
+        basePrompt =
+            'You are the ODS Build Helper. ODS apps are simple, data-driven '
+            'applications described as a single JSON spec. Help the user edit their spec.';
+      }
+      final prompt = buildEditPrompt(_prettyCurrentSpec, instruction, basePrompt);
+      final provider = ai.makeProvider(providerName);
+      final response = await provider.sendMessage(
+        prompt.system,
+        const <ai.Message>[],
+        prompt.user,
+        ai.SendOptions(model: settings.aiModel, apiKey: settings.aiApiKey),
+      );
+      final json = extractJsonSpec(response.text);
+      String pretty;
+      try {
+        const enc = JsonEncoder.withIndent('  ');
+        pretty = enc.convert(jsonDecode(json));
+      } catch (_) {
+        pretty = json;
+      }
+      if (!mounted) return;
+      setState(() => _proposedSpec = pretty);
+    } on ai.AiProviderError catch (e) {
+      if (!mounted) return;
+      setState(() => _genError = '${e.provider} ${e.status ?? ''}: ${e.message}'.trim());
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _genError = e.toString());
+    } finally {
+      if (mounted) setState(() => _generating = false);
+    }
+  }
+
+  Future<void> _handleApply() async {
+    final proposed = _proposedSpec;
+    if (proposed == null) return;
+    setState(() {
+      _validationError = null;
+      _saving = true;
+    });
+
+    // Validate JSON parses, then validate via the spec parser.
+    final result = SpecParser().parse(proposed);
+    if (result.parseError != null) {
+      setState(() {
+        _validationError = result.parseError;
+        _saving = false;
+      });
+      return;
+    }
+    if (!result.isOk) {
+      final errors = result.validation.errors.map((m) => m.message).join('\n');
+      setState(() {
+        _validationError = errors.isEmpty ? 'Validation failed' : errors;
+        _saving = false;
+      });
+      return;
+    }
+
+    await widget.onSpecUpdated(proposed);
+    if (!mounted) return;
+    showOdsSnackBar(context, message: '"${widget.app.name}" updated successfully!');
+    Navigator.pop(context);
+  }
+
+  void _handleDiscard() {
+    setState(() {
+      _proposedSpec = null;
+      _validationError = null;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
+    final settings = context.watch<SettingsStore>();
+
+    if (settings.isAiConfigured) {
+      return Scaffold(
+        appBar: AppBar(title: Text('Edit with AI: ${widget.app.name}')),
+        body: _proposedSpec == null
+            ? _buildOneShotInputView(theme, colorScheme, settings)
+            : _buildOneShotDiffView(theme, colorScheme),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(title: Text('Edit ${widget.app.name}')),
@@ -2641,6 +2766,266 @@ class _EditWithAiScreenState extends State<_EditWithAiScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  // -- One-shot AI views --------------------------------------------------
+
+  Widget _buildOneShotInputView(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    SettingsStore settings,
+  ) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 720),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: colorScheme.outlineVariant),
+                ),
+                child: Text(
+                  'Using ${settings.aiProvider} · ${settings.aiModel}. '
+                  'Change in Framework Settings → AI.',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'What change do you want?',
+                style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _instructionController,
+                maxLines: 6,
+                enabled: !_generating,
+                decoration: const InputDecoration(
+                  hintText:
+                      'e.g., "add a priority field with low/medium/high options" '
+                      'or "rename the title field to headline"',
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.all(12),
+                ),
+              ),
+              if (_genError != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: colorScheme.errorContainer,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: SelectableText(
+                    _genError!,
+                    style: TextStyle(color: colorScheme.onErrorContainer),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: _generating ? null : _handleGenerate,
+                icon: _generating
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.auto_awesome, size: 18),
+                label: Text(_generating ? 'Generating…' : 'Generate'),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOneShotDiffView(ThemeData theme, ColorScheme colorScheme) {
+    final isDark = theme.brightness == Brightness.dark;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 960),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'AI proposed the following changes. Review the before/after below, '
+                  'then Apply (which validates the spec before saving) or Discard.',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
+              if (_validationError != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: colorScheme.errorContainer,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Validation failed — not saved:',
+                        style: TextStyle(
+                          color: colorScheme.onErrorContainer,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      SelectableText(
+                        _validationError!,
+                        style: TextStyle(color: colorScheme.onErrorContainer),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 16),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final wide = constraints.maxWidth > 720;
+                  final beforePane = _buildSpecPane(
+                    title: 'Current spec',
+                    content: _prettyCurrentSpec,
+                    accent: colorScheme.error.withValues(alpha: 0.6),
+                    isDark: isDark,
+                    theme: theme,
+                  );
+                  final afterPane = _buildSpecPane(
+                    title: 'Proposed spec',
+                    content: _proposedSpec ?? '',
+                    accent: Colors.green.withValues(alpha: 0.7),
+                    isDark: isDark,
+                    theme: theme,
+                  );
+                  if (wide) {
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: beforePane),
+                        const SizedBox(width: 12),
+                        Expanded(child: afterPane),
+                      ],
+                    );
+                  }
+                  return Column(
+                    children: [
+                      beforePane,
+                      const SizedBox(height: 12),
+                      afterPane,
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  FilledButton.icon(
+                    onPressed: _saving ? null : _handleApply,
+                    icon: _saving
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.check, size: 18),
+                    label: Text(_saving ? 'Saving…' : 'Apply'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: (_saving || _generating) ? null : _handleGenerate,
+                    icon: _generating
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.refresh, size: 18),
+                    label: Text(_generating ? 'Regenerating…' : 'Regenerate'),
+                  ),
+                  TextButton.icon(
+                    onPressed: _saving ? null : _handleDiscard,
+                    icon: const Icon(Icons.close, size: 18),
+                    label: const Text('Discard'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSpecPane({
+    required String title,
+    required String content,
+    required Color accent,
+    required bool isDark,
+    required ThemeData theme,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: accent),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.15),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(7)),
+            ),
+            child: Text(
+              title,
+              style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+          ),
+          Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(maxHeight: 480),
+            padding: const EdgeInsets.all(12),
+            child: SingleChildScrollView(
+              child: SelectableText(
+                content,
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 11,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
