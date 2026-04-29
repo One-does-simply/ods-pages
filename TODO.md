@@ -11,24 +11,21 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 - _No focused initiative._ Day-to-day maintenance mode: when a new
   cross-framework bug comes up, add a contract-first conformance
   scenario that pins it (CONTRIBUTING.md → "Conformance scenarios —
-  contract-first"). Conformance count: **26 scenarios × 2 drivers =
-  52 parity tests**. Test gate (Flutter 865 + React 1180+ +
+  contract-first"). Conformance count: **27 scenarios × 2 drivers =
+  54 parity tests**. Test gate (Flutter 904 + React 1180+ +
   conformance + coverage thresholds + Stryker weekly) is solid.
 
 ## Next — next 1–2 sessions
 
-- [ ] **AI Build Helper (BYO API key)** — collapse the existing
-      copy/paste "Edit with AI" loop into an in-app flow when the
-      builder has an API key configured. Two interaction modes
-      (one-shot edit + multi-turn chat), both providers (Anthropic +
-      OpenAI) from day one, diff-review gate before any spec write.
-      Spec'd in
-      [docs/adr/0003-ai-build-helper.md](docs/adr/0003-ai-build-helper.md)
-      (**draft** — open questions on streaming, conversation
-      persistence, tool-use). Estimated 4–6 sessions across both
-      frameworks; lands as a phased rollout (provider layer →
-      settings → one-shot → chat → conformance → Flutter mirror). The
-      existing 3-step copy/paste flow stays as the no-key fallback.
+- [ ] **Flutter chat panel for Edit-with-AI** — ADR-0003's chat mode
+      is React-only today; one-shot is on both. Mirror the React
+      `ChatEditFlow` in Flutter (message list + AbortController-style
+      cancellation + `<spec>...</spec>` proposal protocol + per-card
+      Apply / Discard). Reuses existing `ai_provider.dart` +
+      `ai_edit_prompt.dart`; needs a sibling `ai_chat_prompt.dart`
+      (mirror of [ai-chat-prompt.ts](Frameworks/react-web/src/engine/ai-chat-prompt.ts))
+      and a stateful chat screen. Closes the last big parity gap from
+      ADR-0003 §5 ("Flutter feature parity for chat mode").
 
 ## Docs — priority 3 (pre-public polish)
 
@@ -70,6 +67,28 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
       emitted code (see [code_generator.dart:475](Frameworks/flutter-local/lib/engine/code_generator.dart#L475)).
       Low priority because the generated app runs on *someone else's*
       machine, but worth revisiting for consistency.
+- [ ] **OS-keychain storage for AI API keys** — ADR-0003 v1 stores
+      the key plaintext (localStorage on React, `settings.json` on
+      Flutter). Move to OS-keychain (`keytar`-equivalent on web is a
+      non-starter, so React likely stays in `localStorage` or moves
+      to a server proxy; Flutter has `flutter_secure_storage`). Wants
+      its own ADR — different APIs per platform, different web/desktop
+      story, masking-on-display already in place either way.
+- [ ] **AI cost warning before send** — `estimateCost` exists on
+      both providers
+      ([ai-provider.ts](Frameworks/react-web/src/engine/ai-provider.ts) /
+      [ai_provider.dart](Frameworks/flutter-local/lib/engine/ai_provider.dart))
+      and is unit-tested, but neither screen surfaces the estimate
+      before firing the request. Add a configurable threshold (default
+      ~$0.10) — over it, show "this request is estimated at $X, send
+      anyway?" before the call. Open question per ADR-0003 §5.
+- [ ] **PII redaction before AI send** — `seedData` on a data source
+      can carry real names / emails. Currently we send the spec
+      verbatim. Add an opt-in toggle in AI Settings that runs a
+      lightweight redactor over `seedData[]` arrays before the prompt
+      is built (replace strings matching email / phone shapes with
+      placeholders). Default off; surface the disclosure inline in the
+      AI Settings panel either way. Open question per ADR-0003 §5.
 
 ## Wishlist — ideas; not scheduled
 
@@ -104,10 +123,87 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 - [ ] **Public conformance badge** — once Path B lands + the contract
       stabilizes, publish `ods-conformance` and let 3rd-party frameworks
       self-certify. Ecosystem play.
+- [ ] **Streaming AI responses** — both providers support SSE-style
+      token streaming; v1 of ADR-0003 waits for the full response.
+      Better UX on long generations (especially full-spec rewrites in
+      chat mode) at the cost of chunk parsing + cancellation plumbing
+      in both `AnthropicProvider` and `OpenAiProvider`. ADR-0003 §5
+      open question; gated on whether users actually complain about
+      latency.
+- [ ] **Tool-use / function-calling for AI** — instead of "reply with
+      the whole JSON spec", ask the model to call structured tools
+      (`addField`, `renameDataSource`, etc.). Cuts output tokens on
+      large specs and gives us a typed surface to validate before
+      apply. Cost: provider-specific tool schemas (Anthropic + OpenAI
+      diverge here), more round-trips, the proposal protocol gets
+      more complex than `<spec>...</spec>`. ADR-0003 §5 open question.
+- [ ] **Cross-session AI conversation persistence** — chat history
+      lives in component state today and dies on close. Persist per
+      app (PocketBase collection on React, SQLite table on Flutter)
+      so a builder can resume a long-running conversation. Storage +
+      privacy questions (the spec gets pasted into every turn so the
+      history accumulates copies of every revision). ADR-0003 §5
+      open question.
+- [ ] **AI cost-ceiling hard limit** — v1 only has the threshold
+      warning (see Later). A hard per-session cap that blocks further
+      requests after $N spent would protect runaway iteration loops.
+      Likely overkill until someone actually burns through their key.
+      ADR-0003 §5 open question.
 
 ---
 
 ## Done — recent (trim quarterly)
+
+### 2026-04-28 — ADR-0003 (AI Build Helper, BYO API key) shipped phases 1–6
+
+- [x] **Phase 1**: provider abstraction —
+      [ai-provider.ts](Frameworks/react-web/src/engine/ai-provider.ts) /
+      [ai_provider.dart](Frameworks/flutter-local/lib/engine/ai_provider.dart)
+      with `AnthropicProvider` (Messages API) +
+      `OpenAiProvider` (Chat Completions). Pure HTTP, transport-injected,
+      38 unit tests + 8 properties (~240 random inputs).
+- [x] **Phase 2**: AI Settings panel on both frameworks (provider radio
+      + masked key + model dropdown + Test connection). React stores in
+      `localStorage` (`ods_ai_settings`); Flutter stores in
+      `SettingsStore`. jsdom localStorage shim added to vitest setup
+      (the test environment was missing `removeItem`).
+- [x] **Phase 3**: React one-shot Edit-with-AI flow (textarea
+      instruction → AI call → diff → Apply / Regenerate / Discard).
+      `EditWithAiScreen` falls back to copy/paste when no key is
+      configured. 12 prompt-builder tests cover
+      [ai-edit-prompt.ts](Frameworks/react-web/src/engine/ai-edit-prompt.ts).
+- [x] **Phase 4**: React multi-turn chat panel —
+      [ai-chat-prompt.ts](Frameworks/react-web/src/engine/ai-chat-prompt.ts)
+      adds the `<spec>...</spec>` proposal protocol; `ChatEditFlow`
+      renders message bubbles + per-card Apply / Discard +
+      AbortController-style Stop. Fixed a "Failed to execute 'fetch' on
+      'Window': Illegal invocation" regression by binding the default
+      fetch impl to `globalThis` (regression test pinned).
+- [x] **Phase 5**: cross-framework conformance —
+      `ai:provider` capability + `AiRequestSnapshot` +
+      `simulateAiRequest` driver method on the OdsDriver contract;
+      both drivers spin up the named provider against a fake transport
+      and return the captured wire shape; **s27** pins both endpoint
+      URLs, both auth-header forms (`x-api-key:` vs `authorization:
+      Bearer`), and the per-provider messages-array shape.
+- [x] **Phase 6**: Flutter mirror of one-shot edit —
+      `_EditWithAiScreen` branches on `SettingsStore.isAiConfigured`
+      (one-shot mode shows instruction → Generate → side-by-side
+      before/after → Apply / Regenerate / Discard with spec
+      validation; copy/paste stays as the no-key fallback).
+      [ai_edit_prompt.dart](Frameworks/flutter-local/lib/engine/ai_edit_prompt.dart)
+      mirrors React's helpers (12 unit tests).
+- [x] **Build with AI** menu fixed: split the misleading "Create New"
+      (which was just a paste dialog) into a proper
+      [BuildWithAiScreen](Frameworks/react-web/src/screens/BuildWithAiScreen.tsx)
+      (one-shot AI flow when key configured, copy-prompt + paste-back
+      fallback otherwise) plus a separate "Paste JSON" entry for
+      importing existing specs.
+- Conformance count: 26 → **27 scenarios × 2 drivers = 54 parity
+      tests**. Flutter test count: 865 → 904. ADR-0003 deferrals
+      (chat panel on Flutter, OS-keychain, streaming, tool-use,
+      cross-session persistence, cost ceiling, PII redaction) tracked
+      in Next / Later / Wishlist above.
 
 ### 2026-04-26 — TDD discipline push (sessions 12+ commits)
 
