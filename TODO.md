@@ -147,6 +147,33 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 
 ## Done — recent (trim quarterly)
 
+### 2026-07-11 — Widget-test `!timersPending` flake fixed at the source
+
+- [x] **Root-caused the long-standing, load-sensitive widget-test flake**
+      (chart/list/detail/kanban/text "Renders …" tests failing ~4 at a
+      time with a shifting blame set). It was **not** the sqflite_ffi
+      interaction the harness comment blamed — it was `LogService`.
+      `DataStore.query` logs a debug line on every query; each log armed
+      a deferred 1s flush `Timer`. When a query resolved while a `pump()`
+      was active, that Timer landed in flutter_test's FakeAsync zone,
+      never fired, and stayed pending until teardown → binding's
+      `!timersPending` assertion. Real-vs-fake zone timing = the
+      flakiness.
+- [x] **Fix** ([log_service.dart](Frameworks/flutter-local/lib/engine/log_service.dart#L185)):
+      `_scheduleFlush()` no-ops when `_logFile == null` (no sink — the
+      state in every unit/widget test, since the harness boots AppEngine
+      not LogService). `_flushToStorage` already no-oped in that state,
+      so the Timer was pure leak. Production unaffected: `initialize()`
+      sets the sink and its own completion log schedules the first real
+      flush.
+- [x] **Regression test** using `fake_async`
+      ([log_service_test.dart](Frameworks/flutter-local/test/engine/log_service_test.dart))
+      asserts no Timer is pending after logging while uninitialized.
+      `fake_async` added to dev_dependencies.
+- [x] **Verified**: full `test/widget` suite run 3× consecutively —
+      42/42 pass every run, zero `!timersPending` (was ~4 failures on
+      every load run before). REGRESSION_LOG bug #12.
+
 ### 2026-07-11 — Flutter chat panel for Edit-with-AI (ADR-0003 chat-mode parity)
 
 - [x] **`ai_chat_prompt.dart`** — Dart mirror of

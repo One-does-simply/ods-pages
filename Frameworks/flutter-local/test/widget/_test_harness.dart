@@ -6,6 +6,16 @@ import 'package:provider/provider.dart';
 
 import 'package:ods_flutter_local/engine/app_engine.dart';
 
+// Note on the `!timersPending` flake (fixed 2026-07-11): DataStore.query
+// logs a debug line on every query, and LogService scheduled a deferred 1s
+// flush Timer per log. When a query resolved while a pump() was active, that
+// Timer landed in flutter_test's FakeAsync zone and stayed pending until
+// teardown, tripping `!timersPending` (load-sensitive, shifting blame set).
+// Root-caused to LogService, not this harness — fixed at the source:
+// LogService._scheduleFlush() no-ops when it has no file sink (its state in
+// tests). See test/engine/log_service_test.dart. The runAsync/pump dance
+// below is still required for the separate sqflite_ffi native-timer issue.
+
 /// Wraps [child] in a MaterialApp + Scaffold with the given [engine] exposed
 /// via Provider, so components that call `context.watch<AppEngine>()` /
 /// `context.read<AppEngine>()` can locate it.

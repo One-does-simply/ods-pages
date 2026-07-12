@@ -37,8 +37,9 @@ fix lives in
 | G5 | Template syntax mismatch (spec.md `{{}}` vs engine aggregates) | **Launch blocker** (docs) | Batch 6 B6-5 | Both | Fixed (updated spec.md) |
 | G8 | showMessage with empty message left lastMessage null | Low | Batch 6 B6-2 | React | Fixed |
 | G9 | Navigate to missing target silently succeeded | Low | Batch 6 B6-2 | Both | Fixed (logs warning) |
+| 12 | `LogService` deferred flush Timer tripped widget-test `!timersPending` (load-sensitive flake) | Medium (test reliability) | Flake investigation 2026-07-11 | Flutter | Fixed (`_scheduleFlush` no-ops when no file sink) |
 
-**Running total: 14 bugs/gaps found, 14 fixed**
+**Running total: 15 bugs/gaps found, 15 fixed**
 
 ## Design Decisions Made During Fixes
 

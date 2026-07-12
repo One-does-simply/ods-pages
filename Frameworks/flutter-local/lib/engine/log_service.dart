@@ -184,6 +184,16 @@ class LogService {
 
   void _scheduleFlush() {
     if (_flushScheduled) return;
+    // No sink configured (service not yet initialized — e.g. unit/widget
+    // tests, or app startup before initialize()). _flushToStorage would
+    // no-op anyway, so don't leave a dangling Timer. This also fixes the
+    // widget-test `!timersPending` flake: DataStore.query logs on every
+    // query, and if the deferred flush Timer is created while a pump() is
+    // active it lands in flutter_test's FakeAsync zone, where it never
+    // fires and stays pending until teardown. Buffered entries are not
+    // lost — initialize() logs on completion, which schedules the first
+    // real flush once _logFile is set.
+    if (_logFile == null) return;
     _flushScheduled = true;
     Future.delayed(_flushDelay, () {
       _flushScheduled = false;
