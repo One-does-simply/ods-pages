@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 
 import 'debug/debug_panel.dart';
 import 'engine/ai_edit_prompt.dart';
+import 'engine/ai_chat_prompt.dart';
 import 'engine/ai_provider.dart' as ai;
 import 'engine/app_engine.dart';
 import 'engine/log_service.dart';
@@ -2411,6 +2412,34 @@ class _StepTile extends StatelessWidget {
 // Edit with AI screen — copy spec, edit with chatbot, paste back
 // ---------------------------------------------------------------------------
 
+enum _AiEditMode { oneShot, chat }
+
+/// One turn in the multi-turn chat (ADR-0003 phase 4). Assistant turns may
+/// carry a [proposedSpec] (a complete pretty-printed spec pulled from the
+/// `<spec>` block); the diff card renders while it is neither applied nor
+/// discarded.
+class _ChatTurn {
+  /// 'user' | 'assistant'
+  final String role;
+  final String prose;
+  final String? proposedSpec;
+  bool applied = false;
+  bool discarded;
+  _ChatTurn({
+    required this.role,
+    required this.prose,
+    this.proposedSpec,
+    this.discarded = false,
+  });
+}
+
+/// AbortController-style cancellation for an in-flight chat request. The
+/// Dart provider's `sendMessage` has no native cancel hook, so Stop flips
+/// this flag and the completion handler drops the (now unwanted) result.
+class _ChatCancelToken {
+  bool cancelled = false;
+}
+
 class _EditWithAiScreen extends StatefulWidget {
   final LoadedAppEntry app;
   final Future<void> Function(String updatedJson) onSpecUpdated;
@@ -2428,6 +2457,9 @@ class _EditWithAiScreenState extends State<_EditWithAiScreen> {
   final _pasteController = TextEditingController();
   String? _importError;
 
+  // Mode toggle (only meaningful when SettingsStore.isAiConfigured).
+  _AiEditMode _mode = _AiEditMode.oneShot;
+
   // One-shot AI flow state (used only when SettingsStore.isAiConfigured).
   final _instructionController = TextEditingController();
   bool _generating = false;
@@ -2436,10 +2468,24 @@ class _EditWithAiScreenState extends State<_EditWithAiScreen> {
   String? _validationError;
   bool _saving = false;
 
+  // Multi-turn chat flow state (ADR-0003 phase 4).
+  final _chatInputController = TextEditingController();
+  final _chatScrollController = ScrollController();
+  final List<_ChatTurn> _turns = [];
+  // The chat operates on the live current spec — applying a proposal moves
+  // this forward so subsequent turns build on it.
+  late String _chatCurrentSpec = _prettyCurrentSpec;
+  bool _chatGenerating = false;
+  String? _chatError;
+  int? _savingTurnIndex;
+  _ChatCancelToken? _activeChatToken;
+
   @override
   void dispose() {
     _pasteController.dispose();
     _instructionController.dispose();
+    _chatInputController.dispose();
+    _chatScrollController.dispose();
     super.dispose();
   }
 
@@ -2585,6 +2631,148 @@ class _EditWithAiScreenState extends State<_EditWithAiScreen> {
     });
   }
 
+  // -- Multi-turn chat handlers -------------------------------------------
+
+  void _scrollChatToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_chatScrollController.hasClients) {
+        _chatScrollController.jumpTo(
+          _chatScrollController.position.maxScrollExtent,
+        );
+      }
+    });
+  }
+
+  Future<void> _handleSend() async {
+    final text = _chatInputController.text.trim();
+    if (text.isEmpty || _chatGenerating) return;
+
+    final settings = context.read<SettingsStore>();
+    final providerName = settings.aiProvider;
+    if (providerName == null) return;
+
+    _chatInputController.clear();
+    setState(() {
+      _turns.add(_ChatTurn(role: 'user', prose: text));
+      _chatGenerating = true;
+      _chatError = null;
+    });
+    _scrollChatToBottom();
+
+    final token = _ChatCancelToken();
+    _activeChatToken = token;
+
+    try {
+      String basePrompt;
+      try {
+        basePrompt = await rootBundle.loadString('assets/build-helper-prompt.txt');
+      } catch (_) {
+        basePrompt =
+            'You are the ODS Build Helper. ODS apps are simple, data-driven '
+            'applications described as a single JSON spec. Help the user edit their spec.';
+      }
+
+      // Conversation history the provider sees: prior user turns + prior
+      // assistant prose (re-wrapping any applied/proposed spec so context
+      // survives). Skip the just-added user turn — it's the userMessage.
+      final history = <ai.Message>[];
+      for (final t in _turns.sublist(0, _turns.length - 1)) {
+        final content = (t.role == 'assistant' && t.proposedSpec != null)
+            ? '${t.prose}\n\n<spec>${t.proposedSpec}</spec>'
+            : t.prose;
+        history.add(ai.Message(role: t.role, content: content));
+      }
+
+      final system = buildChatSystemPrompt(basePrompt, _chatCurrentSpec);
+      final provider = ai.makeProvider(providerName);
+      final response = await provider.sendMessage(
+        system,
+        history,
+        text,
+        ai.SendOptions(model: settings.aiModel, apiKey: settings.aiApiKey),
+      );
+      if (token.cancelled) return; // Stop pressed — drop the result.
+
+      final parsed = extractProposedSpec(response.text);
+      String? prettySpec;
+      if (parsed.spec != null) {
+        try {
+          const enc = JsonEncoder.withIndent('  ');
+          prettySpec = enc.convert(jsonDecode(parsed.spec!));
+        } catch (_) {
+          prettySpec = parsed.spec;
+        }
+      }
+      if (!mounted) return;
+      setState(() {
+        _turns.add(_ChatTurn(
+          role: 'assistant',
+          prose: parsed.prose,
+          proposedSpec: prettySpec,
+        ));
+      });
+      _scrollChatToBottom();
+    } on ai.AiProviderError catch (e) {
+      if (token.cancelled || !mounted) return;
+      setState(() => _chatError = '${e.provider} ${e.status ?? ''}: ${e.message}'.trim());
+    } catch (e) {
+      if (token.cancelled || !mounted) return;
+      setState(() => _chatError = e.toString());
+    } finally {
+      // Only clear the busy state if we're still the active request — Stop
+      // may have superseded us with a fresh (or null) token already.
+      if (mounted && identical(_activeChatToken, token)) {
+        setState(() => _chatGenerating = false);
+        _activeChatToken = null;
+      }
+    }
+  }
+
+  void _handleStop() {
+    _activeChatToken?.cancelled = true;
+    _activeChatToken = null;
+    if (!mounted) return;
+    setState(() {
+      _chatGenerating = false;
+      _turns.add(_ChatTurn(role: 'assistant', prose: '(stopped)', discarded: true));
+    });
+    _scrollChatToBottom();
+  }
+
+  Future<void> _handleApplyTurn(int index) async {
+    final turn = _turns[index];
+    final proposed = turn.proposedSpec;
+    if (proposed == null) return;
+
+    setState(() => _savingTurnIndex = index);
+
+    final result = SpecParser().parse(proposed);
+    if (result.parseError != null || !result.isOk) {
+      final errors = result.parseError ??
+          result.validation.errors.map((m) => m.message).join('\n');
+      if (!mounted) return;
+      setState(() => _savingTurnIndex = null);
+      showOdsSnackBar(
+        context,
+        message: 'Validation failed: ${errors.isEmpty ? 'invalid spec' : errors}',
+      );
+      return;
+    }
+
+    await widget.onSpecUpdated(proposed);
+    if (!mounted) return;
+    setState(() {
+      _savingTurnIndex = null;
+      _chatCurrentSpec = proposed;
+      turn.applied = true;
+    });
+    showOdsSnackBar(context, message: 'Applied — current spec updated');
+  }
+
+  void _handleDiscardTurn(int index) {
+    setState(() => _turns[index].discarded = true);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -2593,11 +2781,22 @@ class _EditWithAiScreenState extends State<_EditWithAiScreen> {
     final settings = context.watch<SettingsStore>();
 
     if (settings.isAiConfigured) {
+      final Widget body;
+      if (_mode == _AiEditMode.chat) {
+        body = _buildChatView(theme, colorScheme, settings);
+      } else {
+        body = _proposedSpec == null
+            ? _buildOneShotInputView(theme, colorScheme, settings)
+            : _buildOneShotDiffView(theme, colorScheme);
+      }
       return Scaffold(
         appBar: AppBar(title: Text('Edit with AI: ${widget.app.name}')),
-        body: _proposedSpec == null
-            ? _buildOneShotInputView(theme, colorScheme, settings)
-            : _buildOneShotDiffView(theme, colorScheme),
+        body: Column(
+          children: [
+            _buildModeToggle(theme, colorScheme),
+            Expanded(child: body),
+          ],
+        ),
       );
     }
 
@@ -3023,6 +3222,321 @@ class _EditWithAiScreenState extends State<_EditWithAiScreen> {
                   color: isDark ? Colors.white70 : Colors.black87,
                 ),
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // -- Mode toggle + chat views -------------------------------------------
+
+  Widget _buildModeToggle(ThemeData theme, ColorScheme colorScheme) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: SegmentedButton<_AiEditMode>(
+          segments: const [
+            ButtonSegment(
+              value: _AiEditMode.oneShot,
+              icon: Icon(Icons.auto_awesome, size: 16),
+              label: Text('One-shot'),
+            ),
+            ButtonSegment(
+              value: _AiEditMode.chat,
+              icon: Icon(Icons.chat_bubble_outline, size: 16),
+              label: Text('Chat'),
+            ),
+          ],
+          selected: {_mode},
+          onSelectionChanged: (s) => setState(() => _mode = s.first),
+          showSelectedIcon: false,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChatView(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    SettingsStore settings,
+  ) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 960),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: colorScheme.outlineVariant),
+                ),
+                child: Text(
+                  'Chat with ${settings.aiProvider} · ${settings.aiModel}. The AI sees the '
+                  'current spec on every turn and may propose changes inline. Apply or '
+                  'discard each proposal independently.',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: colorScheme.outlineVariant),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: _turns.isEmpty && !_chatGenerating
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.chat_bubble_outline,
+                                    size: 28, color: colorScheme.outline),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Ask anything — "add a priority field", "why isn\'t my '
+                                  'form submitting?", "what would a kanban view look like?"',
+                                  textAlign: TextAlign.center,
+                                  style: theme.textTheme.bodySmall
+                                      ?.copyWith(color: colorScheme.outline),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      : ListView.builder(
+                          controller: _chatScrollController,
+                          padding: const EdgeInsets.all(12),
+                          itemCount: _turns.length + (_chatGenerating ? 1 : 0),
+                          itemBuilder: (context, i) {
+                            if (i == _turns.length) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                child: Row(
+                                  children: [
+                                    const SizedBox(
+                                      width: 14,
+                                      height: 14,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text('Thinking…',
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(color: colorScheme.outline)),
+                                  ],
+                                ),
+                              );
+                            }
+                            return _buildChatTurn(i, theme, colorScheme);
+                          },
+                        ),
+                ),
+              ),
+              if (_chatError != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: colorScheme.errorContainer,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: SelectableText(
+                    _chatError!,
+                    style: TextStyle(color: colorScheme.onErrorContainer),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _chatInputController,
+                      maxLines: 3,
+                      minLines: 1,
+                      enabled: !_chatGenerating,
+                      textInputAction: TextInputAction.newline,
+                      decoration: const InputDecoration(
+                        hintText: 'Ask the AI to make a change, or just ask a question…',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.all(12),
+                        isDense: true,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  _chatGenerating
+                      ? OutlinedButton.icon(
+                          onPressed: _handleStop,
+                          icon: const Icon(Icons.stop, size: 18),
+                          label: const Text('Stop'),
+                        )
+                      : FilledButton.icon(
+                          onPressed: _handleSend,
+                          icon: const Icon(Icons.send, size: 18),
+                          label: const Text('Send'),
+                        ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChatTurn(int index, ThemeData theme, ColorScheme colorScheme) {
+    final turn = _turns[index];
+    final isUser = turn.role == 'user';
+    final isDark = theme.brightness == Brightness.dark;
+    final showDiff =
+        turn.proposedSpec != null && !turn.applied && !turn.discarded;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment:
+            isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          if (turn.prose.trim().isNotEmpty)
+            Align(
+              alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: MediaQuery.of(context).size.width * 0.72,
+                ),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isUser
+                        ? colorScheme.primary
+                        : colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    turn.prose,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: isUser
+                          ? colorScheme.onPrimary
+                          : colorScheme.onSurface,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          if (turn.proposedSpec != null && turn.applied)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text('✓ Spec change applied.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                      fontStyle: FontStyle.italic, color: colorScheme.outline)),
+            ),
+          if (turn.proposedSpec != null && turn.discarded)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text('Spec change discarded.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                      fontStyle: FontStyle.italic, color: colorScheme.outline)),
+            ),
+          if (showDiff) ...[
+            const SizedBox(height: 8),
+            _buildProposedSpecCard(index, turn, theme, colorScheme, isDark),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProposedSpecCard(
+    int index,
+    _ChatTurn turn,
+    ThemeData theme,
+    ColorScheme colorScheme,
+    bool isDark,
+  ) {
+    final saving = _savingTurnIndex == index;
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        border: Border.all(color: colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(7)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.auto_awesome, size: 14, color: colorScheme.primary),
+                const SizedBox(width: 6),
+                Text('Proposed spec change',
+                    style: theme.textTheme.labelMedium
+                        ?.copyWith(fontWeight: FontWeight.w700)),
+              ],
+            ),
+          ),
+          Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(maxHeight: 280),
+            padding: const EdgeInsets.all(12),
+            child: SingleChildScrollView(
+              child: SelectableText(
+                turn.proposedSpec!,
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 11,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
+            ),
+          ),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: colorScheme.outlineVariant)),
+            ),
+            child: Row(
+              children: [
+                FilledButton.icon(
+                  onPressed: saving ? null : () => _handleApplyTurn(index),
+                  icon: saving
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.check, size: 16),
+                  label: const Text('Apply'),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                TextButton.icon(
+                  onPressed: saving ? null : () => _handleDiscardTurn(index),
+                  icon: const Icon(Icons.close, size: 16),
+                  label: const Text('Discard'),
+                ),
+              ],
             ),
           ),
         ],

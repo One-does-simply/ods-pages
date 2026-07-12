@@ -17,15 +17,8 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 
 ## Next — next 1–2 sessions
 
-- [ ] **Flutter chat panel for Edit-with-AI** — ADR-0003's chat mode
-      is React-only today; one-shot is on both. Mirror the React
-      `ChatEditFlow` in Flutter (message list + AbortController-style
-      cancellation + `<spec>...</spec>` proposal protocol + per-card
-      Apply / Discard). Reuses existing `ai_provider.dart` +
-      `ai_edit_prompt.dart`; needs a sibling `ai_chat_prompt.dart`
-      (mirror of [ai-chat-prompt.ts](Frameworks/react-web/src/engine/ai-chat-prompt.ts))
-      and a stateful chat screen. Closes the last big parity gap from
-      ADR-0003 §5 ("Flutter feature parity for chat mode").
+- _No focused initiative._ ADR-0003 chat-mode parity closed (see Done
+  2026-07-11). Pick from Later when the next session starts.
 
 ## Docs — priority 3 (pre-public polish)
 
@@ -153,6 +146,35 @@ paths the same way REGRESSION_LOG does so the list doubles as a jump-table.
 ---
 
 ## Done — recent (trim quarterly)
+
+### 2026-07-11 — Flutter chat panel for Edit-with-AI (ADR-0003 chat-mode parity)
+
+- [x] **`ai_chat_prompt.dart`** — Dart mirror of
+      [ai-chat-prompt.ts](Frameworks/react-web/src/engine/ai-chat-prompt.ts):
+      `buildChatSystemPrompt` (base prompt + `<spec>` protocol directive
+      + current spec) and `extractProposedSpec` (splits an AI reply into
+      prose + the first complete `<spec>` block; forgiving on tag-only /
+      prose-only / malformed / multiple-block cases).
+      [ai_chat_prompt.dart](Frameworks/flutter-local/lib/engine/ai_chat_prompt.dart).
+- [x] **Chat panel on `_EditWithAiScreen`** (main.dart) — mode toggle
+      (One-shot / Chat) via `SegmentedButton`; message list with user /
+      assistant bubbles; each assistant turn carrying a `<spec>` proposal
+      renders an inline proposed-spec card with per-card Apply / Discard.
+      Apply validates via `SpecParser` then moves the live `currentSpec`
+      forward so later turns build on it; Discard closes the card.
+- [x] **AbortController-style Stop** — Dart's `sendMessage` has no native
+      cancel hook, so a `_ChatCancelToken` is flipped by Stop and the
+      completion handler drops the now-unwanted result (adds a
+      "(stopped)" turn). Guards against the finally-block clobbering a
+      superseding request.
+- [x] **11 chat-prompt tests** mirroring the React suite (+1 for
+      case-insensitive tags):
+      [ai_chat_prompt_test.dart](Frameworks/flutter-local/test/engine/ai_chat_prompt_test.dart).
+      All green; `flutter analyze` clean on the new code.
+- Closes the last big parity gap from ADR-0003 §5 — chat mode now on
+      both frameworks. Deferrals (OS-keychain, streaming, tool-use,
+      cross-session persistence, cost ceiling, PII redaction) still
+      tracked in Later / Wishlist.
 
 ### 2026-04-28 — ADR-0003 (AI Build Helper, BYO API key) shipped phases 1–6
 
